@@ -10,7 +10,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"golang.org/x/oauth2"
 )
 

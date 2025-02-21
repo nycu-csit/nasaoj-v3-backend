@@ -12,7 +12,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func GetJob(ctx context.Context, rdb *redis.Client) func(http.ResponseWriter, bunrouter.Request) error {

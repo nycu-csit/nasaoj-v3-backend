@@ -12,12 +12,12 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/backend/handlers"
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"golang.org/x/oauth2"
 
 	_ "github.com/joho/godotenv/autoload"
-	_ "gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/backend/docs"
+	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
 )
 
 //	@title			Swagger Example API

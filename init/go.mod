@@ -1,13 +1,13 @@
-module gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/init
+module gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/init
 
-replace gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models => ../models
+replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models => ../models
 
 go 1.24.0
 
 require (
 	github.com/minio/minio-go/v7 v7.0.87
 	github.com/uptrace/bun v1.2.10
-	gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models v0.0.0-00010101000000-000000000000
+	gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models v0.0.0-00010101000000-000000000000
 )
 
 require (

@@ -10,7 +10,7 @@ import (
 	"os"
 	"os/exec"
 
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func RunThread(ctx context.Context, c chan int, scheduler string, psk string) {

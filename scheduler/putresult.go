@@ -12,7 +12,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func PutResult(ctx context.Context, db *bun.DB, mc *minio.Client) func(http.ResponseWriter, bunrouter.Request) error {

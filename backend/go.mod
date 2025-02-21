@@ -1,12 +1,12 @@
-module gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/backend
+module gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend
 
-replace gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models => ../models
+replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models => ../models
 
-replace gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/backend/docs => ./docs
+replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs => ./docs
 
-replace gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/backend/handlers => ./handlers
+replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers => ./handlers
 
-replace gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/backend/middlewares => ./middlewares
+replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares => ./middlewares
 
 go 1.24.0
 
@@ -19,7 +19,7 @@ require (
 	github.com/swaggo/http-swagger/v2 v2.0.2
 	github.com/swaggo/swag v1.16.4
 	github.com/uptrace/bunrouter v1.0.22
-	gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models v0.0.0-00010101000000-000000000000
+	gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models v0.0.0-00010101000000-000000000000
 	golang.org/x/oauth2 v0.26.0
 	gopkg.in/yaml.v2 v2.4.0
 )

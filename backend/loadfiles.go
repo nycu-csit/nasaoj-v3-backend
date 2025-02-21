@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gopkg.in/yaml.v2"
 )
 

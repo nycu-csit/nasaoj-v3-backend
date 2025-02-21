@@ -1,6 +1,6 @@
-module gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/scheduler
+module gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/scheduler
 
-replace gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models => ../models
+replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models => ../models
 
 go 1.23.6
 
@@ -12,7 +12,7 @@ require (
 	github.com/uptrace/bun/dialect/pgdialect v1.2.9
 	github.com/uptrace/bun/driver/pgdriver v1.2.9
 	github.com/uptrace/bunrouter v1.0.22
-	gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models v0.0.0-00010101000000-000000000000
+	gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models v0.0.0-00010101000000-000000000000
 )
 
 require (

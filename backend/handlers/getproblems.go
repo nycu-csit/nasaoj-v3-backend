@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/ytshih/na-judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 // GetProblems
