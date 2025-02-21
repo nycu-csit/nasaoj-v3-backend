@@ -1,0 +1,49 @@
+---
+services:
+  pg:
+    image: postgres:17.2
+    environment:
+      POSTGRES_USER: poop
+      POSTGRES_PASSWORD: poop
+      POSTGRES_DB: poop
+    restart: always
+  redis:
+    image: redis/redis-stack-server:7.4.0-v3
+    restart: always
+  minio:
+    image: bitnami/minio:latest
+    environment:
+      MINIO_ROOT_USER: poop
+      MINIO_ROOT_PASSWORD: poop1145141919810
+      MINIO_SCHEME: https
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - minio:/bitnami/minio/data
+    restart: always
+  scheduler:
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: ./dockerfiles/scheduler.Dockerfile
+    env_file:
+      - path: ./scheduler/.env
+    ports:
+      - 8080:8080
+    depends_on:
+      - pg
+      - redis
+      - minio
+    restart: always
+  worker:
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: ./dockerfiles/worker.Dockerfile
+    env_file:
+      - path: ./worker/.env
+    depends_on:
+      - scheduler
+volumes:
+  minio: {}

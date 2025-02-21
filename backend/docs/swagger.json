@@ -1,0 +1,202 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Swagger Example API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {},
+        "license": {
+            "name": "WTFPL"
+        },
+        "version": "2.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/api/output": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Testcase Name",
+                        "name": "TestName",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Testcase result stdout",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/problems": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Problem"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/results": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "jwt",
+                        "name": "Cookie",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problem name",
+                        "name": "ProblemName",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/api/scores": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "jwt",
+                        "name": "Cookie",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        },
+        "/api/submit": {
+            "put": {
+                "consumes": [
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "jwt",
+                        "name": "Cookie",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Submit problem name",
+                        "name": "ProblemName",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ok",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/callback": {
+            "get": {
+                "responses": {
+                    "302": {
+                        "description": "302 Found",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "get": {
+                "description": "OAuth login endpoint",
+                "responses": {
+                    "302": {
+                        "description": "302 Found",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Problem": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "stages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Stage"
+                    }
+                }
+            }
+        },
+        "models.Stage": {
+            "type": "object",
+            "properties": {
+                "before": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "testcases": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "jwt=value, get it at /auth/login",
+            "type": "apiKey",
+            "name": "Cookie",
+            "in": "header"
+        }
+    }
+}

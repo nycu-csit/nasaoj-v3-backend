@@ -1,0 +1,127 @@
+basePath: /
+definitions:
+  models.Problem:
+    properties:
+      name:
+        type: string
+      stages:
+        items:
+          $ref: '#/definitions/models.Stage'
+        type: array
+    type: object
+  models.Stage:
+    properties:
+      before:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      testcases:
+        items:
+          type: string
+        type: array
+    type: object
+info:
+  contact: {}
+  license:
+    name: WTFPL
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "2.0"
+paths:
+  /api/output:
+    get:
+      parameters:
+      - description: Testcase Name
+        in: query
+        name: TestName
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Testcase result stdout
+          schema:
+            type: string
+  /api/problems:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Problem'
+            type: array
+      security:
+      - ApiKeyAuth: []
+  /api/results:
+    get:
+      parameters:
+      - description: jwt
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      - description: Problem name
+        in: query
+        name: ProblemName
+        required: true
+        type: string
+      responses: {}
+  /api/scores:
+    get:
+      parameters:
+      - description: jwt
+        in: header
+        name: Cookie
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: ""
+  /api/submit:
+    put:
+      consumes:
+      - text/plain
+      parameters:
+      - description: jwt
+        in: header
+        name: Cookie
+        required: true
+        type: string
+      - description: Submit problem name
+        in: body
+        name: ProblemName
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: ""
+  /auth/callback:
+    get:
+      responses:
+        "302":
+          description: 302 Found
+          schema:
+            type: ""
+  /auth/login:
+    get:
+      description: OAuth login endpoint
+      responses:
+        "302":
+          description: 302 Found
+          schema:
+            type: ""
+securityDefinitions:
+  ApiKeyAuth:
+    description: jwt=value, get it at /auth/login
+    in: header
+    name: Cookie
+    type: apiKey
+swagger: "2.0"

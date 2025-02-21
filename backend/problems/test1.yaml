@@ -1,0 +1,12 @@
+---
+name: Test HW 1
+stages:
+- name: stage1
+  testcases:
+  - testcase1
+  before:
+  - stage2
+- name: stage2
+  testcases:
+  - testcase2
+  - testcase3
