@@ -2,6 +2,7 @@ package models
 
 type StageName = string
 
+// Stage can have dependencies
 type Stage struct {
 	Testcases []Testcase        `json:"testcases" yaml:"testcases"`
 	Before    []StageName       `json:"before" yaml:"before,omitempty"`

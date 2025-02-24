@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/minio/minio-go/v7"
+	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
@@ -19,7 +21,10 @@ import (
 func PutScheduleResult(
 	ctx context.Context,
 	db *bun.DB,
+	rdb *redis.Client,
 	mc *minio.Client,
+	problems map[string]models.Problem,
+	testcases map[string]*template.Template,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	MINIO_BUCKET := os.Getenv("MINIO_BUCKET")
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -64,6 +69,38 @@ func PutScheduleResult(
 			minio.PutObjectOptions{})
 		if err != nil {
 			return fmt.Errorf("minio put output failed, %s\n", err)
+		}
+
+		jobcnt, err := rdb.HIncrBy(ctx, "jobcnt", job.Stage(), -1).Result()
+		if err != nil {
+			return fmt.Errorf("redis jobcnt HIncrBy failed, %s\n", err)
+		}
+
+		if jobcnt <= 0 {
+			submission := models.Submission{
+				Id: job.SubId,
+			}
+			err = db.NewSelect().Model(&submission).WherePK().Scan(ctx)
+			if err != nil {
+				return fmt.Errorf("submission select failed, %s\n", err)
+			}
+
+			problem := problems[submission.ProblemName]
+			stage := problem.Stages[job.StageName]
+			for _, next := range stage.Before {
+				jobdep, err := rdb.HIncrBy(ctx, "jobdep",
+					fmt.Sprintf("%d-%s", job.SubId, job.StageName), -1).Result()
+				if err != nil {
+					return fmt.Errorf("redis jobdep HIncrBy failed, %s\n", err)
+				}
+
+				if jobdep <= 0 {
+					err = utils.RunStage(ctx, rdb, problems, testcases, submission, next)
+					if err != nil {
+						return err
+					}
+				}
+			}
 		}
 
 		w.WriteHeader(http.StatusOK)

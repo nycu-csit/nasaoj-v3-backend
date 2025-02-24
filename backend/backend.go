@@ -138,7 +138,7 @@ func main() {
 	scheduleGroup := scheduler.NewGroup("/schedule").
 		Use(middlewares.ErrorHandler)
 	scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, rdb))
-	scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, db, mc))
+	scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, db, rdb, mc, problems, testcases))
 
 	go func() {
 		log.Println(http.ListenAndServe(":"+os.Getenv("SCHEDULER_PORT"), scheduler))

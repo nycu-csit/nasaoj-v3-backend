@@ -2,6 +2,7 @@ package models
 
 import "github.com/uptrace/bun"
 
+// The unassigned resource that user can bind to
 type Resource struct {
 	bun.BaseModel `bun:"table:resource"`
 	Id            int64  `bun:"id,pk,autoincrement"`
@@ -15,6 +16,7 @@ func (self Resource) User(csid string) UserResource {
 	}
 }
 
+// Resources that bind to specific users
 type UserResource struct {
 	bun.BaseModel `bun:"table:userresource"`
 	CsId          string `json:"csid" bun:"csid,pk"`

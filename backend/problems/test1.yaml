@@ -4,10 +4,13 @@ description: Test HW 1
 stages:
   stage1:
     testcases:
-      - name: poop.sh.tmpl
+      - name: test1
+        file: poop.sh.tmpl
     before:
       - stage2
   stage2:
     testcases:
-      - name: poop.sh.tmpl
-      - name: poop.sh.tmpl
+      - name: test2
+        file: poop.sh.tmpl
+      - name: test3
+        file: poop.sh.tmpl

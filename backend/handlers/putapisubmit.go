@@ -68,8 +68,11 @@ func PutSubmit(
 
 		stageDeps := make(map[string]int64)
 		for name, stage := range problem.Stages {
-			_, err = rdb.HSet(ctx, fmt.Sprintf("%s-%s-jobcnt", subId, name),
+			_, err = rdb.HSet(ctx, "jobcnt", fmt.Sprintf("%d-%s", subId, name),
 				len(stage.Testcases)).Result()
+			if err != nil {
+				return fmt.Errorf("redis set failed, %s\n", err)
+			}
 			for _, next := range stage.Before {
 				stageDeps[next] += 1
 			}
@@ -83,9 +86,11 @@ func PutSubmit(
 					return err
 				}
 			} else {
-				_, err = rdb.HSet(ctx,
-					fmt.Sprintf("%s-%s-depcnt", subId, name),
+				_, err = rdb.HSet(ctx, "depcnt", fmt.Sprintf("%d-%s", subId, name),
 					stageDeps[name]).Result()
+				if err != nil {
+					return fmt.Errorf("redis set failed, %s\n", err)
+				}
 			}
 		}
 

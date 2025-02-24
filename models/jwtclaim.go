@@ -4,6 +4,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// JWT fields
 type JWTClaim struct {
 	jwt.RegisteredClaims
 	CsId   string   `json:"csid" bun:"csid,pk"`

@@ -42,7 +42,7 @@ func RunStage(
 			args[key] = val
 		}
 		b := bytes.NewBufferString("")
-		err = testcases[testcase.Name].Execute(b, submission.Args)
+		err = testcases[testcase.File].Execute(b, submission.Args)
 		if err != nil {
 			return fmt.Errorf("template execute failed, %s\n", err)
 		}

@@ -288,8 +288,14 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "file": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
+                },
+                "weight": {
+                    "type": "integer"
                 }
             }
         }

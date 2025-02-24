@@ -1,5 +1,6 @@
 package models
 
+// The minimal unit to submit
 type Problem struct {
 	Name   string            `json:"name" yaml:"name"`
 	Stages map[string]Stage  `json:"stages" yaml:"stages"`

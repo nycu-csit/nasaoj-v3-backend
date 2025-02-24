@@ -79,8 +79,12 @@ definitions:
         additionalProperties:
           type: string
         type: object
+      file:
+        type: string
       name:
         type: string
+      weight:
+        type: integer
     type: object
 info:
   contact: {}

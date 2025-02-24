@@ -1,8 +1,11 @@
 package models
 
+import "github.com/uptrace/bun"
+
 type Submission struct {
-	Id          int64  `json:"id" bun:"id,pk,autoincrement"`
-	ProblemName string `json:"problemname" bun:"problemname"`
+	bun.BaseModel `bun:"table:submission"`
+	Id            int64  `json:"id" bun:"id,pk,autoincrement"`
+	ProblemName   string `json:"problemname" bun:"problemname"`
 
 	CsId string            `json:"csid" bun:"csid"`
 	Sat  int64             `json:"sat" bun:"sat"` // Submit time
