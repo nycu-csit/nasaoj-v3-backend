@@ -23,16 +23,30 @@ const docTemplate = `{
             "get": {
                 "parameters": [
                     {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
                         "type": "string",
-                        "description": "Testcase Name",
-                        "name": "TestName",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
                         "in": "query",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Testcase result stdout",
+                        "description": "Testcase result output",
                         "schema": {
                             "type": "string"
                         }
@@ -68,37 +82,29 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "jwt",
-                        "name": "Cookie",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Problem name",
-                        "name": "ProblemName",
+                        "name": "problem",
                         "in": "query",
                         "required": true
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "Last submission to the problem",
+                        "schema": {
+                            "$ref": "#/definitions/models.Submission"
+                        }
+                    }
+                }
             }
         },
         "/api/scores": {
             "get": {
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "jwt",
-                        "name": "Cookie",
-                        "in": "header"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": ""
+                            "$ref": "#/definitions/handlers.GetScoresPayload"
                         }
                     }
                 }
@@ -106,17 +112,15 @@ const docTemplate = `{
         },
         "/api/submit": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "consumes": [
                     "text/plain"
                 ],
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "jwt",
-                        "name": "Cookie",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "Submit problem name",
                         "name": "ProblemName",
@@ -129,9 +133,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "ok",
+                        "description": "OK",
                         "schema": {
-                            "type": ""
+                            "$ref": "#/definitions/models.Submission"
                         }
                     }
                 }
@@ -164,15 +168,59 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.GetScoresPayload": {
+            "type": "object",
+            "properties": {
+                "csid": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.Job": {
+            "type": "object",
+            "properties": {
+                "eat": {
+                    "description": "Executed time",
+                    "type": "integer"
+                },
+                "output": {
+                    "type": "string"
+                },
+                "retcode": {
+                    "type": "integer"
+                },
+                "stagename": {
+                    "type": "string"
+                },
+                "subid": {
+                    "type": "integer"
+                },
+                "testcontent": {
+                    "type": "string"
+                },
+                "testname": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Problem": {
             "type": "object",
             "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
                 "stages": {
-                    "type": "array",
-                    "items": {
+                    "type": "object",
+                    "additionalProperties": {
                         "$ref": "#/definitions/models.Stage"
                     }
                 }
@@ -181,20 +229,67 @@ const docTemplate = `{
         "models.Stage": {
             "type": "object",
             "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "before": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "name": {
-                    "type": "string"
-                },
                 "testcases": {
                     "type": "array",
                     "items": {
+                        "$ref": "#/definitions/models.Testcase"
+                    }
+                }
+            }
+        },
+        "models.Submission": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "csid": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Job"
+                    }
+                },
+                "problemname": {
+                    "type": "string"
+                },
+                "sat": {
+                    "description": "Submit time",
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Testcase": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         }
@@ -215,7 +310,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "Swagger Example API",
+	Title:            "NASAOJ v3",
 	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

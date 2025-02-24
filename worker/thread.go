@@ -13,9 +13,15 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-func RunThread(ctx context.Context, c chan int, scheduler string, psk string) {
+func RunThread(
+	ctx context.Context,
+	c chan int,
+	scheduler string,
+	psk string,
+) {
 	// Get job from scheduler
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/api/job", scheduler), nil)
+	req, err := http.NewRequestWithContext(
+		ctx, "GET", fmt.Sprintf("%s/schedule/job", scheduler), nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed\n")
 		c <- -8787
@@ -79,7 +85,8 @@ func RunThread(ctx context.Context, c chan int, scheduler string, psk string) {
 		return
 	}
 
-	req, err = http.NewRequestWithContext(ctx, "PUT", fmt.Sprintf("%s/api/result", scheduler), bytes.NewReader(b))
+	req, err = http.NewRequestWithContext(
+		ctx, "PUT", fmt.Sprintf("%s/schedule/result", scheduler), bytes.NewReader(b))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed, %v\n", err)
 		c <- -8787

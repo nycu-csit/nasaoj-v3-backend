@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/uptrace/bunrouter"
 )
@@ -51,6 +52,7 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 			w.WriteHeader(http.StatusForbidden)
 			fmt.Fprintf(w, "%s", err)
 		default:
+			fmt.Fprintf(os.Stderr, "%s\n", err)
 			httpErr := NewHTTPError(err)
 			w.WriteHeader(httpErr.statusCode)
 			_ = bunrouter.JSON(w, httpErr)

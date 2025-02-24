@@ -2,35 +2,42 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 	"golang.org/x/oauth2"
 
 	_ "github.com/joho/godotenv/autoload"
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
 )
 
-//	@title			Swagger Example API
+//	@title			NASAOJ v3
 //	@version		2.0
 //	@termsOfService	http://swagger.io/terms/
 
 //	@license.name	WTFPL
 //	@BasePath		/
 
-//	@Securitydefinitions.apikey	ApiKeyAuth
-//	@In							header
-//	@Name						Cookie
-//	@Description				jwt=value, get it at /auth/login
+// @Securitydefinitions.apikey	ApiKeyAuth
+// @In							header
+// @Name						Cookie
+// @Description				jwt=value, get it at /auth/login
 func main() {
 	ctx := context.Background()
 
@@ -52,27 +59,24 @@ func main() {
 		Scopes: []string{oidc.ScopeOpenID, "csid", "groups"},
 	}
 
-	/*
-		// Initialize DB instance
-		dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable",
-			os.Getenv("PG_USER"), os.Getenv("PG_PASS"),
-			os.Getenv("PG_HOST"), os.Getenv("PG_DB"))
+	// Initialize DB instance
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable",
+		os.Getenv("PG_USER"), os.Getenv("PG_PASS"),
+		os.Getenv("PG_HOST"), os.Getenv("PG_DB"))
 
-		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
-		db := bun.NewDB(sqldb, pgdialect.New())
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+	db := bun.NewDB(sqldb, pgdialect.New())
 
-		// Initialize Redis instance
-		redisdb, err := strconv.Atoi(os.Getenv("REDIS_DB"))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "REDIS_DB is not integer\n")
-			return
-		}
-		rdb := redis.NewClient(&redis.Options{
-			Addr:     os.Getenv("REDIS_HOST"),
-			Password: os.Getenv("REDIS_PASS"),
-			DB:       redisdb,
-		})
-	*/
+	// Initialize Redis instance
+	redisdb, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+	if err != nil {
+		panic(err)
+	}
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("REDIS_HOST"),
+		Password: os.Getenv("REDIS_PASS"),
+		DB:       redisdb,
+	})
 
 	// Initialize MinIO instance
 	mc, err := minio.New(os.Getenv("MINIO_HOST"), &minio.Options{
@@ -84,37 +88,60 @@ func main() {
 		Secure: false,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "MinIO init failed\n")
-		return
+		panic(err)
 	}
 
-	// Load problems and stages
-	problems, err := LoadFiles()
+	utils.InitDB(ctx, db)
+	if err != nil {
+		panic(err)
+	}
 
-	// Initialize router
-	router := bunrouter.New()
+	utils.InitMinIO(ctx, mc)
+	if err != nil {
+		panic(err)
+	}
 
-	router.GET("/swagger/*any",
+	// Load problems and testcases
+	problems, err := utils.LoadProblems(os.Getenv("PROBLEMS_DIR"))
+	if err != nil {
+		panic(err)
+	}
+	testcases, err := utils.LoadTestcases(os.Getenv("TESTCASES_DIR"))
+
+	// Initialize backend router
+	backend := bunrouter.New()
+
+	backend.GET("/swagger/*any",
 		bunrouter.HTTPHandlerFunc(
 			httpSwagger.Handler()))
 
-	authGroup := router.NewGroup("/auth").
+	authGroup := backend.NewGroup("/auth").
 		Use(middlewares.ErrorHandler)
 	authGroup.GET("/login", handlers.GetLogin(oauth2Config))
 	authGroup.GET("/callback",
-		handlers.GetCallback(ctx, oauth2Config, provider.Verifier(&oidc.Config{
+		handlers.GetCallback(ctx, db, oauth2Config, provider.Verifier(&oidc.Config{
 			ClientID: os.Getenv("OAUTH_CLIENT_ID"),
 		})))
 
-	apiGroup := router.NewGroup("/api").
+	apiGroup := backend.NewGroup("/api").
 		Use(middlewares.ErrorHandler).
-		Use(middlewares.CheckJWT)
+		Use(middlewares.CheckJWT(ctx, db))
 	apiGroup.GET("/problems", handlers.GetProblems(problems))
-	apiGroup.GET("/outputs", handlers.GetOutput(ctx, mc))
-	//router.GET("/api/results", GetResults(ctx, db))
-	//router.GET("/api/scores", GetScores(ctx, db))
+	apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, rdb, problems, testcases))
+	apiGroup.GET("/output", handlers.GetOutput(ctx, mc))
+	apiGroup.GET("/results", handlers.GetResults(ctx, db))
+	apiGroup.GET("/scores", handlers.GetScores(ctx, rdb))
 
-	//router.PUT("/api/submit", PutSubmit())
+	// Initialize scheduler router
+	scheduler := bunrouter.New()
 
-	log.Println(http.ListenAndServe(":"+os.Getenv("PORT"), router))
+	scheduleGroup := scheduler.NewGroup("/schedule").
+		Use(middlewares.ErrorHandler)
+	scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, rdb))
+	scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, db, mc))
+
+	go func() {
+		log.Println(http.ListenAndServe(":"+os.Getenv("SCHEDULER_PORT"), scheduler))
+	}()
+	log.Println(http.ListenAndServe(":"+os.Getenv("BACKEND_PORT"), backend))
 }

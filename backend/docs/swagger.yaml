@@ -1,46 +1,116 @@
 basePath: /
 definitions:
+  handlers.GetScoresPayload:
+    properties:
+      csid:
+        type: string
+      score:
+        type: number
+    type: object
+  models.Job:
+    properties:
+      eat:
+        description: Executed time
+        type: integer
+      output:
+        type: string
+      retcode:
+        type: integer
+      stagename:
+        type: string
+      subid:
+        type: integer
+      testcontent:
+        type: string
+      testname:
+        type: string
+    type: object
   models.Problem:
     properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
       name:
         type: string
       stages:
-        items:
+        additionalProperties:
           $ref: '#/definitions/models.Stage'
-        type: array
+        type: object
     type: object
   models.Stage:
     properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
       before:
         items:
           type: string
         type: array
-      name:
-        type: string
       testcases:
         items:
-          type: string
+          $ref: '#/definitions/models.Testcase'
         type: array
+    type: object
+  models.Submission:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      csid:
+        type: string
+      id:
+        type: integer
+      jobs:
+        items:
+          $ref: '#/definitions/models.Job'
+        type: array
+      problemname:
+        type: string
+      sat:
+        description: Submit time
+        type: integer
+    type: object
+  models.Testcase:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
     type: object
 info:
   contact: {}
   license:
     name: WTFPL
   termsOfService: http://swagger.io/terms/
-  title: Swagger Example API
+  title: NASAOJ v3
   version: "2.0"
 paths:
   /api/output:
     get:
       parameters:
-      - description: Testcase Name
+      - description: Submission id
         in: query
-        name: TestName
+        name: subId
+        required: true
+        type: number
+      - description: Stage name
+        in: query
+        name: stage
+        required: true
+        type: string
+      - description: Testcase name
+        in: query
+        name: testcase
         required: true
         type: string
       responses:
         "200":
-          description: Testcase result stdout
+          description: Testcase result output
           schema:
             type: string
   /api/problems:
@@ -59,39 +129,28 @@ paths:
   /api/results:
     get:
       parameters:
-      - description: jwt
-        in: header
-        name: Cookie
-        required: true
-        type: string
       - description: Problem name
         in: query
-        name: ProblemName
+        name: problem
         required: true
         type: string
-      responses: {}
+      responses:
+        "200":
+          description: Last submission to the problem
+          schema:
+            $ref: '#/definitions/models.Submission'
   /api/scores:
     get:
-      parameters:
-      - description: jwt
-        in: header
-        name: Cookie
-        type: string
       responses:
         "200":
           description: OK
           schema:
-            type: ""
+            $ref: '#/definitions/handlers.GetScoresPayload'
   /api/submit:
     put:
       consumes:
       - text/plain
       parameters:
-      - description: jwt
-        in: header
-        name: Cookie
-        required: true
-        type: string
       - description: Submit problem name
         in: body
         name: ProblemName
@@ -100,9 +159,11 @@ paths:
           type: string
       responses:
         "200":
-          description: ok
+          description: OK
           schema:
-            type: ""
+            $ref: '#/definitions/models.Submission'
+      security:
+      - ApiKeyAuth: []
   /auth/callback:
     get:
       responses:
