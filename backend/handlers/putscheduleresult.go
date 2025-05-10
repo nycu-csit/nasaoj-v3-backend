@@ -56,15 +56,22 @@ func PutScheduleResult(
 		submission := models.Submission{
 			Id: job.SubId,
 		}
-		err = db.NewSelect().Model(&submission).WherePK().Scan(ctx)
-		if err != nil {
-			return fmt.Errorf("submission select failed, %s\n", err)
-		}
 
-		submission.Jobs = append(submission.Jobs, &job)
-		_, err = db.NewUpdate().Model(&submission).WherePK().Exec(ctx)
+		err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+			err = tx.NewSelect().Model(&submission).WherePK().Scan(ctx)
+			if err != nil {
+				return fmt.Errorf("submission select failed, %s\n", err)
+			}
+
+			submission.Jobs = append(submission.Jobs, &job)
+			_, err = tx.NewUpdate().Model(&submission).WherePK().Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("submission job append failed, %s\n", err)
+			}
+			return nil
+		})
 		if err != nil {
-			return fmt.Errorf("submission job append failed, %s\n", err)
+			return fmt.Errorf("submission update tx failed, %s\n", err)
 		}
 
 		_, err = mc.PutObject(ctx, MINIO_BUCKET,
@@ -94,10 +101,21 @@ func PutScheduleResult(
 			problem := problems[submission.ProblemName]
 			stage := problem.Stages[job.StageName]
 
-			submission.Score += stage.Score
-			_, err = db.NewUpdate().Model(&submission).WherePK().Exec(ctx)
+			err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+				err = tx.NewSelect().Model(&submission).WherePK().Scan(ctx)
+				if err != nil {
+					return fmt.Errorf("submission select failed, %s\n", err)
+				}
+
+				submission.Score += stage.Score
+				_, err = tx.NewUpdate().Model(&submission).WherePK().Exec(ctx)
+				if err != nil {
+					return fmt.Errorf("submission score upd failed, %s\n", err)
+				}
+				return nil
+			})
 			if err != nil {
-				return fmt.Errorf("submission score upd failed, %s\n", err)
+				return fmt.Errorf("submission upd tx failed, %s\n", err)
 			}
 
 			for _, next := range stage.Before {
