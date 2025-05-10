@@ -15,7 +15,7 @@ import (
 func RunStage(
 	ctx context.Context,
 	rdb *redis.Client,
-	problems map[string]models.Problem,
+	problems ProblemRepository,
 	testcases map[string]*template.Template,
 	submission models.Submission,
 	stageName string,
@@ -24,7 +24,7 @@ func RunStage(
 
 	fmt.Fprintf(os.Stderr, "RunStage %s-%s\n", submission.ProblemName, stageName)
 
-	problem := problems[submission.ProblemName]
+	problem := problems[int(submission.ProblemId)]
 	args := make(map[string]string)
 	maps.Copy(args, submission.Args)
 	maps.Copy(args, problem.Stages[stageName].Args)
@@ -32,7 +32,7 @@ func RunStage(
 	fmt.Fprintf(os.Stderr, "Stage: %+v\n", problem.Stages[stageName])
 
 	for _, testcase := range problem.Stages[stageName].Testcases {
-		fmt.Fprintf(os.Stderr, "testcase: %s\n", testcase)
+		fmt.Fprintf(os.Stderr, "testcase: %v\n", testcase)
 		// Record the different pairs
 		diff := make(map[string]string)
 		for key, val := range testcase.Args {

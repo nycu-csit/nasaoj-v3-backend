@@ -91,13 +91,11 @@ func main() {
 		panic(err)
 	}
 
-	utils.InitDB(ctx, db)
-	if err != nil {
+	if err := utils.InitDB(ctx, db); err != nil {
 		panic(err)
 	}
 
-	utils.InitMinIO(ctx, mc)
-	if err != nil {
+	if err := utils.InitMinIO(ctx, mc); err != nil {
 		panic(err)
 	}
 
@@ -107,6 +105,9 @@ func main() {
 		panic(err)
 	}
 	testcases, err := utils.LoadTestcases(os.Getenv("TESTCASES_DIR"))
+	if err != nil {
+		panic(err)
+	}
 
 	// Initialize backend router
 	backend := bunrouter.New()

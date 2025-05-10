@@ -9,7 +9,7 @@ import (
 	"slices"
 
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 )
 
 // GetProblems
@@ -18,7 +18,7 @@ import (
 // @Produce	json
 // @Success	200	{object}	[]models.Problem
 // @Router		/api/problems [get]
-func GetProblems(problems map[string]models.Problem) func(http.ResponseWriter, bunrouter.Request) error {
+func GetProblems(problems utils.ProblemRepository) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/problems\n")
 

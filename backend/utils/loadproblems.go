@@ -9,12 +9,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func LoadProblems(dir string) (map[string]models.Problem, error) {
-	problems := make(map[string]models.Problem)
+type ProblemRepository = map[int]models.Problem
+
+func LoadProblems(dir string) (ProblemRepository, error) {
+	problems := make(ProblemRepository)
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		return problems, fmt.Errorf("ReadDir failed, %s\n", err)
+		return problems, fmt.Errorf("ReadDir failed, %w\n", err)
 	}
 
 	for _, file := range files {
@@ -24,7 +26,10 @@ func LoadProblems(dir string) (map[string]models.Problem, error) {
 		}
 		var problem models.Problem
 		yaml.Unmarshal(b, &problem)
-		problems[problem.Name] = problem
+		if _, isExists := problems[problem.ProblemId]; isExists {
+			return problems, fmt.Errorf("Duplicate problem id %d\n", problem.ProblemId)
+		}
+		problems[problem.ProblemId] = problem
 	}
 
 	fmt.Fprintf(os.Stderr, "problems: %+v\n", problems)
