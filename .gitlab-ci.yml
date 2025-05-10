@@ -12,11 +12,11 @@ stages:
 package_worker:
   variables:
     IMAGE_NAME: worker
-    DOCKERFILE: "dockerfiles/worker.Dockerfile"
+    KANIKO_ADDITIONAL_ARGS: '--target=worker_runtime'
   extends: .kaniko
 
 package_backend:
   variables:
     IMAGE_NAME: backend
-    DOCKERFILE: "dockerfiles/backend.Dockerfile"
+    KANIKO_ADDITIONAL_ARGS: '--target=backend_runtime'
   extends: .kaniko

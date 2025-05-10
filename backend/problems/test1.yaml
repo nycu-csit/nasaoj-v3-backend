@@ -8,6 +8,7 @@ stages:
         file: poop.sh.tmpl
     before:
       - stage2
+    score: 5
   stage2:
     testcases:
       - name: test2
