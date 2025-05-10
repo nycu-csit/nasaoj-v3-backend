@@ -6,7 +6,7 @@ import "github.com/uptrace/bun"
 type Resource struct {
 	bun.BaseModel `bun:"table:resource"`
 	Id            int64  `bun:"id,pk,autoincrement"`
-	Subnet        string `json:"subnet" bun:"subnet"`
+	Subnet        string `json:"subnet" bun:"subnet,unique"`
 }
 
 func (self Resource) User(csid string) UserResource {
@@ -20,7 +20,7 @@ func (self Resource) User(csid string) UserResource {
 type UserResource struct {
 	bun.BaseModel `bun:"table:userresource"`
 	CsId          string `json:"csid" bun:"csid,pk"`
-	Subnet        string `json:"subnet" bun:"subnet"`
+	Subnet        string `json:"subnet" bun:"subnet,unique"`
 }
 
 func (self UserResource) Map() map[string]string {

@@ -150,5 +150,6 @@ var rootCmd = &cobra.Command{
 // @Description				jwt=value, get it at /auth/login
 func main() {
 	rootCmd.AddCommand(cmd.InitDBCmd)
+	rootCmd.AddCommand(cmd.ImportUserCmd)
 	rootCmd.Execute()
 }
