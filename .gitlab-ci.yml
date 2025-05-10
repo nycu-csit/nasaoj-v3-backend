@@ -7,15 +7,14 @@ variables:
   KANIKO_CACHE_ARGS: ''
 
 stages:
-  - package-worker
-  - package-backend
+  - package
 
-package-worker:
+package_worker:
   variables:
     DOCKERFILE: "dockerfiles/worker.Dockerfile"
   extends: .kaniko
 
-package-backend:
+package_backend:
   variables:
     DOCKERFILE: "dockerfiles/backend.Dockerfile"
   extends: .kaniko
