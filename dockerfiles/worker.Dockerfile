@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/golang:1.24.3 AS build
+FROM dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main AS build
 
 WORKDIR /go/src/app
 COPY . .
