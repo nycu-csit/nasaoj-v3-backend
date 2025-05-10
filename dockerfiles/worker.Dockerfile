@@ -1,4 +1,4 @@
-FROM docker.cccr.sys/library/golang:1.24 AS build
+FROM public.ecr.aws/docker/library/golang:1.24.3 AS build
 
 WORKDIR /go/src/app
 COPY . .
