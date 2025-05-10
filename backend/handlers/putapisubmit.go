@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"text/template"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bun"
@@ -51,8 +52,10 @@ func PutSubmit(
 
 		submission := models.Submission{
 			ProblemName: problem.Name,
-			CsId:        resource.CsId,
-			Args:        make(map[string]string),
+
+			CsId:     resource.CsId,
+			SubmitAt: time.Now().Unix(),
+			Args:     make(map[string]string),
 		}
 		fmt.Fprintf(os.Stderr, "submission: %+v\n", submission)
 

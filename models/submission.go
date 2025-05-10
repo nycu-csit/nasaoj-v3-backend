@@ -7,9 +7,9 @@ type Submission struct {
 	Id            int64  `json:"id" bun:"id,pk,autoincrement"`
 	ProblemName   string `json:"problemname" bun:"problemname"`
 
-	CsId string            `json:"csid" bun:"csid"`
-	Sat  int64             `json:"sat" bun:"sat"` // Submit time
-	Args map[string]string `json:"args" bun:"args"`
+	CsId     string            `json:"csid" bun:"csid"`
+	SubmitAt int64             `json:"submitat" bun:"submitat"`
+	Args     map[string]string `json:"args" bun:"args"`
 
 	Jobs []*Job `bun:"rel:has-many,join:id=subid"`
 }
