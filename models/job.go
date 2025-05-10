@@ -16,7 +16,7 @@ type Job struct {
 	TestContent string `json:"testcontent" bun:"-"`
 	Output      string `json:"output" bun:"-"`
 	RetCode     int    `json:"retcode" bun:"retcode"`
-	Eat         int64  `json:"eat" bun:"eat"` // Executed time
+	ExecAt      int64  `json:"execat" bun:"execat"`
 }
 
 func (self Job) Id() string {

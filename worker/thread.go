@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
@@ -66,6 +67,8 @@ func RunThread(
 		c <- STATUS_BODY_READ_FAILED
 	}
 	fmt.Fprintf(os.Stderr, "job: %+v\n", job)
+
+	job.ExecAt = time.Now().Unix()
 
 	// Execute TestContent
 	out, err := runScript(ctx, job.TestContent)
