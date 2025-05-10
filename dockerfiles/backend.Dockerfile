@@ -1,4 +1,4 @@
-FROM golang:1.24 AS build
+FROM docker.cccr.sys/library/golang:1.24 AS build
 
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
