@@ -13,6 +13,18 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+const (
+	STATUS_OK                      = 0
+	STATUS_HTTP_NEW_REQUEST_FAILED = -8787
+	STATUS_HTTP_GET_FAILED         = -1
+	STATUS_JOB_QUEUE_EMPTY         = -503
+	STATUS_BODY_READ_FAILED        = -2
+	STATUS_EXEC_FAILED             = -3
+	STATUS_CMD_OUTPUT_FAILED       = -4
+	STATUS_JSON_MARSHAL_FAILED     = -5
+	STATUS_HTTP_PUT_FAILED         = -6
+)
+
 func RunThread(
 	ctx context.Context,
 	c chan int,
@@ -24,19 +36,19 @@ func RunThread(
 		ctx, "GET", fmt.Sprintf("%s/schedule/job", scheduler), nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed\n")
-		c <- -8787
+		c <- STATUS_HTTP_NEW_REQUEST_FAILED
 		return
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", psk))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http get failed\n")
-		c <- -1
+		c <- STATUS_HTTP_GET_FAILED
 		return
 	}
 	if res.StatusCode == http.StatusServiceUnavailable {
 		fmt.Fprintf(os.Stderr, "Job queue empty\n")
-		c <- -503
+		c <- STATUS_JOB_QUEUE_EMPTY
 		return
 	}
 
@@ -44,7 +56,7 @@ func RunThread(
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "body read failed\n")
-		c <- -2
+		c <- STATUS_BODY_READ_FAILED
 		return
 	}
 
@@ -56,7 +68,7 @@ func RunThread(
 	cmd := exec.CommandContext(ctx, "bash", "-")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "exec failed\n")
-		c <- -3
+		c <- STATUS_EXEC_FAILED
 		return
 	}
 
@@ -71,7 +83,7 @@ func RunThread(
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cmd output failed, %v\n", err)
-		c <- -4
+		c <- STATUS_CMD_OUTPUT_FAILED
 		return
 	}
 
@@ -81,7 +93,7 @@ func RunThread(
 	b, err = json.Marshal(job)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "json marshal failed\n")
-		c <- -5
+		c <- STATUS_JSON_MARSHAL_FAILED
 		return
 	}
 
@@ -89,7 +101,7 @@ func RunThread(
 		ctx, "PUT", fmt.Sprintf("%s/schedule/result", scheduler), bytes.NewReader(b))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed, %v\n", err)
-		c <- -8787
+		c <- STATUS_HTTP_NEW_REQUEST_FAILED
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -97,9 +109,9 @@ func RunThread(
 	res, err = http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http put failed\n")
-		c <- -6
+		c <- STATUS_HTTP_PUT_FAILED
 		return
 	}
 
-	c <- 0
+	c <- STATUS_OK
 }
