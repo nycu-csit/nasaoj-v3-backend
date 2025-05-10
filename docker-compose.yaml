@@ -8,12 +8,12 @@ services:
       POSTGRES_DB: poop
     ports:
       - 5432:5432
-    restart: always
+    restart: unless-stopped
   redis:
     image: redis/redis-stack-server:7.4.0-v3
     ports:
       - 6379:6379
-    restart: always
+    restart: unless-stopped
   minio:
     image: bitnami/minio:latest
     environment:
@@ -25,7 +25,7 @@ services:
       - 9001:9001
     volumes:
       - minio:/bitnami/minio/data
-    restart: always
+    restart: unless-stopped
   backend:
     pull_policy: build
     build:
@@ -43,7 +43,7 @@ services:
       - pg
       - minio
       - redis
-    restart: always
+    restart: unless-stopped
   worker:
     pull_policy: build
     build:
