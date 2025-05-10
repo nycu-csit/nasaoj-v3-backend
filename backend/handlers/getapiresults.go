@@ -32,7 +32,8 @@ func GetResults(ctx context.Context, db *bun.DB) func(http.ResponseWriter, bunro
 		var submission models.Submission
 		err := db.NewSelect().Model(&submission).
 			Where("csid = ?", resource.CsId).
-			Where("problemname = ?", problemName).Limit(1).Scan(ctx)
+			Where("problemname = ?", problemName).
+			Relation("Jobs").OrderExpr("id DESC").Limit(1).Scan(ctx)
 		if err != nil {
 			return fmt.Errorf("submission query failed, %s\n", err)
 		}

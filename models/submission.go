@@ -11,5 +11,7 @@ type Submission struct {
 	SubmitAt int64             `json:"submitat" bun:"submitat"`
 	Args     map[string]string `json:"args" bun:"args"`
 
+	Score int64 `json:"score" bun:"score"`
+
 	Jobs []*Job `bun:"rel:has-many,join:id=subid"`
 }

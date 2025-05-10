@@ -130,7 +130,6 @@ func main() {
 	apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, rdb, problems, testcases))
 	apiGroup.GET("/output", handlers.GetOutput(ctx, mc))
 	apiGroup.GET("/results", handlers.GetResults(ctx, db))
-	apiGroup.GET("/scores", handlers.GetScores(ctx, rdb))
 
 	// Initialize scheduler router
 	scheduler := bunrouter.New()

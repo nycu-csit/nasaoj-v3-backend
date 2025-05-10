@@ -98,18 +98,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/scores": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.GetScoresPayload"
-                        }
-                    }
-                }
-            }
-        },
         "/api/submit": {
             "put": {
                 "security": [
@@ -168,22 +156,10 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.GetScoresPayload": {
-            "type": "object",
-            "properties": {
-                "csid": {
-                    "type": "string"
-                },
-                "score": {
-                    "type": "number"
-                }
-            }
-        },
         "models.Job": {
             "type": "object",
             "properties": {
-                "eat": {
-                    "description": "Executed time",
+                "execat": {
                     "type": "integer"
                 },
                 "output": {
@@ -241,6 +217,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "score": {
+                    "type": "integer"
+                },
                 "testcases": {
                     "type": "array",
                     "items": {
@@ -273,8 +252,10 @@ const docTemplate = `{
                 "problemname": {
                     "type": "string"
                 },
-                "sat": {
-                    "description": "Submit time",
+                "score": {
+                    "type": "integer"
+                },
+                "submitat": {
                     "type": "integer"
                 }
             }
