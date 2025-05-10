@@ -1,29 +1,19 @@
 module gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend
 
-replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models => ../models
-
-replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs => ./docs
-
-replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils => ./utils
-
-replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers => ./handlers
-
-replace gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares => ./middlewares
-
 go 1.24.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/joho/godotenv v1.5.1
 	github.com/minio/minio-go/v7 v7.0.87
 	github.com/redis/go-redis/v9 v9.7.0
+	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.4
-	github.com/uptrace/bun v1.2.10
+	github.com/uptrace/bun v1.2.11
 	github.com/uptrace/bun/dialect/pgdialect v1.2.10
 	github.com/uptrace/bun/driver/pgdriver v1.2.10
 	github.com/uptrace/bunrouter v1.0.22
-	gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models v0.0.0-00010101000000-000000000000
 	golang.org/x/oauth2 v0.26.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -50,6 +40,7 @@ require (
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
+	github.com/swaggo/files v0.0.0-20220610200504-28940afbdbfe // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect

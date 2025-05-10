@@ -13,6 +13,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/redis/go-redis/v9"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
@@ -110,11 +111,9 @@ func main() {
 	// Initialize backend router
 	backend := bunrouter.New()
 
-	/*
-		backend.GET("/swagger/*any",
-			bunrouter.HTTPHandlerFunc(
-				httpSwagger.Handler()))
-	*/
+	backend.GET("/swagger/*any",
+		bunrouter.HTTPHandlerFunc(
+			httpSwagger.Handler()))
 
 	authGroup := backend.NewGroup("/auth").
 		Use(middlewares.ErrorHandler)
