@@ -26,29 +26,32 @@ services:
     volumes:
       - minio:/bitnami/minio/data
     restart: always
-#  backend:
-#    pull_policy: build
-#    build:
-#      context: .
-#      dockerfile: ./dockerfiles/backend.Dockerfile
-#    env_file:
-#      - path: ./backend/.env
-#    ports:
-#      - 8080:8080
-#      - 8081:8081
-#    depends_on:
-#      - pg
-#      - minio
-#      - redis
-#    restart: always
-#  worker:
-#    pull_policy: build
-#    build:
-#      context: .
-#      dockerfile: ./dockerfiles/worker.Dockerfile
-#    env_file:
-#      - path: ./worker/.env
-#    depends_on:
-#      - backend
+  backend:
+    pull_policy: build
+    build:
+      context: .
+      target: backend_runtime
+    env_file:
+      - path: ./backend/.env
+    ports:
+      - 8080:8080
+      - 8081:8081
+    volumes:
+      - './backend/problems:/problems'
+      - './backend/testcases:/testcases'
+    depends_on:
+      - pg
+      - minio
+      - redis
+    restart: always
+  worker:
+    pull_policy: build
+    build:
+      context: .
+      target: worker_runtime
+    env_file:
+      - path: ./worker/.env
+    depends_on:
+      - backend
 volumes:
   minio: {}

@@ -30,18 +30,19 @@ RUN CGO_ENABLED=0 go build -o /go/bin/worker
 
 #####
 
-FROM gcr.io/distroless/static-debian12 AS backend_runtime
+#FROM gcr.io/distroless/static-debian12 AS backend_runtime
+FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12-slim:main AS backend_runtime
 
-COPY --from=build /go/bin/backend /work
-WORKDIR /work
+COPY --from=build /go/bin/backend /
+WORKDIR /
 
-CMD ["/work/backend"]
+CMD ["/backend"]
 
 #####
 
 FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12-slim:main AS worker_runtime
 
-COPY --from=build /go/bin/worker /
-WORKDIR /
+COPY --from=build /go/bin/worker /work/
+WORKDIR /work
 
-CMD ["/worker"]
+CMD ["/work/worker"]
