@@ -93,6 +93,13 @@ func PutScheduleResult(
 		if jobcnt <= 0 {
 			problem := problems[submission.ProblemName]
 			stage := problem.Stages[job.StageName]
+
+			submission.Score += stage.Score
+			_, err = db.NewUpdate().Model(&submission).WherePK().Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("submission score upd failed, %s\n", err)
+			}
+
 			for _, next := range stage.Before {
 				jobdep, err := rdb.HIncrBy(ctx, "jobdep",
 					fmt.Sprintf("%d-%s", job.SubId, job.StageName), -1).Result()

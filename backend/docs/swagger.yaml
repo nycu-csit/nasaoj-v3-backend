@@ -1,16 +1,8 @@
 basePath: /
 definitions:
-  handlers.GetScoresPayload:
-    properties:
-      csid:
-        type: string
-      score:
-        type: number
-    type: object
   models.Job:
     properties:
-      eat:
-        description: Executed time
+      execat:
         type: integer
       output:
         type: string
@@ -48,6 +40,8 @@ definitions:
         items:
           type: string
         type: array
+      score:
+        type: integer
       testcases:
         items:
           $ref: '#/definitions/models.Testcase'
@@ -69,8 +63,9 @@ definitions:
         type: array
       problemname:
         type: string
-      sat:
-        description: Submit time
+      score:
+        type: integer
+      submitat:
         type: integer
     type: object
   models.Testcase:
@@ -143,13 +138,6 @@ paths:
           description: Last submission to the problem
           schema:
             $ref: '#/definitions/models.Submission'
-  /api/scores:
-    get:
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handlers.GetScoresPayload'
   /api/submit:
     put:
       consumes:
