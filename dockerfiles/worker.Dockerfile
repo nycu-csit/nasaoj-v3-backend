@@ -7,7 +7,7 @@ WORKDIR /go/src/app/worker
 RUN go mod download
 RUN CGO_ENABLED=0 go build -o /go/bin/app
 
-FROM debian:12-slim
+FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12-slim:main
 WORKDIR /work
 COPY --from=build /go/bin/app .
 COPY ./worker/ .
