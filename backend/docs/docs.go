@@ -81,9 +81,9 @@ const docTemplate = `{
             "get": {
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Problem name",
-                        "name": "problem",
+                        "type": "integer",
+                        "description": "Problem ID",
+                        "name": "problemId",
                         "in": "query",
                         "required": true
                     }
@@ -106,16 +106,16 @@ const docTemplate = `{
                     }
                 ],
                 "consumes": [
-                    "text/plain"
+                    "application/json"
                 ],
                 "parameters": [
                     {
-                        "description": "Submit problem name",
-                        "name": "ProblemName",
+                        "description": "query params",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.SubmitInput"
                         }
                     }
                 ],
@@ -156,6 +156,15 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.SubmitInput": {
+            "type": "object",
+            "properties": {
+                "problem_id": {
+                    "description": "Submit problem ID",
+                    "type": "integer"
+                }
+            }
+        },
         "models.Job": {
             "type": "object",
             "properties": {
@@ -193,6 +202,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "problemId": {
+                    "type": "integer"
                 },
                 "stages": {
                     "type": "object",
@@ -248,6 +260,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.Job"
                     }
+                },
+                "problemid": {
+                    "type": "integer"
                 },
                 "problemname": {
                     "type": "string"

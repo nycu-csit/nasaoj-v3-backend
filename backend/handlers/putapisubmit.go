@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,18 +18,23 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+type SubmitInput struct {
+	// Submit problem ID
+	ProblemId int `json:"problem_id"`
+}
+
 // PutSubmit
 //
-// @Security ApiKeyAuth
-// @Param		ProblemName	body	string	true	"Submit problem name"
-// @Accept		text/plain
-// @Success	200	{object} models.Submission
-// @Router		/api/submit [put]
+//	@Security	ApiKeyAuth
+//	@Param		request	body	SubmitInput	true	"query params"
+//	@Accept		json
+//	@Success	200	{object}	models.Submission
+//	@Router		/api/submit [put]
 func PutSubmit(
 	ctx context.Context,
 	db *bun.DB,
 	rdb *redis.Client,
-	problems map[string]models.Problem,
+	problems utils.ProblemRepository,
 	testcases map[string]*template.Template,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -39,7 +45,11 @@ func PutSubmit(
 			fmt.Fprintf(os.Stderr, "read payload error\n")
 			return err
 		}
-		problem, ok := problems[string(b[:])]
+		var submitInput SubmitInput
+		if err := json.Unmarshal(b, &submitInput); err != nil {
+			return fmt.Errorf("json unmarshal error: %w\n", err)
+		}
+		problem, ok := problems[submitInput.ProblemId]
 		if !ok {
 			return fmt.Errorf("problem not exist\n")
 		}
@@ -52,10 +62,10 @@ func PutSubmit(
 
 		submission := models.Submission{
 			ProblemName: problem.Name,
-
-			CsId:     resource.CsId,
-			SubmitAt: time.Now().Unix(),
-			Args:     make(map[string]string),
+			ProblemId:   int64(submitInput.ProblemId),
+			CsId:        resource.CsId,
+			SubmitAt:    time.Now().Unix(),
+			Args:        make(map[string]string),
 
 			Score: 0,
 		}

@@ -1,5 +1,11 @@
 basePath: /
 definitions:
+  handlers.SubmitInput:
+    properties:
+      problem_id:
+        description: Submit problem ID
+        type: integer
+    type: object
   models.Job:
     properties:
       execat:
@@ -25,6 +31,8 @@ definitions:
         type: object
       name:
         type: string
+      problemId:
+        type: integer
       stages:
         additionalProperties:
           $ref: '#/definitions/models.Stage'
@@ -61,6 +69,8 @@ definitions:
         items:
           $ref: '#/definitions/models.Job'
         type: array
+      problemid:
+        type: integer
       problemname:
         type: string
       score:
@@ -128,11 +138,11 @@ paths:
   /api/results:
     get:
       parameters:
-      - description: Problem name
+      - description: Problem ID
         in: query
-        name: problem
+        name: problemId
         required: true
-        type: string
+        type: integer
       responses:
         "200":
           description: Last submission to the problem
@@ -141,14 +151,14 @@ paths:
   /api/submit:
     put:
       consumes:
-      - text/plain
+      - application/json
       parameters:
-      - description: Submit problem name
+      - description: query params
         in: body
-        name: ProblemName
+        name: request
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/handlers.SubmitInput'
       responses:
         "200":
           description: OK

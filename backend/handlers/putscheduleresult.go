@@ -23,7 +23,7 @@ func PutScheduleResult(
 	db *bun.DB,
 	rdb *redis.Client,
 	mc *minio.Client,
-	problems map[string]models.Problem,
+	problems utils.ProblemRepository,
 	testcases map[string]*template.Template,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	MINIO_BUCKET := os.Getenv("MINIO_BUCKET")
@@ -98,7 +98,7 @@ func PutScheduleResult(
 		}
 
 		if jobcnt <= 0 {
-			problem := problems[submission.ProblemName]
+			problem := problems[int(submission.ProblemId)]
 			stage := problem.Stages[job.StageName]
 
 			err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
