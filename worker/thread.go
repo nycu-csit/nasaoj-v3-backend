@@ -53,7 +53,6 @@ func RunThread(
 	}
 
 	b, err := io.ReadAll(res.Body)
-
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "body read failed\n")
 		c <- STATUS_BODY_READ_FAILED
@@ -62,28 +61,17 @@ func RunThread(
 
 	var job models.Job
 	err = json.Unmarshal(b, &job)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "json unmarshal failed\n")
+		c <- STATUS_BODY_READ_FAILED
+	}
 	fmt.Fprintf(os.Stderr, "job: %+v\n", job)
 
 	// Execute TestContent
-	cmd := exec.CommandContext(ctx, "bash", "-")
+	out, err := runScript(ctx, job.TestContent)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "exec failed\n")
+		fmt.Fprintf(os.Stderr, "exec failed: %v\n", err)
 		c <- STATUS_EXEC_FAILED
-		return
-	}
-
-	stdin, err := cmd.StdinPipe()
-
-	go func() {
-		defer stdin.Close()
-
-		io.WriteString(stdin, job.TestContent)
-	}()
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "cmd output failed, %v\n", err)
-		c <- STATUS_CMD_OUTPUT_FAILED
 		return
 	}
 
@@ -114,4 +102,14 @@ func RunThread(
 	}
 
 	c <- STATUS_OK
+}
+
+func runScript(ctx context.Context, scripts string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "bash", "-c", scripts)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
