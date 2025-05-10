@@ -53,6 +53,20 @@ func PutScheduleResult(
 			return fmt.Errorf("db insert failed, %s\n", err)
 		}
 
+		submission := models.Submission{
+			Id: job.SubId,
+		}
+		err = db.NewSelect().Model(&submission).WherePK().Scan(ctx)
+		if err != nil {
+			return fmt.Errorf("submission select failed, %s\n", err)
+		}
+
+		submission.Jobs = append(submission.Jobs, &job)
+		_, err = db.NewUpdate().Model(&submission).WherePK().Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("submission job append failed, %s\n", err)
+		}
+
 		_, err = mc.PutObject(ctx, MINIO_BUCKET,
 			fmt.Sprintf("%s-testcase", job.Id()),
 			strings.NewReader(job.TestContent),
@@ -77,14 +91,6 @@ func PutScheduleResult(
 		}
 
 		if jobcnt <= 0 {
-			submission := models.Submission{
-				Id: job.SubId,
-			}
-			err = db.NewSelect().Model(&submission).WherePK().Scan(ctx)
-			if err != nil {
-				return fmt.Errorf("submission select failed, %s\n", err)
-			}
-
 			problem := problems[submission.ProblemName]
 			stage := problem.Stages[job.StageName]
 			for _, next := range stage.Before {
