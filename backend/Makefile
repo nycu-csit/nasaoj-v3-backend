@@ -18,3 +18,7 @@ backend: *.go handlers/*.go middlewares/*.go ../models/*.go
 
 run: swagger backend
 	go run .
+
+.PHONY: initdb
+initdb:
+	docker compose exec backend /backend initdb
