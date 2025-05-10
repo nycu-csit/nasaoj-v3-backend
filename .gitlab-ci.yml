@@ -1,0 +1,20 @@
+---
+include:
+  - project: 'devops/templates'
+    file: 'container/kaniko-build.gitlab-ci.yml'
+
+variables:
+  KANIKO_CACHE_ARGS: ''
+
+stages:
+  - package
+
+package_worker:
+  variables:
+    DOCKERFILE: "dockerfiles/worker.Dockerfile"
+  extends: .kaniko
+
+package_backend:
+  variables:
+    DOCKERFILE: "dockerfiles/backend.Dockerfile"
+  extends: .kaniko
