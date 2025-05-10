@@ -5,13 +5,13 @@ WORKDIR /go/src/app
 COPY go.work go.work.sum .
 
 RUN mkdir backend
-COPY backend/go.mod backend/go.sum backend
+COPY backend/go.mod backend/go.sum backend/
 
 RUN mkdir worker
-COPY worker/go.mod worker/go.sum worker
+COPY worker/go.mod worker/go.sum worker/
 
 RUN mkdir models
-COPY models/go.mod models/go.sum models
+COPY models/go.mod models/go.sum models/
 
 RUN go mod download
 
