@@ -32,9 +32,9 @@ func GetScheduleJob(
 		}
 
 		var res string
-		res, err = rdb.JSONGet(ctx, jobkey, "$").Result()
+		res, err = rdb.Get(ctx, jobkey).Result()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "redis JSONGet failed\n")
+			fmt.Fprintf(os.Stderr, "redis Get failed\n")
 			return nil
 		}
 		var jobs []models.Job
