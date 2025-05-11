@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
@@ -59,7 +60,9 @@ func RunStage(
 		}
 		fmt.Fprintf(os.Stderr, "job: %+v\n", job)
 
-		_, err = rdb.JSONSet(ctx, job.Id(), "$", job).Result()
+		payload, err := json.Marshal(job)
+		fmt.Fprintf(os.Stderr, "job payload: %+v\n", payload)
+		_, err = rdb.JSONSet(ctx, job.Id(), "$", payload).Result()
 		if err != nil {
 			return fmt.Errorf("redis JSONSet failed, %s\n", err)
 		}
