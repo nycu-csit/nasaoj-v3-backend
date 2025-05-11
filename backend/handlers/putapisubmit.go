@@ -94,7 +94,7 @@ func PutSubmit(
 		}
 		fmt.Fprintf(os.Stderr, "stageDeps: %+v\n", stageDeps)
 
-		for name, _ := range problem.Stages {
+		for name := range problem.Stages {
 			if _, exist := stageDeps[name]; !exist {
 				err = utils.RunStage(ctx, rdb, problems, testcases, submission, name)
 				if err != nil {
