@@ -37,13 +37,12 @@ func GetScheduleJob(
 			fmt.Fprintf(os.Stderr, "redis Get failed\n")
 			return nil
 		}
-		var jobs []models.Job
-		err = json.Unmarshal([]byte(res), &jobs)
-		if err != nil || len(jobs) < 1 {
+		var job models.Job
+		err = json.Unmarshal([]byte(res), &job)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "redis json unmarshal failed\n")
 			return nil
 		}
-		job := jobs[0]
 
 		// Reply
 		payload, err := json.Marshal(&job)

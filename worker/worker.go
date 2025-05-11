@@ -30,6 +30,7 @@ func main() {
 	}
 	for {
 		ret := <-c
+		fmt.Fprintf(os.Stderr, "thread end with status %v\n", ret)
 		go func() {
 			if ret != 0 {
 				time.Sleep(5 * time.Second)

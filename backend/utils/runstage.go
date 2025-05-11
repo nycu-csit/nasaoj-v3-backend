@@ -64,7 +64,7 @@ func RunStage(
 		if err != nil {
 			return fmt.Errorf("job JSON Marshal error, %w\n", err)
 		}
-		fmt.Fprintf(os.Stderr, "job payload: %s\n", string(payload[:]))
+		fmt.Fprintf(os.Stderr, "job %s payload: %s\n", job.Id(), string(payload[:]))
 		_, err = rdb.Set(ctx, job.Id(), payload, 0).Result()
 		if err != nil {
 			return fmt.Errorf("redis Set failed, %s\n", err)

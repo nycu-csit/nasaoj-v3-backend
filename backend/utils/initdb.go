@@ -21,12 +21,5 @@ func InitDB(ctx context.Context, db *bun.DB) error {
 		return fmt.Errorf("db reset failed, %s\n", err)
 	}
 
-	err = db.NewInsert().Model(&models.Resource{
-		Subnet: "192.168.87.0/24",
-	}).Scan(ctx)
-	if err != nil {
-		return fmt.Errorf("db init test value failed%s\n", err)
-	}
-
 	return nil
 }
