@@ -43,6 +43,7 @@ func GetProblems(problems utils.ProblemRepository) func(http.ResponseWriter, bun
 			retProblem := problemOutput{
 				Name:      problem.Name,
 				ProblemId: problem.ProblemId,
+				Stages:    make(map[string]problemOutputStage),
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{
