@@ -1,49 +1,18 @@
 basePath: /
 definitions:
-  handlers.SubmitInput:
+  handlers.problemOutput:
     properties:
-      problem_id:
-        description: Submit problem ID
-        type: integer
-    type: object
-  models.Job:
-    properties:
-      execat:
-        type: integer
-      output:
-        type: string
-      retcode:
-        type: integer
-      stagename:
-        type: string
-      subid:
-        type: integer
-      testcontent:
-        type: string
-      testname:
-        type: string
-    type: object
-  models.Problem:
-    properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
       name:
         type: string
       problemId:
         type: integer
       stages:
         additionalProperties:
-          $ref: '#/definitions/models.Stage'
+          $ref: '#/definitions/handlers.problemOutputStage'
         type: object
     type: object
-  models.Stage:
+  handlers.problemOutputStage:
     properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
       before:
         items:
           type: string
@@ -52,43 +21,61 @@ definitions:
         type: integer
       testcases:
         items:
-          $ref: '#/definitions/models.Testcase'
+          $ref: '#/definitions/handlers.problemOutputStageTestcase'
         type: array
     type: object
-  models.Submission:
+  handlers.problemOutputStageTestcase:
     properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
-      csid:
+      name:
+        type: string
+    type: object
+  handlers.resultOutput:
+    properties:
+      csId:
         type: string
       id:
         type: integer
       jobs:
         items:
-          $ref: '#/definitions/models.Job'
+          $ref: '#/definitions/handlers.resultOutputJob'
         type: array
-      problemid:
+      problemId:
         type: integer
-      problemname:
+      problemName:
         type: string
       score:
         type: integer
-      submitat:
+      submitAt:
         type: integer
     type: object
-  models.Testcase:
+  handlers.resultOutputJob:
     properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
-      file:
+      execAt:
+        type: integer
+      retCode:
+        type: integer
+      stageName:
         type: string
-      name:
+      testName:
         type: string
-      weight:
+    type: object
+  handlers.submitInput:
+    properties:
+      problemId:
+        description: Submit problem ID
+        type: integer
+    type: object
+  handlers.submitOutput:
+    properties:
+      csId:
+        type: string
+      id:
+        type: integer
+      problemId:
+        type: integer
+      problemName:
+        type: string
+      submitAt:
         type: integer
     type: object
 info:
@@ -122,6 +109,14 @@ paths:
           description: Testcase result output
           schema:
             type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
   /api/problems:
     get:
       produces:
@@ -131,8 +126,12 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Problem'
+              $ref: '#/definitions/handlers.problemOutput'
             type: array
+        "500":
+          description: Problem loading error
+          schema:
+            type: string
       security:
       - ApiKeyAuth: []
   /api/results:
@@ -147,7 +146,19 @@ paths:
         "200":
           description: Last submission to the problem
           schema:
-            $ref: '#/definitions/models.Submission'
+            $ref: '#/definitions/handlers.resultOutput'
+        "400":
+          description: Problem ID invalid
+          schema:
+            type: string
+        "401":
+          description: User resource missing
+          schema:
+            type: string
+        "404":
+          description: No submission
+          schema:
+            type: string
   /api/submit:
     put:
       consumes:
@@ -158,12 +169,24 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.SubmitInput'
+          $ref: '#/definitions/handlers.submitInput'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Submission'
+            $ref: '#/definitions/handlers.submitOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
       security:
       - ApiKeyAuth: []
   /auth/callback:

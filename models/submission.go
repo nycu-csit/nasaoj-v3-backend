@@ -5,11 +5,11 @@ import "github.com/uptrace/bun"
 type Submission struct {
 	bun.BaseModel `bun:"table:submission"`
 	Id            int64  `json:"id" bun:"id,pk,autoincrement"`
-	ProblemId     int64  `json:"problemid" bun:"problemid"`
-	ProblemName   string `json:"problemname" bun:"problemname"`
+	ProblemId     int64  `json:"problemId" bun:"problemid"`
+	ProblemName   string `json:"problemName" bun:"problemname"`
 
-	CsId     string            `json:"csid" bun:"csid"`
-	SubmitAt int64             `json:"submitat" bun:"submitat"`
+	CsId     string            `json:"csId" bun:"csid"`
+	SubmitAt int64             `json:"submitAt" bun:"submitat"`
 	Args     map[string]string `json:"args" bun:"args"`
 
 	Score int64 `json:"score" bun:"score"`

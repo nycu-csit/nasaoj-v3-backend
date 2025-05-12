@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type ProblemRepository = map[int]models.Problem
+type ProblemRepository = map[int64]models.Problem
 
 func LoadProblems(dir string) (ProblemRepository, error) {
 	problems := make(ProblemRepository)

@@ -92,13 +92,17 @@ func PutScheduleResult(
 			return fmt.Errorf("minio put output failed, %s\n", err)
 		}
 
+		if job.RetCode != 0 {
+			w.WriteHeader(http.StatusOK)
+			return nil
+		}
 		jobcnt, err := rdb.HIncrBy(ctx, "jobcnt", job.Stage(), -1).Result()
 		if err != nil {
 			return fmt.Errorf("redis jobcnt HIncrBy failed, %s\n", err)
 		}
 
 		if jobcnt <= 0 {
-			problem := problems[int(submission.ProblemId)]
+			problem := problems[submission.ProblemId]
 			stage := problem.Stages[job.StageName]
 
 			err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {

@@ -9,14 +9,14 @@ import (
 // Testcase that schedule to worker
 type Job struct {
 	bun.BaseModel `bun:"table:job"`
-	SubId         int64  `json:"subid" bun:"subid,pk"`
-	StageName     string `json:"stagename" bun:"stagename,pk"`
-	TestName      string `json:"testname" bun:"testname,pk"`
+	SubId         int64  `json:"subId" bun:"subid,pk"`
+	StageName     string `json:"stageName" bun:"stagename,pk"`
+	TestName      string `json:"testName" bun:"testname,pk"`
 
-	TestContent string `json:"testcontent" bun:"-"`
+	TestContent string `json:"testContent" bun:"-"`
 	Output      string `json:"output" bun:"-"`
-	RetCode     int    `json:"retcode" bun:"retcode"`
-	ExecAt      int64  `json:"execat" bun:"execat"`
+	RetCode     int    `json:"retCode" bun:"retcode"`
+	ExecAt      int64  `json:"execAt" bun:"execat"`
 }
 
 func (self Job) Id() string {

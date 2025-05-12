@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -20,9 +19,7 @@ var InitDBCmd = &cobra.Command{
 		ctx := context.Background()
 
 		// Initialize DB instance
-		dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable",
-			os.Getenv("PG_USER"), os.Getenv("PG_PASS"),
-			os.Getenv("PG_HOST"), os.Getenv("PG_DB"))
+		dsn := os.Getenv("PG_CONNECTION_STRING")
 
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 		db := bun.NewDB(sqldb, pgdialect.New())

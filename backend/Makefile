@@ -13,7 +13,6 @@ swagger:
 	~/go/bin/swag init -g backend.go -pdl 1
 
 backend: *.go handlers/*.go middlewares/*.go ../models/*.go
-	go mod tidy
 	go build
 
 run: swagger backend

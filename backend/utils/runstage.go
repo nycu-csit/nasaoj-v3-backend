@@ -25,7 +25,7 @@ func RunStage(
 
 	fmt.Fprintf(os.Stderr, "RunStage %s-%s\n", submission.ProblemName, stageName)
 
-	problem := problems[int(submission.ProblemId)]
+	problem := problems[submission.ProblemId]
 	args := make(map[string]string)
 	maps.Copy(args, submission.Args)
 	maps.Copy(args, problem.Stages[stageName].Args)

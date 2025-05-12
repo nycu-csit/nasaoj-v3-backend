@@ -50,6 +50,18 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -70,8 +82,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Problem"
+                                "$ref": "#/definitions/handlers.problemOutput"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -92,7 +110,25 @@ const docTemplate = `{
                     "200": {
                         "description": "Last submission to the problem",
                         "schema": {
-                            "$ref": "#/definitions/models.Submission"
+                            "$ref": "#/definitions/handlers.resultOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Problem ID invalid",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "User resource missing",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "No submission",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -115,7 +151,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.SubmitInput"
+                            "$ref": "#/definitions/handlers.submitInput"
                         }
                     }
                 ],
@@ -123,7 +159,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Submission"
+                            "$ref": "#/definitions/handlers.submitOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -156,50 +210,9 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.SubmitInput": {
+        "handlers.problemOutput": {
             "type": "object",
             "properties": {
-                "problem_id": {
-                    "description": "Submit problem ID",
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Job": {
-            "type": "object",
-            "properties": {
-                "execat": {
-                    "type": "integer"
-                },
-                "output": {
-                    "type": "string"
-                },
-                "retcode": {
-                    "type": "integer"
-                },
-                "stagename": {
-                    "type": "string"
-                },
-                "subid": {
-                    "type": "integer"
-                },
-                "testcontent": {
-                    "type": "string"
-                },
-                "testname": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Problem": {
-            "type": "object",
-            "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
                 "name": {
                     "type": "string"
                 },
@@ -209,20 +222,14 @@ const docTemplate = `{
                 "stages": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/models.Stage"
+                        "$ref": "#/definitions/handlers.problemOutputStage"
                     }
                 }
             }
         },
-        "models.Stage": {
+        "handlers.problemOutputStage": {
             "type": "object",
             "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
                 "before": {
                     "type": "array",
                     "items": {
@@ -235,21 +242,23 @@ const docTemplate = `{
                 "testcases": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Testcase"
+                        "$ref": "#/definitions/handlers.problemOutputStageTestcase"
                     }
                 }
             }
         },
-        "models.Submission": {
+        "handlers.problemOutputStageTestcase": {
             "type": "object",
             "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "csid": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.resultOutput": {
+            "type": "object",
+            "properties": {
+                "csId": {
                     "type": "string"
                 },
                 "id": {
@@ -258,39 +267,65 @@ const docTemplate = `{
                 "jobs": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Job"
+                        "$ref": "#/definitions/handlers.resultOutputJob"
                     }
                 },
-                "problemid": {
+                "problemId": {
                     "type": "integer"
                 },
-                "problemname": {
+                "problemName": {
                     "type": "string"
                 },
                 "score": {
                     "type": "integer"
                 },
-                "submitat": {
+                "submitAt": {
                     "type": "integer"
                 }
             }
         },
-        "models.Testcase": {
+        "handlers.resultOutputJob": {
             "type": "object",
             "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
+                "execAt": {
+                    "type": "integer"
                 },
-                "file": {
+                "retCode": {
+                    "type": "integer"
+                },
+                "stageName": {
                     "type": "string"
                 },
-                "name": {
+                "testName": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.submitInput": {
+            "type": "object",
+            "properties": {
+                "problemId": {
+                    "description": "Submit problem ID",
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.submitOutput": {
+            "type": "object",
+            "properties": {
+                "csId": {
                     "type": "string"
                 },
-                "weight": {
+                "id": {
+                    "type": "integer"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "problemName": {
+                    "type": "string"
+                },
+                "submitAt": {
                     "type": "integer"
                 }
             }

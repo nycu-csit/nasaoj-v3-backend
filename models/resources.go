@@ -19,7 +19,7 @@ func (self Resource) User(csid string) UserResource {
 // Resources that bind to specific users
 type UserResource struct {
 	bun.BaseModel `bun:"table:userresource"`
-	CsId          string `json:"csid" bun:"csid,pk"`
+	CsId          string `json:"csId" bun:"csid,pk"`
 	Subnet        string `json:"subnet" bun:"subnet,unique"`
 }
 

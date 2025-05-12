@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -54,9 +53,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Initialize DB instance
-		dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable",
-			os.Getenv("PG_USER"), os.Getenv("PG_PASS"),
-			os.Getenv("PG_HOST"), os.Getenv("PG_DB"))
+		dsn := os.Getenv("PG_CONNECTION_STRING")
 
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 		db := bun.NewDB(sqldb, pgdialect.New())
@@ -120,7 +117,7 @@ var rootCmd = &cobra.Command{
 			Use(middlewares.CheckJWT(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, rdb, problems, testcases))
-		apiGroup.GET("/output", handlers.GetOutput(ctx, mc))
+		apiGroup.GET("/output", handlers.GetOutput(ctx, db, mc))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db))
 
 		// Initialize scheduler router

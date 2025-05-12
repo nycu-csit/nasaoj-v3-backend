@@ -7,7 +7,7 @@ import (
 // JWT fields
 type JWTClaim struct {
 	jwt.RegisteredClaims
-	CsId   string   `json:"csid" bun:"csid,pk"`
+	CsId   string   `json:"csId" bun:"csid,pk"`
 	Groups []string `json:"groups" bun:"groups"`
 	Iat    int64    `json:"iat" bun:"iat"`
 	Exp    int64    `json:"exp" bun:"exp"`
