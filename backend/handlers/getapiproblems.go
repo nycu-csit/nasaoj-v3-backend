@@ -12,19 +12,19 @@ import (
 )
 
 type problemOutputStageTestcase struct {
-	Name string
+	Name string `json:"name"`
 }
 
 type problemOutputStage struct {
-	Before    []string
-	Score     int64
-	Testcases []problemOutputStageTestcase
+	Before    []string                     `json:"before"`
+	Score     int64                        `json:"score"`
+	Testcases []problemOutputStageTestcase `json:"testcases"`
 }
 
 type problemOutput struct {
-	Name      string
-	ProblemId int64
-	Stages    map[string]problemOutputStage
+	Name      string                        `json:"name"`
+	ProblemId int64                         `json:"problemId"`
+	Stages    map[string]problemOutputStage `json:"stages"`
 }
 
 // GetProblems
