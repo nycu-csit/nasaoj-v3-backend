@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bunrouter"
@@ -18,13 +17,13 @@ func GetScheduleJob(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		var err error
-		fmt.Fprintf(os.Stderr, "GET /schedule/job\n")
+		// fmt.Fprintf(os.Stderr, "GET /schedule/job\n")
 
 		// Get Job from redis queue
 		var jobkey string
 		jobkey, err = rdb.RPop(ctx, "queue").Result()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "redis RPop failed\n")
+			// fmt.Fprintf(os.Stderr, "redis RPop failed\n")
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprintf(w, "No job left in queue\n")
