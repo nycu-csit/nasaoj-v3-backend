@@ -32,24 +32,45 @@ func PutScheduleResult(
 
 		err = utils.Auth(req)
 		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "not authorized\n")
 			return fmt.Errorf("Authorization failed, %s\n", err)
 		}
 
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			return fmt.Errorf("IO failed, %s\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "data retrieve failed\n")
+			return fmt.Errorf("data retrieve failed, %s\n", err)
 		}
 
-		fmt.Printf("PUT /api/result\nbody: %s\n", body)
+		fmt.Fprintf(os.Stderr, "PUT /api/result\nbody: %s\n", body)
 
 		var job models.Job
 		err = json.Unmarshal(body, &job)
 		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "json unmarshal failed\n")
 			return fmt.Errorf("json unmarshal failed, %s\n", err)
+		}
+
+		subJob := fmt.Sprintf("sub-job-%s", job.SubId)
+		subJobCnt, err := rdb.HDel(ctx, subJob, job.Id()).Result()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "redis delete failed\n")
+			return fmt.Errorf("redis delete failed, %w\n", err)
+		}
+		if subJobCnt <= 0 {
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprintf(w, "job expired or not exist\n")
+			return nil
 		}
 
 		_, err = db.NewInsert().Model(&job).Exec(ctx)
 		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "db insert failed\n")
 			return fmt.Errorf("db insert failed, %s\n", err)
 		}
 

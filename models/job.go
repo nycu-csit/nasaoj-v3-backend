@@ -12,11 +12,13 @@ type Job struct {
 	SubId         int64  `json:"subId" bun:"subid,pk"`
 	StageName     string `json:"stageName" bun:"stagename,pk"`
 	TestName      string `json:"testName" bun:"testname,pk"`
+	TestContent   string `json:"testContent" bun:"-"`
+	HardTL        int64  `json:"hardtl" bun:"-"`
+	SoftTL        int64  `json:"softtl" bun:"-"`
 
-	TestContent string `json:"testContent" bun:"-"`
-	Output      string `json:"output" bun:"-"`
-	RetCode     int    `json:"retCode" bun:"retcode"`
-	ExecAt      int64  `json:"execAt" bun:"execat"`
+	Output  string `json:"output" bun:"-"`
+	RetCode int    `json:"retCode" bun:"retcode"`
+	ExecAt  int64  `json:"execAt" bun:"execat"`
 }
 
 func (self Job) Id() string {

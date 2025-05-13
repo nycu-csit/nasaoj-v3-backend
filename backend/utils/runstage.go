@@ -8,6 +8,7 @@ import (
 	"maps"
 	"os"
 	"text/template"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -57,6 +58,8 @@ func RunStage(
 			StageName:   stageName,
 			TestName:    testcase.Name,
 			TestContent: b.String(),
+			HardTL:      testcase.HardTL,
+			SoftTL:      testcase.SoftTL,
 		}
 		fmt.Fprintf(os.Stderr, "job: %+v\n", job)
 
@@ -65,13 +68,18 @@ func RunStage(
 			return fmt.Errorf("job JSON Marshal error, %w\n", err)
 		}
 		fmt.Fprintf(os.Stderr, "job %s payload: %s\n", job.Id(), string(payload[:]))
-		_, err = rdb.Set(ctx, job.Id(), payload, 0).Result()
+		_, err = rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			_ = pipe.Set(ctx, job.Id(), payload, 0)
+			_ = pipe.LPush(ctx, "queue", job.Id())
+
+			subJob := fmt.Sprintf("sub-job-%s", submission.Id)
+			_ = pipe.HSet(ctx, subJob, job.Id(), "")
+			duration := time.Duration(job.HardTL) * time.Second
+			_ = pipe.HExpire(ctx, subJob, duration, job.Id())
+			return nil
+		})
 		if err != nil {
-			return fmt.Errorf("redis Set failed, %s\n", err)
-		}
-		_, err = rdb.LPush(ctx, "queue", job.Id()).Result()
-		if err != nil {
-			return fmt.Errorf("redis LPush queue failed, %s\n", err)
+			return fmt.Errorf("redis pipeline operation failed, %w\n", err)
 		}
 	}
 

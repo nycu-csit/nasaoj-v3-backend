@@ -39,6 +39,8 @@ definitions:
         items:
           $ref: '#/definitions/handlers.resultOutputJob'
         type: array
+      pending:
+        type: integer
       problemId:
         type: integer
       problemName:

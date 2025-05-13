@@ -80,9 +80,10 @@ func PutSubmit(
 		submission := models.Submission{
 			ProblemName: problem.Name,
 			ProblemId:   input.ProblemId,
-			CsId:        resource.CsId,
-			SubmitAt:    time.Now().Unix(),
-			Args:        make(map[string]string),
+
+			CsId:     resource.CsId,
+			SubmitAt: time.Now().Unix(),
+			Args:     make(map[string]string),
 
 			Score: 0,
 		}

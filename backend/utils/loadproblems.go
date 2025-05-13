@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/creasty/defaults"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gopkg.in/yaml.v2"
 )
@@ -25,7 +26,14 @@ func LoadProblems(dir string) (ProblemRepository, error) {
 			return problems, fmt.Errorf("File '%s' read failed\n", file.Name())
 		}
 		var problem models.Problem
-		yaml.Unmarshal(b, &problem)
+		err = defaults.Set(&problem)
+		if err != nil {
+			return problems, fmt.Errorf("Problem default value set failed, %w\n", err)
+		}
+		err = yaml.Unmarshal(b, &problem)
+		if err != nil {
+			return problems, fmt.Errorf("Problem unmarshal failed, %w\n", err)
+		}
 		if _, isExists := problems[problem.ProblemId]; isExists {
 			return problems, fmt.Errorf("Duplicate problem id %d\n", problem.ProblemId)
 		}

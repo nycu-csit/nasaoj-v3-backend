@@ -270,6 +270,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/handlers.resultOutputJob"
                     }
                 },
+                "pending": {
+                    "type": "integer"
+                },
                 "problemId": {
                     "type": "integer"
                 },

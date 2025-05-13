@@ -118,7 +118,7 @@ var rootCmd = &cobra.Command{
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, rdb, problems, testcases))
 		apiGroup.GET("/output", handlers.GetOutput(ctx, db, mc))
-		apiGroup.GET("/results", handlers.GetResults(ctx, db))
+		apiGroup.GET("/results", handlers.GetResults(ctx, db, rdb))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()
