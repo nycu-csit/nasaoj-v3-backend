@@ -34,27 +34,36 @@ func GetScheduleJob(
 		var res string
 		res, err = rdb.Get(ctx, jobkey).Result()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "redis Get failed\n")
+			w.WriteHeader(http.StatusNoContent)
+			fmt.Fprintf(w, "no content\n")
 			return nil
 		}
 		var job models.Job
 		err = json.Unmarshal([]byte(res), &job)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "redis json unmarshal failed\n")
-			return nil
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "redis json unmarshal failed\n")
+			return fmt.Errorf("redis json unmarshal failed, %w\n", err)
 		}
 
 		// Reply
 		payload, err := json.Marshal(&job)
 		if err != nil {
-			fmt.Printf("json parsing failed\n")
-			return nil
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "json parsing failed\n")
+			return fmt.Errorf("json parsing failed\n")
+		}
+
+		_, err = rdb.SAdd(ctx, "jobset", job.Id()).Result()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "redis ZADD failed\n")
+			return fmt.Errorf("redis ZADD failed, %w\n", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%s", string(payload[:]))
-
 		return nil
 	}
 }

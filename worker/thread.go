@@ -27,11 +27,14 @@ const (
 )
 
 func RunThread(
-	ctx context.Context,
+	pctx context.Context,
 	c chan int,
 	scheduler string,
 	psk string,
 ) {
+	ctx, cancel := context.WithCancel(pctx)
+	defer cancel()
+
 	// Get job from scheduler
 	req, err := http.NewRequestWithContext(
 		ctx, "GET", fmt.Sprintf("%s/schedule/job", scheduler), nil)
@@ -64,7 +67,7 @@ func RunThread(
 	var job models.Job
 	err = json.Unmarshal(b, &job)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "json unmarshal failed, %w\n", err)
+		fmt.Fprintf(os.Stderr, "json unmarshal failed, %s\n", err)
 		c <- STATUS_BODY_READ_FAILED
 		return
 	}
@@ -73,7 +76,7 @@ func RunThread(
 	job.ExecAt = time.Now().Unix()
 
 	// Execute TestContent
-	out, err := runScript(ctx, job.TestContent)
+	out, err := runScript(ctx, job.TestContent, job.SoftTL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "exec failed: %v\n", err)
 		c <- STATUS_EXEC_FAILED
@@ -85,7 +88,7 @@ func RunThread(
 	// Put results to scheduler
 	b, err = json.Marshal(job)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "json marshal failed, %w\n", err)
+		fmt.Fprintf(os.Stderr, "json marshal failed, %s\n", err)
 		c <- STATUS_JSON_MARSHAL_FAILED
 		return
 	}
@@ -109,8 +112,12 @@ func RunThread(
 	c <- STATUS_OK
 }
 
-func runScript(ctx context.Context, scripts string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, "bash", "-c", scripts)
+func runScript(ctx context.Context, scripts string, tl int64) ([]byte, error) {
+	duration := time.Now().Add(time.Duration(tl) * time.Second)
+	cmdCtx, cancel := context.WithDeadline(ctx, duration)
+	defer cancel()
+
+	cmd := exec.CommandContext(cmdCtx, "bash", "-c", scripts)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
