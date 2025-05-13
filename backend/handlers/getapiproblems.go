@@ -60,7 +60,7 @@ func GetProblems(problems utils.ProblemRepository) func(http.ResponseWriter, bun
 			}
 			ret = append(ret, retProblem)
 		}
-		fmt.Fprintf(os.Stderr, "ret: %+v", ret)
+		fmt.Fprintf(os.Stderr, "ret: %+v\n", ret)
 
 		w.WriteHeader(http.StatusOK)
 		bunrouter.JSON(w, ret)

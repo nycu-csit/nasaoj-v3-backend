@@ -1,7 +1,41 @@
 ---
-include:
-  - project: 'devops/templates'
-    file: 'container/kaniko-build.gitlab-ci.yml'
+variables:
+  DOCKERFILE: "Dockerfile"
+  KANIKO_CACHE_ARGS: "--cache=true --cache-copy-layers=true --cache-ttl=24h"
+  KANIKO_ADDITIONAL_ARGS: ""
+  NASA_REGISTRY: "nasaoj-v3.it.cs.nycu.edu.tw"
+
+.kaniko:
+  stage: package
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/utils/kaniko
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - |
+      cat > /kaniko/.docker/config.json <<EOF
+      {
+        "auths": {
+          "$CI_REGISTRY": {
+            "username": "$CI_REGISTRY_USER",
+            "password": "$CI_REGISTRY_PASSWORD"
+          },
+          "$NASA_REGISTRY": {
+            "username": "$REGISTRY_USER",
+            "password": "$REGISTRY_PASS"
+          }
+        }
+      }
+      EOF
+  script:
+    - >-
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/$DOCKERFILE
+      --destination "$CI_REGISTRY_IMAGE/$IMAGE_NAME:$CI_COMMIT_REF_NAME"
+      --destination "$NASA_REGISTRY/$IMAGE_NAME:$CI_COMMIT_REF_NAME"
+      $KANIKO_CACHE_ARGS
+      $KANIKO_ADDITIONAL_ARGS
+  after_script:
+    - rm /kaniko/.docker/config.json
 
 stages:
   - package
