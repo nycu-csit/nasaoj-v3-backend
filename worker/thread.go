@@ -67,7 +67,7 @@ func RunThread(
 	var job models.Job
 	err = json.Unmarshal(b, &job)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "json unmarshal failed, %w\n", err)
+		fmt.Fprintf(os.Stderr, "json unmarshal failed, %s\n", err)
 		c <- STATUS_BODY_READ_FAILED
 		return
 	}
@@ -88,7 +88,7 @@ func RunThread(
 	// Put results to scheduler
 	b, err = json.Marshal(job)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "json marshal failed, %w\n", err)
+		fmt.Fprintf(os.Stderr, "json marshal failed, %s\n", err)
 		c <- STATUS_JSON_MARSHAL_FAILED
 		return
 	}
