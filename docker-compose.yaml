@@ -27,7 +27,6 @@ services:
       - minio:/bitnami/minio/data
     restart: unless-stopped
   backend:
-    pull_policy: build
     build:
       context: .
       target: backend_runtime
@@ -37,15 +36,14 @@ services:
       - 8080:8080
       - 8081:8081
     volumes:
-      - './backend/problems:/problems'
-      - './backend/testcases:/testcases'
+      - '../problemset/problems:/data/problems'
+      - '../problemset/testcases:/data/testcases'
     depends_on:
       - pg
       - minio
       - redis
     restart: unless-stopped
   worker:
-    pull_policy: build
     build:
       context: .
       target: worker_runtime
