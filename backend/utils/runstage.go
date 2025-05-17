@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"os"
 	"text/template"
 	"time"
@@ -27,37 +26,72 @@ func RunStage(
 	fmt.Fprintf(os.Stderr, "RunStage %s-%s\n", submission.ProblemName, stageName)
 
 	problem := problems[submission.ProblemId]
-	args := make(map[string]string)
-	maps.Copy(args, submission.Args)
-	maps.Copy(args, problem.Stages[stageName].Args)
+	stage := problem.Stages[stageName]
 
 	fmt.Fprintf(os.Stderr, "Stage: %+v\n", problem.Stages[stageName])
 
-	for _, testcase := range problem.Stages[stageName].Testcases {
+	for _, testcase := range stage.Testcases {
 		fmt.Fprintf(os.Stderr, "testcase: %v\n", testcase)
-		// Record the different pairs
-		diff := make(map[string]string)
-		for key, val := range testcase.Args {
-			if ori, exist := args[key]; exist {
-				diff[key] = ori
+		testContent := ""
+
+		args := ArgsOverlay(
+			submission.Args,
+			problem.Args,
+			stage.Args,
+			testcase.Args,
+		)
+
+		// Pre-scripts
+		for _, preScriptName := range problem.PreScripts {
+			preScriptTmpl, ok := testcases[preScriptName]
+			if !ok {
+				return fmt.Errorf("pre-script %s not exist\n", preScriptName)
 			}
-			args[key] = val
+
+			b := bytes.NewBufferString("")
+			err = preScriptTmpl.Execute(b, args)
+			if err != nil {
+				return fmt.Errorf("template execute failed, %w\n", err)
+			}
+
+			testContent += b.String()
 		}
+
+		// Testcase
+		testcaseTmpl, ok := testcases[testcase.File]
+		if !ok {
+			return fmt.Errorf("testcase %s not exist\n", testcase.File)
+		}
+
 		b := bytes.NewBufferString("")
-		err = testcases[testcase.File].Execute(b, submission.Args)
+		err = testcaseTmpl.Execute(b, args)
 		if err != nil {
-			return fmt.Errorf("template execute failed, %s\n", err)
+			return fmt.Errorf("template execute failed, %w\n", err)
 		}
-		// Restore the different pairs
-		for key, ori := range diff {
-			args[key] = ori
+
+		testContent += b.String()
+
+		// Post-scripts
+		for _, postScriptName := range problem.PostScripts {
+			postScriptTmpl, ok := testcases[postScriptName]
+			if !ok {
+				return fmt.Errorf("post-script %s not exist\n", postScriptName)
+			}
+
+			b := bytes.NewBufferString("")
+			err = postScriptTmpl.Execute(b, args)
+			if err != nil {
+				return fmt.Errorf("template execute failed, %w\n", err)
+			}
+
+			testContent += b.String()
 		}
 
 		job := models.Job{
 			SubId:       submission.Id,
 			StageName:   stageName,
 			TestName:    testcase.Name,
-			TestContent: b.String(),
+			TestContent: testContent,
 			HardTL:      testcase.HardTL,
 			SoftTL:      testcase.SoftTL,
 		}
