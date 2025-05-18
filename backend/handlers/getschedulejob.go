@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -17,47 +19,55 @@ func GetScheduleJob(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		var err error
-		// fmt.Fprintf(os.Stderr, "GET /schedule/job\n")
+		fmt.Fprintf(os.Stderr, "GET /schedule/job\n")
 
 		// Get Job from redis queue
 		var jobkey string
 		jobkey, err = rdb.RPop(ctx, "queue").Result()
 		if err != nil {
-			// fmt.Fprintf(os.Stderr, "redis RPop failed\n")
-			w.Header().Set("Content-Type", "text/plain")
-			w.WriteHeader(http.StatusServiceUnavailable)
-			fmt.Fprintf(w, "No job left in queue\n")
-			return nil
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusServiceUnavailable,
+				Message:     "no job left in queue",
+				OriginError: err,
+			}
 		}
 
 		var res string
 		res, err = rdb.Get(ctx, jobkey).Result()
 		if err != nil {
-			w.WriteHeader(http.StatusNoContent)
-			fmt.Fprintf(w, "no content\n")
-			return nil
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNoContent,
+				Message:     "no content",
+				OriginError: err,
+			}
 		}
 		var job models.Job
 		err = json.Unmarshal([]byte(res), &job)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "redis json unmarshal failed\n")
-			return fmt.Errorf("redis json unmarshal failed, %w\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "redis json unmarshal failed",
+				OriginError: err,
+			}
 		}
 
 		// Reply
 		payload, err := json.Marshal(&job)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "json parsing failed\n")
-			return fmt.Errorf("json parsing failed\n")
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "json parsing failed",
+				OriginError: err,
+			}
 		}
 
 		_, err = rdb.SAdd(ctx, "jobset", job.Id()).Result()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "redis ZADD failed\n")
-			return fmt.Errorf("redis ZADD failed, %w\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "redis ZADD failed",
+				OriginError: err,
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

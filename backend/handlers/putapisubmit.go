@@ -55,26 +55,35 @@ func PutSubmit(
 
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(os.Stderr, "read payload error\n")
-			return err
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "read payload failed",
+				OriginError: err,
+			}
 		}
 		var input submitInput
 		if err := json.Unmarshal(b, &input); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return fmt.Errorf("json unmarshal error: %w\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "json unmarshal failed",
+				OriginError: err,
+			}
 		}
 		problem, ok := problems[input.ProblemId]
 		if !ok {
-			w.WriteHeader(http.StatusBadRequest)
-			return fmt.Errorf("problem not exist\n")
+			return middlewares.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				Message:    "problem not exist",
+			}
 		}
 
 		resource, ok := req.Context().Value(
 			middlewares.UserResourceType("")).(models.UserResource)
 		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			return fmt.Errorf("user resource missing\n")
+			return middlewares.HTTPError{
+				StatusCode: http.StatusUnauthorized,
+				Message:    "user resource missing",
+			}
 		}
 
 		submission := models.Submission{
@@ -95,8 +104,11 @@ func PutSubmit(
 
 		err = db.NewInsert().Model(&submission).Scan(ctx)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return fmt.Errorf("submission insert failed%s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "submission insertion failed",
+				OriginError: err,
+			}
 		}
 		subId := submission.Id
 
@@ -105,8 +117,11 @@ func PutSubmit(
 			_, err = rdb.HSet(ctx, "jobcnt", fmt.Sprintf("%d-%s", subId, name),
 				len(stage.Testcases)).Result()
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return fmt.Errorf("redis set failed, %s\n", err)
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "redis SET failed",
+					OriginError: err,
+				}
 			}
 			for _, next := range stage.Before {
 				stageDeps[next] += 1
@@ -118,15 +133,21 @@ func PutSubmit(
 			if _, exist := stageDeps[name]; !exist {
 				err = utils.RunStage(ctx, rdb, problems, testcases, submission, name)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return err
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "RunStage failed",
+						OriginError: err,
+					}
 				}
 			} else {
 				_, err = rdb.HSet(ctx, "depcnt", fmt.Sprintf("%d-%s", subId, name),
 					stageDeps[name]).Result()
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return fmt.Errorf("redis set failed, %s\n", err)
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "redis HSET failed",
+						OriginError: err,
+					}
 				}
 			}
 		}
