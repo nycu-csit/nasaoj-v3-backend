@@ -39,6 +39,7 @@ variables:
 
 stages:
   - package
+  - deploy
 
 package_worker:
   variables:
@@ -51,3 +52,16 @@ package_backend:
     IMAGE_NAME: backend
     KANIKO_ADDITIONAL_ARGS: '--target=backend_runtime'
   extends: .kaniko
+
+deploy:
+  tags: [nasa]
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == 'true'
+  stage: deploy
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/kubectl/3.21:main
+  before_script:
+    - cp "$KUBECONFIG" /kubeconfig
+  script:
+    - >-
+      kubectl rollout restart deployment backend
+      --kubeconfig /kubeconfig --namespace nasaoj
