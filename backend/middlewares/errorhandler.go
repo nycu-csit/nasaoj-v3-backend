@@ -33,8 +33,11 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		var httpErr HTTPError
 		switch err := err.(type) {
 		case nil:
+			return nil
+
 		case HTTPError:
 			httpErr = err
+
 		default:
 			httpErr = NewHTTPError(err)
 		}
