@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"golang.org/x/oauth2"
 )
@@ -41,22 +42,38 @@ func GetCallback(
 
 		oauth2token, err := config.Exchange(ctx, req.URL.Query().Get("code"))
 		if err != nil {
-			return fmt.Errorf("oauth code exchange failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusUnauthorized,
+				Message:     "oauth code exchange failed",
+				OriginError: err,
+			}
 		}
 
 		rawIDToken, ok := oauth2token.Extra("id_token").(string)
 		if !ok {
-			return fmt.Errorf("oauth token missing, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusUnauthorized,
+				Message:     "oauth token missing",
+				OriginError: err,
+			}
 		}
 
 		idToken, err := verifier.Verify(ctx, rawIDToken)
 		if err != nil {
-			return fmt.Errorf("token verify failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusUnauthorized,
+				Message:     "token verify failed",
+				OriginError: err,
+			}
 		}
 
 		var claim Claim
 		if err := idToken.Claims(&claim); err != nil {
-			return fmt.Errorf("claims missing, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusUnauthorized,
+				Message:     "oauth claims missing",
+				OriginError: err,
+			}
 		}
 
 		jwtClaim := models.JWTClaim{
@@ -69,13 +86,21 @@ func GetCallback(
 		jwtString, err := jwtToken.SignedString(secretKey)
 
 		if err != nil {
-			return fmt.Errorf("signing failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "jwt signing failed",
+				OriginError: err,
+			}
 		}
 
 		exist, err := db.NewSelect().Model((*models.UserResource)(nil)).
 			Where("csid = ?", jwtClaim.CsId).Exists(ctx)
 		if err != nil {
-			return fmt.Errorf("query UserResource failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusUnauthorized,
+				Message:     "user not exist",
+				OriginError: err,
+			}
 		}
 		if !exist {
 			var resource models.Resource
@@ -85,13 +110,21 @@ func GetCallback(
 					db.NewSelect().Model((*models.Resource)(nil)).Column("id").Limit(1),
 				).Returning("*").Scan(ctx, &resource)
 			if err != nil {
-				return fmt.Errorf("no resource left, err: %s\n", err)
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "no user resource left",
+					OriginError: err,
+				}
 			}
 
 			user := resource.User(jwtClaim.CsId)
 			_, err = db.NewInsert().Model(&user).Exec(ctx)
 			if err != nil {
-				return fmt.Errorf("user insert failed, err: %s\n", err)
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "user create failed",
+					OriginError: err,
+				}
 			}
 		}
 

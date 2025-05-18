@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -15,14 +14,6 @@ import (
 type JWTKeyType string
 type UserResourceType string
 
-type JWTInvalidError struct {
-	Message string `json:"message"`
-}
-
-func (e JWTInvalidError) Error() string {
-	return e.Message
-}
-
 func CheckJWT(
 	ctx context.Context,
 	db *bun.DB,
@@ -33,8 +24,10 @@ func CheckJWT(
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
 			jwtCookie, err := req.Cookie("jwt")
 			if err != nil {
-				return JWTInvalidError{
-					Message: "jwt not exist",
+				return HTTPError{
+					StatusCode:  http.StatusUnauthorized,
+					Message:     "User didn't login",
+					OriginError: err,
 				}
 			}
 
@@ -44,21 +37,29 @@ func CheckJWT(
 					return []byte(JWT_SECRET), nil
 				})
 			if err != nil {
-				return JWTInvalidError{
-					Message: "jwt cannot parse",
+				return HTTPError{
+					StatusCode:  http.StatusUnauthorized,
+					Message:     "jwt cannot parse",
+					OriginError: err,
 				}
 			}
 
 			if !token.Valid {
-				return JWTInvalidError{
-					Message: "jwt invalid",
+				return HTTPError{
+					StatusCode:  http.StatusUnauthorized,
+					Message:     "jwt invalid",
+					OriginError: err,
 				}
 			}
 
 			var user models.UserResource
 			err = db.NewSelect().Model(&user).Where("csid = ?", claim.CsId).Scan(ctx)
 			if err != nil {
-				return fmt.Errorf("UserResource for csid: %s not exist\n", claim.CsId)
+				return HTTPError{
+					StatusCode:  http.StatusUnauthorized,
+					Message:     "user not exist",
+					OriginError: err,
+				}
 			}
 
 			retctx := req.Context()

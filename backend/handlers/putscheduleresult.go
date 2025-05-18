@@ -14,6 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
@@ -32,16 +33,20 @@ func PutScheduleResult(
 
 		err = utils.Auth(req)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, "not authorized\n")
-			return fmt.Errorf("Authorization failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusUnauthorized,
+				Message:     "not authorized",
+				OriginError: err,
+			}
 		}
 
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "data retrieve failed\n")
-			return fmt.Errorf("data retrieve failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "data retrieve failed",
+				OriginError: err,
+			}
 		}
 
 		fmt.Fprintf(os.Stderr, "PUT /api/result\nbody: %s\n", body)
@@ -49,29 +54,36 @@ func PutScheduleResult(
 		var job models.Job
 		err = json.Unmarshal(body, &job)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "json unmarshal failed\n")
-			return fmt.Errorf("json unmarshal failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "json unmarshal failed",
+				OriginError: err,
+			}
 		}
 
 		subJob := fmt.Sprintf("sub-job-%s", job.SubId)
 		subJobCnt, err := rdb.HDel(ctx, subJob, job.Id()).Result()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "redis delete failed\n")
-			return fmt.Errorf("redis delete failed, %w\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "redis HDEL failed",
+				OriginError: err,
+			}
 		}
 		if subJobCnt <= 0 {
-			w.WriteHeader(http.StatusForbidden)
-			fmt.Fprintf(w, "job expired or not exist\n")
-			return nil
+			return middlewares.HTTPError{
+				StatusCode: http.StatusForbidden,
+				Message:    "job expired or not exist",
+			}
 		}
 
 		_, err = db.NewInsert().Model(&job).Exec(ctx)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "db insert failed\n")
-			return fmt.Errorf("db insert failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "job insertion failed",
+				OriginError: err,
+			}
 		}
 
 		submission := models.Submission{
@@ -92,7 +104,11 @@ func PutScheduleResult(
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("submission update tx failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "submission update transaction failed",
+				OriginError: err,
+			}
 		}
 
 		_, err = mc.PutObject(ctx, MINIO_BUCKET,
@@ -101,7 +117,11 @@ func PutScheduleResult(
 			int64(len(job.TestContent)),
 			minio.PutObjectOptions{})
 		if err != nil {
-			return fmt.Errorf("minio put testcase failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "minio put testcase failed",
+				OriginError: err,
+			}
 		}
 
 		_, err = mc.PutObject(ctx, MINIO_BUCKET,
@@ -110,16 +130,25 @@ func PutScheduleResult(
 			int64(len(job.Output)),
 			minio.PutObjectOptions{})
 		if err != nil {
-			return fmt.Errorf("minio put output failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "minio put output failed",
+				OriginError: err,
+			}
 		}
 
 		if job.RetCode != 0 {
 			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "success")
 			return nil
 		}
 		jobcnt, err := rdb.HIncrBy(ctx, "jobcnt", job.Stage(), -1).Result()
 		if err != nil {
-			return fmt.Errorf("redis jobcnt HIncrBy failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "redis jobcnt HINCRBY failed",
+				OriginError: err,
+			}
 		}
 
 		if jobcnt <= 0 {
@@ -140,20 +169,32 @@ func PutScheduleResult(
 				return nil
 			})
 			if err != nil {
-				return fmt.Errorf("submission upd tx failed, %s\n", err)
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "submission update transaction failed",
+					OriginError: err,
+				}
 			}
 
 			for _, next := range stage.Before {
 				jobdep, err := rdb.HIncrBy(ctx, "jobdep",
 					fmt.Sprintf("%d-%s", job.SubId, job.StageName), -1).Result()
 				if err != nil {
-					return fmt.Errorf("redis jobdep HIncrBy failed, %s\n", err)
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "redis jobdep HINCRBY failed",
+						OriginError: err,
+					}
 				}
 
 				if jobdep <= 0 {
 					err = utils.RunStage(ctx, rdb, problems, testcases, submission, next)
 					if err != nil {
-						return err
+						return middlewares.HTTPError{
+							StatusCode:  http.StatusInternalServerError,
+							Message:     "RunStage failed",
+							OriginError: err,
+						}
 					}
 				}
 			}

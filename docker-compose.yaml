@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: poop
     ports:
       - 5432:5432
+    volumes:
+      - pg:/var/lib/postgresql/data
     restart: unless-stopped
   redis:
     image: redis/redis-stack-server:7.4.0-v3
@@ -19,7 +21,6 @@ services:
     environment:
       MINIO_ROOT_USER: poop
       MINIO_ROOT_PASSWORD: poop1145141919810
-      MINIO_SCHEME: https
     ports:
       - 9000:9000
       - 9001:9001
@@ -27,7 +28,6 @@ services:
       - minio:/bitnami/minio/data
     restart: unless-stopped
   backend:
-    pull_policy: build
     build:
       context: .
       target: backend_runtime
@@ -37,15 +37,13 @@ services:
       - 8080:8080
       - 8081:8081
     volumes:
-      - './backend/problems:/problems'
-      - './backend/testcases:/testcases'
+      - '../problemset:/data'
     depends_on:
       - pg
       - minio
       - redis
     restart: unless-stopped
   worker:
-    pull_policy: build
     build:
       context: .
       target: worker_runtime
@@ -54,4 +52,5 @@ services:
     depends_on:
       - backend
 volumes:
+  pg: {}
   minio: {}

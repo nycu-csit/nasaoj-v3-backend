@@ -36,8 +36,11 @@ func GetOutput(
 
 		subId, err := strconv.ParseInt(req.URL.Query().Get("subId"), 10, 64)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return fmt.Errorf("subId cannot convert to integer, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "subId cannot convert to integer",
+				OriginError: err,
+			}
 		}
 		stageName := req.URL.Query().Get("stage")
 		testName := req.URL.Query().Get("testcase")
@@ -45,20 +48,27 @@ func GetOutput(
 		resource, ok := req.Context().
 			Value(middlewares.UserResourceType("")).(models.UserResource)
 		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			return fmt.Errorf("user resource missing\n")
+			return middlewares.HTTPError{
+				StatusCode: http.StatusUnauthorized,
+				Message:    "user not exist",
+			}
 		}
 
 		submission := models.Submission{Id: subId}
 		err = db.NewSelect().Model(&submission).WherePK().Scan(ctx)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			return fmt.Errorf("submission id not found, %w\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNotFound,
+				Message:     "submission id not found",
+				OriginError: err,
+			}
 		}
 
 		if submission.CsId != resource.CsId {
-			w.WriteHeader(http.StatusUnauthorized)
-			return fmt.Errorf("submission owner not match")
+			return middlewares.HTTPError{
+				StatusCode: http.StatusUnauthorized,
+				Message:    "submission owner not match",
+			}
 		}
 
 		fileName := fmt.Sprintf("%d-%s-%s-output", subId, stageName, testName)
@@ -67,8 +77,11 @@ func GetOutput(
 		output, err := mc.GetObject(ctx, MINIO_BUCKET, fileName,
 			minio.GetObjectOptions{})
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			return fmt.Errorf("minio get output failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNotFound,
+				Message:     "get output failed",
+				OriginError: err,
+			}
 		}
 		defer output.Close()
 

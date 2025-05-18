@@ -54,16 +54,21 @@ func GetResults(
 		problemId64, err := strconv.ParseInt(
 			req.URL.Query().Get("problemId"), 10, 32)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return fmt.Errorf("invalid problem id: %w\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "invalid problem id",
+				OriginError: err,
+			}
 		}
 		problemId := int(problemId64)
 
 		resource, ok := req.Context().
 			Value(middlewares.UserResourceType("")).(models.UserResource)
 		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			return fmt.Errorf("user resource missing\n")
+			return middlewares.HTTPError{
+				StatusCode: http.StatusUnauthorized,
+				Message:    "user resource missing",
+			}
 		}
 
 		var submission models.Submission
@@ -72,8 +77,11 @@ func GetResults(
 			Where("problemid = ?", problemId).
 			Relation("Jobs").OrderExpr("id DESC").Limit(1).Scan(ctx)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			return fmt.Errorf("submission query failed, %s\n", err)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNotFound,
+				Message:     "submission query failed or no previous submission",
+				OriginError: err,
+			}
 		}
 
 		jobcnt, err := rdb.HLen(ctx,
