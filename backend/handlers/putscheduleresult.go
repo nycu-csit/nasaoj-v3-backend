@@ -126,8 +126,8 @@ func PutScheduleResult(
 
 		_, err = mc.PutObject(ctx, MINIO_BUCKET,
 			fmt.Sprintf("%s-output", job.Id()),
-			strings.NewReader(job.Output),
-			int64(len(job.Output)),
+			strings.NewReader(job.Stdout),
+			int64(len(job.Stdout)),
 			minio.PutObjectOptions{})
 		if err != nil {
 			return middlewares.HTTPError{
