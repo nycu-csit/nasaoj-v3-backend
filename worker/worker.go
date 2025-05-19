@@ -77,12 +77,12 @@ func main() {
 	}()
 
 	retch := make(chan int)
-	for i := int64(0); i < threads; i++ {
+	for i := int64(1); i < threads; i++ {
 		go RunJob(ctx, retch, jobin, jobout)
 	}
 	for {
+		go RunJob(ctx, retch, jobin, jobout)
 		ret := <-retch
 		fmt.Fprintf(os.Stderr, "run thread end with status %v\n", ret)
-		go RunJob(ctx, retch, jobin, jobout)
 	}
 }

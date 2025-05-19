@@ -73,4 +73,7 @@ func FetchJob(
 		ret <- STATUS_JSON_MARSHAL_FAILED
 		return
 	}
+
+	jobch <- job
+	ret <- STATUS_OK
 }
