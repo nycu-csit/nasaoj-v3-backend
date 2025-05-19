@@ -1,6 +1,10 @@
 package models
 
-import "github.com/uptrace/bun"
+import (
+	"strconv"
+
+	"github.com/uptrace/bun"
+)
 
 // The unassigned resource that user can bind to
 type Resource struct {
@@ -12,6 +16,7 @@ type Resource struct {
 func (self Resource) User(csid string) UserResource {
 	return UserResource{
 		CsId:   csid,
+		Id:     self.Id,
 		Subnet: self.Subnet,
 	}
 }
@@ -20,12 +25,14 @@ func (self Resource) User(csid string) UserResource {
 type UserResource struct {
 	bun.BaseModel `bun:"table:userresource"`
 	CsId          string `json:"csId" bun:"csid,pk"`
+	Id            int64  `json:"id" bun:"id,unique"`
 	Subnet        string `json:"subnet" bun:"subnet,unique"`
 }
 
 func (self UserResource) Map() map[string]string {
 	return map[string]string{
 		"csid":   self.CsId,
+		"id":     strconv.FormatInt(self.Id, 10),
 		"subnet": self.Subnet,
 	}
 }

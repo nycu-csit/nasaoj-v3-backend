@@ -86,6 +86,13 @@ func GetOutput(
 		defer output.Close()
 
 		b, err := io.ReadAll(output)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNotFound,
+				Message:     "get output failed",
+				OriginError: err,
+			}
+		}
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
