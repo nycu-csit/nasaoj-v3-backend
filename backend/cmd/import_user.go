@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -40,25 +41,23 @@ var ImportUserCmd = &cobra.Command{
 			for scanner.Scan() {
 				line := scanner.Text()
 				parts := strings.Split(line, ",")
-				if len(parts) != 2 {
+				if len(parts) != 3 {
 					return fmt.Errorf("invalid line format: %s", line)
 				}
-				csId := parts[0]
-				subnet := parts[1]
 
-				resource := models.Resource{
-					Subnet: subnet,
-				}
-				_, err := tx.NewInsert().Model(&resource).On("CONFLICT (subnet) DO NOTHING").Exec(ctx)
+				id, err := strconv.ParseInt(parts[1], 10, 64)
 				if err != nil {
-					return fmt.Errorf("failed to insert resource: %w", err)
+					return fmt.Errorf("failed to parse id, %s", err)
 				}
-
 				userResource := models.UserResource{
-					CsId:   csId,
-					Subnet: subnet,
+					CsId:   parts[0],
+					Id:     id,
+					Subnet: parts[2],
 				}
-				_, err = tx.NewInsert().Model(&userResource).On("CONFLICT (csid) DO NOTHING").On("CONFLICT (subnet) DO NOTHING").Exec(ctx)
+				_, err = tx.NewInsert().Model(&userResource).
+					On("CONFLICT (csid) DO NOTHING").
+					On("CONFLICT (subnet) DO NOTHING").
+					Exec(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to insert user resource: %w", err)
 				}
