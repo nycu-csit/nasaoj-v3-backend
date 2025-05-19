@@ -16,7 +16,8 @@ type Job struct {
 	HardTL        int64  `json:"hardtl" bun:"-"`
 	SoftTL        int64  `json:"softtl" bun:"-"`
 
-	Output  string `json:"output" bun:"-"`
+	Stdout  string `json:"stdout" bun:"-"`
+	Stderr  string `json:"stderr" bun:"-"`
 	RetCode int    `json:"retCode" bun:"retcode"`
 	ExecAt  int64  `json:"execAt" bun:"execat"`
 }
