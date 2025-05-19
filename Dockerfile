@@ -42,6 +42,7 @@ CMD ["/backend"]
 
 FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12-slim:main AS worker_runtime
 
+RUN apt-get update && apt-get install -y netcat-openbsd swaks
 COPY --from=build /go/bin/worker /work/
 WORKDIR /work
 
