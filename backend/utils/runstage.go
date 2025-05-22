@@ -106,7 +106,7 @@ func RunStage(
 			_ = pipe.Set(ctx, job.Id(), payload, 0)
 			_ = pipe.LPush(ctx, "queue", job.Id())
 
-			subJob := fmt.Sprintf("sub-job-%s", submission.Id)
+			subJob := fmt.Sprintf("sub-job-%d", submission.Id)
 			_ = pipe.HSet(ctx, subJob, job.Id(), "")
 			duration := time.Duration(job.HardTL) * time.Second
 			_ = pipe.HExpire(ctx, subJob, duration, job.Id())

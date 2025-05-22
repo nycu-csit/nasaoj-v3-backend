@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type ProblemRepository = map[int64]models.Problem
@@ -37,25 +37,8 @@ func LoadProblems(dir string) (ProblemRepository, error) {
 				return fmt.Errorf("Duplicate problem id %d\b", problem.ProblemId)
 			}
 
-			for i, stage := range problem.Stages {
-				for j, _ := range stage.Testcases {
-					testcase := &problem.Stages[i].Testcases[j]
-					if testcase.SoftTL == 0 {
-						testcase.SoftTL = 25
-					}
-					if testcase.HardTL == 0 {
-						testcase.HardTL = 30
-					}
-				}
-			}
-
 			problems[problem.ProblemId] = problem
-			return nil
 		})
-
-	if err != nil {
-		return problems, fmt.Errorf("filepath walk failed, %w\n", err)
-	}
 	fmt.Fprintf(os.Stderr, "problems: %+v\n", problems)
 
 	return problems, nil
