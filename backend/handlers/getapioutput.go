@@ -11,6 +11,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
@@ -29,7 +30,6 @@ func GetOutput(
 	db *bun.DB,
 	mc *minio.Client,
 ) func(http.ResponseWriter, bunrouter.Request) error {
-	MINIO_BUCKET := os.Getenv("MINIO_BUCKET")
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/output\n")
@@ -74,7 +74,7 @@ func GetOutput(
 		fileName := fmt.Sprintf("%d-%s-%s-output", subId, stageName, testName)
 		fmt.Fprintf(os.Stderr, "fileName: %s\n", fileName)
 
-		output, err := mc.GetObject(ctx, MINIO_BUCKET, fileName,
+		output, err := mc.GetObject(ctx, env.MINIO_BUCKET, fileName,
 			minio.GetObjectOptions{})
 		if err != nil {
 			return middlewares.HTTPError{

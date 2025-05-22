@@ -20,9 +20,9 @@ import (
 	"github.com/uptrace/bunrouter"
 	"golang.org/x/oauth2"
 
-	_ "github.com/joho/godotenv/autoload"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/cmd"
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
@@ -41,9 +41,9 @@ var rootCmd = &cobra.Command{
 
 		// Configure an OpenID Connect aware OAuth2 client.
 		oauth2Config := oauth2.Config{
-			ClientID:     os.Getenv("OAUTH_CLIENT_ID"),
-			ClientSecret: os.Getenv("OAUTH_CLIENT_SECRET"),
-			RedirectURL:  os.Getenv("OAUTH_REDIRECT_URL"),
+			ClientID:     env.OAUTH_CLIENT_ID,
+			ClientSecret: env.OAUTH_CLIENT_SECRET,
+			RedirectURL:  env.OAUTH_REDIRECT_URL,
 
 			// Discovery returns the OAuth2 endpoints.
 			Endpoint: provider.Endpoint(),
@@ -53,7 +53,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Initialize DB instance
-		dsn := os.Getenv("PG_CONNECTION_STRING")
+		dsn := env.PG_CONNECTION_STRING
 
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 		db := bun.NewDB(sqldb, pgdialect.New())
@@ -116,7 +116,8 @@ var rootCmd = &cobra.Command{
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CheckJWT(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
-		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, rdb, problems, testcases))
+		apiGroup.PUT("/submit",
+			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases))
 		apiGroup.GET("/output", handlers.GetOutput(ctx, db, mc))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, rdb))
 
@@ -125,7 +126,8 @@ var rootCmd = &cobra.Command{
 		scheduleGroup := scheduler.NewGroup("/schedule").
 			Use(middlewares.ErrorHandler)
 		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, rdb))
-		scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, db, rdb, mc, problems, testcases))
+		scheduleGroup.PUT("/result",
+			handlers.PutScheduleResult(ctx, db, rdb, mc, problems, testcases))
 
 		go func() {
 			log.Println(http.ListenAndServe(":"+os.Getenv("SCHEDULER_PORT"), scheduler))
@@ -146,6 +148,8 @@ var rootCmd = &cobra.Command{
 // @Name						Cookie
 // @Description				jwt=value, get it at /auth/login
 func main() {
+	env.InitEnv()
+
 	rootCmd.AddCommand(cmd.InitDBCmd)
 	rootCmd.AddCommand(cmd.ImportUserCmd)
 	rootCmd.Execute()

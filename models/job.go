@@ -9,17 +9,29 @@ import (
 // Testcase that schedule to worker
 type Job struct {
 	bun.BaseModel `bun:"table:job"`
-	SubId         int64  `json:"subId" bun:"subid,pk"`
-	StageName     string `json:"stageName" bun:"stagename,pk"`
-	TestName      string `json:"testName" bun:"testname,pk"`
-	TestContent   string `json:"testContent" bun:"-"`
-	HardTL        int64  `json:"hardtl" bun:"-"`
-	SoftTL        int64  `json:"softtl" bun:"-"`
+	// Job Id
+	SubId     int64  `json:"subId" bun:"subid,pk"`
+	StageName string `json:"stageName" bun:"stagename,pk"`
+	TestName  string `json:"testName" bun:"testname,pk"`
 
+	// Input script
+	Script string `json:"script" bun:"script"`
+
+	// Runtime metadata
+	FileURL string `json:"fileurl" bun:"-"`
+	HardTL  int64  `json:"hardtl" bun:"-"`
+	SoftTL  int64  `json:"softtl" bun:"-"`
+
+	// Return values
 	Stdout  string `json:"stdout" bun:"-"`
 	Stderr  string `json:"stderr" bun:"-"`
 	RetCode int    `json:"retCode" bun:"retcode"`
 	ExecAt  int64  `json:"execAt" bun:"execat"`
+}
+
+type JobWithFile struct {
+	Job
+	Tarbuf []byte
 }
 
 func (self Job) Id() string {

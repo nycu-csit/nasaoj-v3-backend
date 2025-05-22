@@ -10,6 +10,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
@@ -47,6 +48,7 @@ func PutSubmit(
 	ctx context.Context,
 	db *bun.DB,
 	rdb *redis.Client,
+	mc *minio.Client,
 	problems utils.ProblemRepository,
 	testcases map[string]*template.Template,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -131,7 +133,7 @@ func PutSubmit(
 
 		for name := range problem.Stages {
 			if _, exist := stageDeps[name]; !exist {
-				err = utils.RunStage(ctx, rdb, problems, testcases, submission, name)
+				err = utils.RunStage(ctx, rdb, mc, problems, testcases, submission, name)
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusInternalServerError,

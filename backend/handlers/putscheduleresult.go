@@ -14,6 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -27,7 +28,6 @@ func PutScheduleResult(
 	problems utils.ProblemRepository,
 	testcases map[string]*template.Template,
 ) func(http.ResponseWriter, bunrouter.Request) error {
-	MINIO_BUCKET := os.Getenv("MINIO_BUCKET")
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		var err error
 
@@ -61,7 +61,7 @@ func PutScheduleResult(
 			}
 		}
 
-		subJob := fmt.Sprintf("sub-job-%s", job.SubId)
+		subJob := fmt.Sprintf("sub-job-%d", job.SubId)
 		subJobCnt, err := rdb.HDel(ctx, subJob, job.Id()).Result()
 		if err != nil {
 			return middlewares.HTTPError{
@@ -73,7 +73,8 @@ func PutScheduleResult(
 		if subJobCnt <= 0 {
 			return middlewares.HTTPError{
 				StatusCode: http.StatusForbidden,
-				Message:    "job expired or not exist",
+				Message: fmt.Sprintf("job expired or not exist, %v, %v",
+					subJob, subJobCnt),
 			}
 		}
 
@@ -111,20 +112,7 @@ func PutScheduleResult(
 			}
 		}
 
-		_, err = mc.PutObject(ctx, MINIO_BUCKET,
-			fmt.Sprintf("%s-testcase", job.Id()),
-			strings.NewReader(job.TestContent),
-			int64(len(job.TestContent)),
-			minio.PutObjectOptions{})
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "minio put testcase failed",
-				OriginError: err,
-			}
-		}
-
-		_, err = mc.PutObject(ctx, MINIO_BUCKET,
+		_, err = mc.PutObject(ctx, env.MINIO_BUCKET,
 			fmt.Sprintf("%s-output", job.Id()),
 			strings.NewReader(job.Stdout),
 			int64(len(job.Stdout)),
@@ -188,7 +176,8 @@ func PutScheduleResult(
 				}
 
 				if jobdep <= 0 {
-					err = utils.RunStage(ctx, rdb, problems, testcases, submission, next)
+					err = utils.RunStage(
+						ctx, rdb, mc, problems, testcases, submission, next)
 					if err != nil {
 						return middlewares.HTTPError{
 							StatusCode:  http.StatusInternalServerError,
