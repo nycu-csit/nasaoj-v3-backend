@@ -7,13 +7,13 @@ type problemNode struct {
 }
 
 type problem struct {
-	Name        string            `json:"name" yaml:"name"`
-	ProblemId   int64             `json:"problemId" yaml:"problemId"`
-	Stages      map[string]Stage  `json:"stages" yaml:"stages"`
-	Args        map[string]string `json:"args" yaml:"args"`
-	Tag         string            `json:"tag" yaml:"tag"`
-	PreScripts  []Content         `json:"preScripts" yaml:"preScripts"`
-	PostScripts []Content         `json:"postScripts" yaml:"postScripts"`
+	Name       string            `json:"name" yaml:"name"`
+	ProblemId  int64             `json:"problemId" yaml:"problemId"`
+	Stages     map[string]Stage  `json:"stages" yaml:"stages"`
+	Args       map[string]string `json:"args" yaml:"args"`
+	Tag        string            `json:"tag" yaml:"tag"`
+	PreScript  Content           `json:"preScript" yaml:"preScript"`
+	PostScript Content           `json:"postScript" yaml:"postScript"`
 }
 
 type Problem struct {
