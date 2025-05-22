@@ -2,13 +2,16 @@
 name: hw1
 problemId: 1
 description: Test HW 1
-preScripts:
-  - files:
-      - poop.sh.tmpl
-    scripts:
-      - bash poop.sh.tmpl
+preScript:
+  files:
+    - poop.sh.tmpl
+  scripts:
+    - bash poop.sh.tmpl
 stages:
   stage1:
+    postScript:
+      scripts:
+        - echo stage postscript
     testcases:
       - name: test1
         files:
