@@ -4,35 +4,37 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type TestcaseNode struct {
+type testcaseNode struct {
 	SoftTL yaml.Node `yaml:"softtl"`
 	HardTL yaml.Node `yaml:"hardtl"`
 }
 
-type Testcase struct {
+type testcase struct {
+	Content `json:",inline" yaml:",inline"`
+
 	Name   string            `json:"name" yaml:"name"`
-	File   string            `json:"file" yaml:"file"`
 	Args   map[string]string `json:"args" yaml:"args"`
 	SoftTL int64             `json:"softTL" yaml:"softtl"`
 	HardTL int64             `json:"hardTL" yaml:"hardtl"`
 }
 
-type testcase struct {
-	Testcase `yaml:",inline"`
+type Testcase struct {
+	testcase `yaml:",inline"`
 }
 
 func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
-	var node TestcaseNode
+	var node testcaseNode
 	err := v.Decode(&node)
 	if err != nil {
 		return err
 	}
 
 	var im testcase
-	err = v.Decode(im)
+	err = v.Decode(&im)
 	if err != nil {
 		return err
 	}
+	self.testcase = im
 
 	if node.SoftTL.IsZero() {
 		self.SoftTL = 25
@@ -40,7 +42,6 @@ func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
 	if node.HardTL.IsZero() {
 		self.HardTL = 30
 	}
-	self = &im.Testcase
 
 	return nil
 }

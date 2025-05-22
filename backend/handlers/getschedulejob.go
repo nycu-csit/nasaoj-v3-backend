@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bunrouter"
@@ -19,11 +20,17 @@ func GetScheduleJob(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		var err error
-		fmt.Fprintf(os.Stderr, "GET /schedule/job\n")
+		tags := req.URL.Query().Get("tags")
+		fmt.Fprintf(os.Stderr, "GET /schedule/job?%s\n", tags)
 
 		// Get Job from redis queue
 		var jobkey string
-		jobkey, err = rdb.RPop(ctx, "queue").Result()
+		for _, tag := range strings.Split(tags, ",") {
+			jobkey, err = rdb.RPop(ctx, fmt.Sprintf("queue-%s", tag)).Result()
+			if err == nil {
+				break
+			}
+		}
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusServiceUnavailable,

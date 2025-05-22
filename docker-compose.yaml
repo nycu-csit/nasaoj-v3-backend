@@ -37,7 +37,8 @@ services:
       - 8080:8080
       - 8081:8081
     volumes:
-      - '../problemset:/data'
+      # - '../problemset:/data'
+      - './backend:/data'
     depends_on:
       - pg
       - minio

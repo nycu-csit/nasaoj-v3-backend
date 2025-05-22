@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -9,20 +10,21 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func RunStage(
 	ctx context.Context,
 	rdb *redis.Client,
+	mc *minio.Client,
 	problems ProblemRepository,
 	testcases map[string]*template.Template,
 	submission models.Submission,
 	stageName string,
 ) error {
-	var err error
-
 	fmt.Fprintf(os.Stderr, "RunStage %s-%s\n", submission.ProblemName, stageName)
 
 	problem := problems[submission.ProblemId]
@@ -32,7 +34,22 @@ func RunStage(
 
 	for _, testcase := range stage.Testcases {
 		fmt.Fprintf(os.Stderr, "testcase: %v\n", testcase)
-		testContent := ""
+
+		script := ""
+		for _, step := range testcase.Scripts {
+			script += step + "\n"
+		}
+
+		job := models.Job{
+			SubId:     submission.Id,
+			StageName: stageName,
+			TestName:  testcase.Name,
+
+			Script: script,
+
+			HardTL: testcase.HardTL,
+			SoftTL: testcase.SoftTL,
+		}
 
 		args := ArgsOverlay(
 			submission.Args,
@@ -41,60 +58,53 @@ func RunStage(
 			testcase.Args,
 		)
 
-		// Pre-scripts
-		for _, preScriptName := range problem.PreScripts {
-			preScriptTmpl, ok := testcases[preScriptName]
+		var tarbuf bytes.Buffer
+		tw := tar.NewWriter(&tarbuf)
+		for _, fileName := range testcase.Files {
+			testTmpl, ok := testcases[fileName]
 			if !ok {
-				return fmt.Errorf("pre-script %s not exist\n", preScriptName)
+				return fmt.Errorf("testcase %s not exist\n", fileName)
 			}
 
 			b := bytes.NewBufferString("")
-			err = preScriptTmpl.Execute(b, args)
-			if err != nil {
+			if err := testTmpl.Execute(b, args); err != nil {
 				return fmt.Errorf("template execute failed, %w\n", err)
 			}
 
-			testContent += b.String()
+			hdr := &tar.Header{
+				Name: fileName,
+				Mode: 0600,
+				Size: int64(b.Len()),
+			}
+			if err := tw.WriteHeader(hdr); err != nil {
+				return fmt.Errorf("tar header write failed, %w\n", err)
+			}
+			if _, err := tw.Write(b.Bytes()); err != nil {
+				return fmt.Errorf("tar body write failed, %w\n", err)
+			}
+		}
+		if err := tw.Close(); err != nil {
+			return fmt.Errorf("tar writer close failed, %w\n", err)
 		}
 
-		// Testcase
-		testcaseTmpl, ok := testcases[testcase.File]
-		if !ok {
-			return fmt.Errorf("testcase %s not exist\n", testcase.File)
-		}
-
-		b := bytes.NewBufferString("")
-		err = testcaseTmpl.Execute(b, args)
+		_, err := mc.PutObject(ctx, env.MINIO_BUCKET,
+			fmt.Sprintf("%s.tar", job.Id()),
+			bytes.NewReader(tarbuf.Bytes()),
+			int64(tarbuf.Len()),
+			minio.PutObjectOptions{},
+		)
 		if err != nil {
-			return fmt.Errorf("template execute failed, %w\n", err)
+			return fmt.Errorf("minio put object failed, %w\n", err)
 		}
 
-		testContent += b.String()
-
-		// Post-scripts
-		for _, postScriptName := range problem.PostScripts {
-			postScriptTmpl, ok := testcases[postScriptName]
-			if !ok {
-				return fmt.Errorf("post-script %s not exist\n", postScriptName)
-			}
-
-			b := bytes.NewBufferString("")
-			err = postScriptTmpl.Execute(b, args)
-			if err != nil {
-				return fmt.Errorf("template execute failed, %w\n", err)
-			}
-
-			testContent += b.String()
+		timeout := time.Duration(job.HardTL) * time.Second
+		fileURL, err := mc.PresignedGetObject(ctx, env.MINIO_BUCKET,
+			fmt.Sprintf("%s.tar", job.Id()), timeout, nil)
+		if err != nil {
+			return fmt.Errorf("minio generate presigned url failed, %w\n", err)
 		}
+		job.FileURL = fileURL.String()
 
-		job := models.Job{
-			SubId:       submission.Id,
-			StageName:   stageName,
-			TestName:    testcase.Name,
-			TestContent: testContent,
-			HardTL:      testcase.HardTL,
-			SoftTL:      testcase.SoftTL,
-		}
 		fmt.Fprintf(os.Stderr, "job: %+v\n", job)
 
 		payload, err := json.Marshal(job)
@@ -103,13 +113,14 @@ func RunStage(
 		}
 		fmt.Fprintf(os.Stderr, "job %s payload: %s\n", job.Id(), string(payload[:]))
 		_, err = rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+			// Job schedule states
 			_ = pipe.Set(ctx, job.Id(), payload, 0)
-			_ = pipe.LPush(ctx, "queue", job.Id())
+			_ = pipe.LPush(ctx, fmt.Sprintf("queue-%s", problem.Tag), job.Id())
 
+			// Job expiration states
 			subJob := fmt.Sprintf("sub-job-%d", submission.Id)
-			_ = pipe.HSet(ctx, subJob, job.Id(), "")
-			duration := time.Duration(job.HardTL) * time.Second
-			_ = pipe.HExpire(ctx, subJob, duration, job.Id())
+			_ = pipe.HSet(ctx, subJob, job.Id(), "deadbeef")
+			_ = pipe.HExpire(ctx, subJob, timeout, job.Id())
 			return nil
 		})
 		if err != nil {

@@ -34,11 +34,15 @@ func LoadProblems(dir string) (ProblemRepository, error) {
 				return fmt.Errorf("problem unmarshal failed, %w\n", err)
 			}
 			if _, isExists := problems[problem.ProblemId]; isExists {
-				return fmt.Errorf("Duplicate problem id %d\b", problem.ProblemId)
+				return fmt.Errorf("duplicate problem id %d\b", problem.ProblemId)
 			}
 
 			problems[problem.ProblemId] = problem
+			return nil
 		})
+	if err != nil {
+		return problems, fmt.Errorf("filepath walk failed, %w\n", err)
+	}
 	fmt.Fprintf(os.Stderr, "problems: %+v\n", problems)
 
 	return problems, nil

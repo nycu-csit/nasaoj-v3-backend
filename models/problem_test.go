@@ -1,9 +1,8 @@
-package utils
+package models
 
 import (
 	"testing"
 
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gopkg.in/yaml.v3"
 )
 
@@ -15,7 +14,7 @@ func TestProblem(t *testing.T) {
 		"      - name: test1\n" +
 		"        file: poop.sh.tmpl"
 
-	var problem models.Problem
+	var problem Problem
 	err := yaml.Unmarshal([]byte(input), &problem)
 	if err != nil {
 		t.Fatalf("expect no error, got %+v", err)
@@ -23,5 +22,9 @@ func TestProblem(t *testing.T) {
 	softTL := problem.Stages["stage1"].Testcases[0].SoftTL
 	if softTL != 25 {
 		t.Fatalf("expect SoftTL = 25, got %v", softTL)
+	}
+	tag := problem.Tag
+	if tag != "default" {
+		t.Fatalf("expect Tag = 'default', got %v", tag)
 	}
 }

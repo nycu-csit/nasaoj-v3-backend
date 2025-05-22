@@ -2,20 +2,32 @@
 name: hw1
 problemId: 1
 description: Test HW 1
-prescripts:
-  - prescript.sh.tmpl
+preScripts:
+  - files:
+      - poop.sh.tmpl
+    scripts:
+      - bash poop.sh.tmpl
 stages:
   stage1:
     testcases:
       - name: test1
-        file: poop.sh.tmpl
+        files:
+          - poop.sh.tmpl
+        scripts:
+          - bash poop.sh.tmpl
     before:
       - stage2
     score: 5
   stage2:
     testcases:
       - name: test2
-        file: poop.sh.tmpl
+        files:
+          - poop.sh.tmpl
+        scripts:
+          - bash poop.sh.tmpl
       - name: test3
-        file: poop.sh.tmpl
+        files:
+          - poop.sh.tmpl
+        scripts:
+          - bash poop.sh.tmpl
     score: 87

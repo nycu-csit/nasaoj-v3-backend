@@ -46,4 +46,6 @@ RUN apt-get update && apt-get install -y netcat-openbsd swaks
 COPY --from=build /go/bin/worker /work/
 WORKDIR /work
 
+RUN mkdir -p /var/run/nasaoj-worker
+
 CMD ["/work/worker"]
