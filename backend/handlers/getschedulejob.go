@@ -21,7 +21,7 @@ func GetScheduleJob(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		var err error
 		tags := req.URL.Query().Get("tags")
-		fmt.Fprintf(os.Stderr, "GET /schedule/job?%s\n", tags)
+		fmt.Fprintf(os.Stderr, "GET /schedule/job?tags=%s\n", tags)
 
 		// Get Job from redis queue
 		var jobkey string

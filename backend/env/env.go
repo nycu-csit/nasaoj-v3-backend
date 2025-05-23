@@ -33,6 +33,8 @@ var (
 	MINIO_BUCKET    string
 	MINIO_ACCESSKEY string
 	MINIO_SECRETKEY string
+
+	ADMIN_ROLE string
 )
 
 func InitEnv() error {
@@ -63,5 +65,6 @@ func InitEnv() error {
 	MINIO_ACCESSKEY = os.Getenv("MINIO_ACCESSKEY")
 	MINIO_SECRETKEY = os.Getenv("MINIO_SECRETKEY")
 
+	ADMIN_ROLE = os.Getenv("ADMIN_ROLE")
 	return nil
 }

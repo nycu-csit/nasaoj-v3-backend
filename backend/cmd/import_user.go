@@ -41,7 +41,7 @@ var ImportUserCmd = &cobra.Command{
 			for scanner.Scan() {
 				line := scanner.Text()
 				parts := strings.Split(line, ",")
-				if len(parts) != 3 {
+				if len(parts) != 2 {
 					return fmt.Errorf("invalid line format: %s", line)
 				}
 
@@ -50,13 +50,11 @@ var ImportUserCmd = &cobra.Command{
 					return fmt.Errorf("failed to parse id, %s", err)
 				}
 				userResource := models.UserResource{
-					CsId:   parts[0],
-					Id:     id,
-					Subnet: parts[2],
+					CsId: parts[0],
+					Id:   id,
 				}
 				_, err = tx.NewInsert().Model(&userResource).
 					On("CONFLICT (csid) DO NOTHING").
-					On("CONFLICT (subnet) DO NOTHING").
 					Exec(ctx)
 				if err != nil {
 					return fmt.Errorf("failed to insert user resource: %w", err)
