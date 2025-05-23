@@ -29,11 +29,10 @@ var (
 	REDIS_PASS string
 	REDIS_DB   string
 
-	MINIO_HOST        string
-	MINIO_BUCKET      string
-	MINIO_ACCESSKEY   string
-	MINIO_SECRETKEY   string
-	MINIO_PUBLIC_HOST string
+	MINIO_HOST      string
+	MINIO_BUCKET    string
+	MINIO_ACCESSKEY string
+	MINIO_SECRETKEY string
 
 	ADMIN_ROLE string
 )
@@ -65,7 +64,6 @@ func InitEnv() error {
 	MINIO_BUCKET = os.Getenv("MINIO_BUCKET")
 	MINIO_ACCESSKEY = os.Getenv("MINIO_ACCESSKEY")
 	MINIO_SECRETKEY = os.Getenv("MINIO_SECRETKEY")
-	MINIO_PUBLIC_HOST = os.Getenv("MINIO_PUBLIC_HOST")
 
 	ADMIN_ROLE = os.Getenv("ADMIN_ROLE")
 	return nil

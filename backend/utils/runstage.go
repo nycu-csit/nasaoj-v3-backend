@@ -114,7 +114,6 @@ func RunStage(
 		if err != nil {
 			return fmt.Errorf("minio generate presigned url failed, %w\n", err)
 		}
-		fileURL.Host = env.MINIO_PUBLIC_HOST
 		job.FileURL = fileURL.String()
 
 		fmt.Fprintf(os.Stderr, "job: %+v\n", job)

@@ -54,6 +54,8 @@ func FetchJob(
 		return
 	}
 
+	fmt.Fprintf(os.Stderr, "%+v\n", job)
+
 	req, err = http.NewRequestWithContext(ctx, "GET", job.FileURL, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed\n")
@@ -61,7 +63,7 @@ func FetchJob(
 		return
 	}
 	res, err = http.DefaultClient.Do(req)
-	if err != nil {
+	if err != nil || res.StatusCode != http.StatusOK {
 		fmt.Fprintf(os.Stderr, "http GET request failed\n")
 		ret <- STATUS_HTTP_GET_FAILED
 		return
