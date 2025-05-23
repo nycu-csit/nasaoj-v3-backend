@@ -47,8 +47,9 @@ func GetProblems(problems utils.ProblemRepository) func(http.ResponseWriter, bun
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{
-					Before: stage.Before,
-					Score:  stage.Score,
+					Before:    stage.Before,
+					Score:     stage.Score,
+					Testcases: []problemOutputStageTestcase{},
 				}
 				for _, testcase := range stage.Testcases {
 					retStage.Testcases = append(retStage.Testcases,
