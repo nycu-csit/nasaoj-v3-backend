@@ -73,11 +73,11 @@ var rootCmd = &cobra.Command{
 		// Initialize MinIO instance
 		mc, err := minio.New(os.Getenv("MINIO_HOST"), &minio.Options{
 			Creds: credentials.NewStaticV4(
-				os.Getenv("MINIO_ACCESSKEY"),
-				os.Getenv("MINIO_SECRETKEY"),
+				env.MINIO_ACCESSKEY,
+				env.MINIO_SECRETKEY,
 				"",
 			),
-			Secure: false,
+			Secure: env.MINIO_USESSL,
 		})
 		if err != nil {
 			panic(err)

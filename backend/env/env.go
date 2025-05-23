@@ -1,7 +1,9 @@
 package env
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -33,11 +35,14 @@ var (
 	MINIO_BUCKET    string
 	MINIO_ACCESSKEY string
 	MINIO_SECRETKEY string
+	MINIO_USESSL    bool
 
 	ADMIN_ROLE string
 )
 
 func InitEnv() error {
+	var err error
+
 	ACCESS_TOKEN = os.Getenv("ACCESS_TOKEN")
 
 	BACKEND_PORT = os.Getenv("BACKEND_PORT")
@@ -64,6 +69,10 @@ func InitEnv() error {
 	MINIO_BUCKET = os.Getenv("MINIO_BUCKET")
 	MINIO_ACCESSKEY = os.Getenv("MINIO_ACCESSKEY")
 	MINIO_SECRETKEY = os.Getenv("MINIO_SECRETKEY")
+	MINIO_USESSL, err = strconv.ParseBool(os.Getenv("MINIO_USESSL"))
+	if err != nil {
+		return fmt.Errorf("MINIO_USESSL parse failed, %w\n", err)
+	}
 
 	ADMIN_ROLE = os.Getenv("ADMIN_ROLE")
 	return nil
