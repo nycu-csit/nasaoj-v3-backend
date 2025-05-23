@@ -1,0 +1,38 @@
+---
+name: hw2
+problemId: 2
+description: Test HW 2
+preScript:
+  files:
+    - poop.sh.tmpl
+  scripts:
+    - bash poop.sh.tmpl
+stages:
+  stage1:
+    postScript:
+      scripts:
+        - echo stage postscript
+    testcases:
+      - name: test1
+        files:
+          - poop.sh.tmpl
+          - subdir/poop.sh.tmpl
+        scripts:
+          - bash poop.sh.tmpl
+          - bash subdir/poop.sh.tmpl
+    before:
+      - stage2
+    score: 5
+  stage2:
+    testcases:
+      - name: test2
+        files:
+          - poop.sh.tmpl
+        scripts:
+          - bash poop.sh.tmpl
+      - name: test3
+        files:
+          - poop.sh.tmpl
+        scripts:
+          - bash poop.sh.tmpl
+    score: 87

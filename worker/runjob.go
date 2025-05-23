@@ -26,12 +26,6 @@ func RunJob(
 	job := <-jobin
 
 	// Setup environment
-	err := os.Mkdir(path.Join(env.RUNNING_DIR, job.Id()), 0700)
-	if err != nil && !os.IsExist(err) {
-		ret <- STATUS_DIR_CREATE_FAILED
-		return
-	}
-
 	buf := bytes.NewBuffer(job.Tarbuf)
 	tr := tar.NewReader(buf)
 	for {
@@ -45,8 +39,19 @@ func RunJob(
 		}
 
 		b, err := io.ReadAll(tr)
-		err = os.WriteFile(path.Join(env.RUNNING_DIR, job.Id(), hdr.Name),
-			b, os.FileMode(hdr.Mode))
+		if err != nil {
+			ret <- STATUS_BODY_READ_FAILED
+			return
+		}
+
+		filepath := path.Join(env.RUNNING_DIR, job.Id(), hdr.Name)
+		err = os.MkdirAll(path.Dir(filepath), 0700)
+		if err != nil && !os.IsExist(err) {
+			ret <- STATUS_DIR_CREATE_FAILED
+			return
+		}
+
+		err = os.WriteFile(filepath, b, os.FileMode(hdr.Mode))
 		if err != nil {
 			ret <- STATUS_FILE_WRITE_FAILED
 			return
