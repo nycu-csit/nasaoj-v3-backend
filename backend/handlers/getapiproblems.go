@@ -65,7 +65,6 @@ func GetProblems(problems utils.ProblemRepository) func(http.ResponseWriter, bun
 
 		w.WriteHeader(http.StatusOK)
 		bunrouter.JSON(w, ret)
-
 		return nil
 	}
 }

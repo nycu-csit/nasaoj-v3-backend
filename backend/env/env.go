@@ -29,7 +29,7 @@ var (
 	REDIS_HOST string
 	REDIS_USER string
 	REDIS_PASS string
-	REDIS_DB   string
+	REDIS_DB   int
 
 	MINIO_HOST      string
 	MINIO_BUCKET    string
@@ -63,7 +63,11 @@ func InitEnv() error {
 	REDIS_HOST = os.Getenv("REDIS_HOST")
 	REDIS_USER = os.Getenv("REDIS_USER")
 	REDIS_PASS = os.Getenv("REDIS_PASS")
-	REDIS_DB = os.Getenv("REDIS_DB")
+	redis_db, err := strconv.ParseInt(os.Getenv("REDIS_DB"), 32, 10)
+	if err != nil {
+		return fmt.Errorf("REDIS_DB parse failed, %w\n", err)
+	}
+	REDIS_DB = int(redis_db)
 
 	MINIO_HOST = os.Getenv("MINIO_HOST")
 	MINIO_BUCKET = os.Getenv("MINIO_BUCKET")
