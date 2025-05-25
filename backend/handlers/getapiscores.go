@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"slices"
 	"strconv"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -22,17 +20,25 @@ type ScoreOutput struct {
 	CsId string `json:"csId"`
 }
 
+// GetAdminScores
+//
+//	@Param		problemId	query		int				true	"Problem ID"
+//	@Success	200			{object}	[]ScoreOutput	"Scores"
+//	@Failure	400			{object}	string			"Invalid problem id"
+//	@Router		/api/admin/scores [get]
+func getAdminScoresPlaceholder() {}
+
 // GetScores
 //
 //	@Param		problemId	query		int				true	"Problem ID"
 //	@Success	200			{object}	[]ScoreOutput	"Scores"
 //	@Failure	400			{object}	string			"Invalid problem id"
-//	@Failure	402			{object}	string			"jwt claim missing"
 //	@Router		/api/scores [get]
 func GetScores(
 	ctx context.Context,
 	rdb *redis.Client,
 	problems utils.ProblemRepository,
+	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/scores\n")
@@ -44,15 +50,6 @@ func GetScores(
 				StatusCode:  http.StatusBadRequest,
 				Message:     "invalid problem id",
 				OriginError: err,
-			}
-		}
-
-		jwtClaim, ok := req.Context().
-			Value(middlewares.JWTKeyType("")).(models.JWTClaim)
-		if !ok {
-			return middlewares.HTTPError{
-				StatusCode: http.StatusUnauthorized,
-				Message:    "jwt claim missing",
 			}
 		}
 
@@ -83,7 +80,7 @@ func GetScores(
 		}
 
 		// Trim stages result if not admin
-		if !slices.Contains(jwtClaim.Groups, env.ADMIN_ROLE) {
+		if !isAdmin {
 			for csId, _ := range scores {
 				scores[csId].Stages = make(map[string]int64)
 			}

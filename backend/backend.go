@@ -115,11 +115,12 @@ var rootCmd = &cobra.Command{
 			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases))
 		apiGroup.GET("/output", handlers.GetOutput(ctx, db, mc))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, rdb))
-		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems))
+		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
+		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
 		apiAdminGroup.POST("/reloadscores",
 			handlers.PostReloadScores(ctx, db, rdb, problems))
 

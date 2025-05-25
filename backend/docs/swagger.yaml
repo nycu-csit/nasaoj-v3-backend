@@ -160,6 +160,25 @@ paths:
             type: string
         "401":
           description: Unauthorized
+  /api/admin/scores:
+    get:
+      parameters:
+      - description: Problem ID
+        in: query
+        name: problemId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Scores
+          schema:
+            items:
+              $ref: '#/definitions/handlers.ScoreOutput'
+            type: array
+        "400":
+          description: Invalid problem id
+          schema:
+            type: string
   /api/me:
     get:
       responses:
@@ -261,10 +280,6 @@ paths:
             type: array
         "400":
           description: Invalid problem id
-          schema:
-            type: string
-        "402":
-          description: jwt claim missing
           schema:
             type: string
   /api/submit:

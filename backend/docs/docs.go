@@ -34,6 +34,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/scores": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Problem ID",
+                        "name": "problemId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scores",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.ScoreOutput"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid problem id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/me": {
             "get": {
                 "responses": {
@@ -190,12 +220,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid problem id",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "402": {
-                        "description": "jwt claim missing",
                         "schema": {
                             "type": "string"
                         }
