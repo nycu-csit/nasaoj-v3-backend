@@ -3,8 +3,8 @@ package models
 import "github.com/uptrace/bun"
 
 type UserScore struct {
-	Total  int64            `bun:"total"`
-	Stages map[string]int64 `bun:"stages"`
+	Score  int64            `json:"score" bun:"score"`
+	Stages map[string]int64 `json:"stages" bun:"stages"`
 }
 
 type Submission struct {

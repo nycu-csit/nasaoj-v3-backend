@@ -149,7 +149,7 @@ func PutScheduleResult(
 					return fmt.Errorf("submission select failed, %s\n", err)
 				}
 
-				submission.Score.Total += stage.Score
+				submission.Score.Score += stage.Score
 				submission.Score.Stages[job.StageName] += stage.Score
 				_, err = tx.NewUpdate().Model(&submission).WherePK().Exec(ctx)
 				if err != nil {

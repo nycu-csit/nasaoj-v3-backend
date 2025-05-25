@@ -182,7 +182,10 @@ const docTemplate = `{
                     "200": {
                         "description": "Scores",
                         "schema": {
-                            "$ref": "#/definitions/utils.ScoreTable"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.ScoreOutput"
+                            }
                         }
                     },
                     "400": {
@@ -287,6 +290,23 @@ const docTemplate = `{
                 },
                 "resource": {
                     "$ref": "#/definitions/models.UserResource"
+                }
+            }
+        },
+        "handlers.ScoreOutput": {
+            "type": "object",
+            "properties": {
+                "csId": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -477,26 +497,6 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 }
-            }
-        },
-        "models.UserScore": {
-            "type": "object",
-            "properties": {
-                "stages": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "utils.ScoreTable": {
-            "type": "object",
-            "additionalProperties": {
-                "$ref": "#/definitions/models.UserScore"
             }
         }
     },

@@ -97,7 +97,7 @@ func GetResults(
 
 			CsId:     submission.CsId,
 			SubmitAt: submission.SubmitAt,
-			Score:    submission.Score.Total,
+			Score:    submission.Score.Score,
 			Pending:  jobcnt,
 		}
 		for _, job := range submission.Jobs {

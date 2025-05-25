@@ -17,12 +17,17 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+type ScoreOutput struct {
+	models.UserScore
+	CsId string `json:"csId"`
+}
+
 // GetScores
 //
-//	@Param		problemId	query		int					true	"Problem ID"
-//	@Success	200			{object}	utils.ScoreTable	"Scores"
-//	@Failure	400			{object}	string				"Invalid problem id"
-//	@Failure	402			{object}	string				"jwt claim missing"
+//	@Param		problemId	query		int				true	"Problem ID"
+//	@Success	200			{object}	[]ScoreOutput	"Scores"
+//	@Failure	400			{object}	string			"Invalid problem id"
+//	@Failure	402			{object}	string			"jwt claim missing"
 //	@Router		/api/scores [get]
 func GetScores(
 	ctx context.Context,
@@ -60,7 +65,7 @@ func GetScores(
 				OriginError: err,
 			}
 		}
-		scores := make(utils.ScoreTable)
+		var scores []ScoreOutput
 		for csId, rawScore := range rawScores {
 			var score models.UserScore
 			err = json.Unmarshal([]byte(rawScore), &score)
@@ -71,16 +76,16 @@ func GetScores(
 					OriginError: err,
 				}
 			}
-			scores[csId] = score
+			scores = append(scores, ScoreOutput{
+				UserScore: score,
+				CsId:      csId,
+			})
 		}
 
 		// Trim stages result if not admin
 		if !slices.Contains(jwtClaim.Groups, env.ADMIN_ROLE) {
-			for csId, score := range scores {
-				scores[csId] = models.UserScore{
-					Total:  score.Total,
-					Stages: make(map[string]int64),
-				}
+			for csId, _ := range scores {
+				scores[csId].Stages = make(map[string]int64)
 			}
 		}
 

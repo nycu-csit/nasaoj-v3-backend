@@ -97,7 +97,7 @@ func PutSubmit(
 			Args:     make(map[string]string),
 
 			Score: models.UserScore{
-				Total:  0,
+				Score:  0,
 				Stages: make(map[string]int64),
 			},
 		}
