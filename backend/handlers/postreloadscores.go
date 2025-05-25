@@ -26,7 +26,7 @@ func PostReloadScores(
 	problems utils.ProblemRepository,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		fmt.Fprintf(os.Stderr, "POST /api/reloadscores")
+		fmt.Fprintf(os.Stderr, "POST /api/admin/reloadscores\n")
 
 		scoreTables, err := utils.LoadScores(ctx, db, problems)
 		if err != nil {
@@ -53,6 +53,7 @@ func PostReloadScores(
 
 			hkey := fmt.Sprintf("scores-%d", id)
 			_, err := rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+				_ = pipe.Del(ctx, hkey)
 				for key, value := range rawTable {
 					_ = pipe.HSet(ctx, hkey, key, value)
 				}

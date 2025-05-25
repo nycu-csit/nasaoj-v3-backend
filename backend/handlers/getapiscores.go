@@ -65,7 +65,7 @@ func GetScores(
 				OriginError: err,
 			}
 		}
-		var scores []ScoreOutput
+		scores := []ScoreOutput{}
 		for csId, rawScore := range rawScores {
 			var score models.UserScore
 			err = json.Unmarshal([]byte(rawScore), &score)
