@@ -51,8 +51,8 @@ func GetResults(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/results\n")
 
-		problemId64, err := strconv.ParseInt(
-			req.URL.Query().Get("problemId"), 10, 32)
+		problemId, err := strconv.ParseInt(
+			req.URL.Query().Get("problemId"), 10, 64)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
@@ -60,7 +60,6 @@ func GetResults(
 				OriginError: err,
 			}
 		}
-		problemId := int(problemId64)
 
 		resource, ok := req.Context().
 			Value(middlewares.UserResourceType("")).(models.UserResource)
@@ -98,7 +97,7 @@ func GetResults(
 
 			CsId:     submission.CsId,
 			SubmitAt: submission.SubmitAt,
-			Score:    submission.Score,
+			Score:    submission.Score.Total,
 			Pending:  jobcnt,
 		}
 		for _, job := range submission.Jobs {

@@ -2,6 +2,11 @@ package models
 
 import "github.com/uptrace/bun"
 
+type UserScore struct {
+	Total  int64            `bun:"total"`
+	Stages map[string]int64 `bun:"stages"`
+}
+
 type Submission struct {
 	bun.BaseModel `bun:"table:submission"`
 	Id            int64  `json:"id" bun:"id,pk,autoincrement"`
@@ -12,7 +17,7 @@ type Submission struct {
 	SubmitAt int64             `json:"submitAt" bun:"submitat"`
 	Args     map[string]string `json:"args" bun:"args"`
 
-	Score int64 `json:"score" bun:"score"`
+	Score UserScore `json:",inline" bun:"embed:score_"`
 
 	Jobs []*Job `bun:"rel:has-many,join:id=subid"`
 }

@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/minio/minio-go/v7"
@@ -59,19 +58,15 @@ var rootCmd = &cobra.Command{
 		db := bun.NewDB(sqldb, pgdialect.New())
 
 		// Initialize Redis instance
-		redisdb, err := strconv.Atoi(os.Getenv("REDIS_DB"))
-		if err != nil {
-			panic(err)
-		}
 		rdb := redis.NewClient(&redis.Options{
-			Addr:     os.Getenv("REDIS_HOST"),
-			Username: os.Getenv("REDIS_USER"),
-			Password: os.Getenv("REDIS_PASS"),
-			DB:       redisdb,
+			Addr:     env.REDIS_HOST,
+			Username: env.REDIS_USER,
+			Password: env.REDIS_PASS,
+			DB:       env.REDIS_DB,
 		})
 
 		// Initialize MinIO instance
-		mc, err := minio.New(os.Getenv("MINIO_HOST"), &minio.Options{
+		mc, err := minio.New(env.MINIO_HOST, &minio.Options{
 			Creds: credentials.NewStaticV4(
 				env.MINIO_ACCESSKEY,
 				env.MINIO_SECRETKEY,
@@ -107,8 +102,8 @@ var rootCmd = &cobra.Command{
 		authGroup := backend.NewGroup("/auth").
 			Use(middlewares.ErrorHandler)
 		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
-		authGroup.GET("/callback",
-			handlers.GetCallback(ctx, db, oauth2Config, provider.Verifier(&oidc.Config{
+		authGroup.GET("/callback", handlers.GetCallback(ctx, db,
+			oauth2Config, provider.Verifier(&oidc.Config{
 				ClientID: os.Getenv("OAUTH_CLIENT_ID"),
 			})))
 
@@ -120,6 +115,13 @@ var rootCmd = &cobra.Command{
 			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases))
 		apiGroup.GET("/output", handlers.GetOutput(ctx, db, mc))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, rdb))
+		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems))
+		apiGroup.GET("/me", handlers.GetMe(ctx))
+
+		apiAdminGroup := apiGroup.NewGroup("/admin").
+			Use(middlewares.CheckAdmin(ctx))
+		apiAdminGroup.POST("/reloadscores",
+			handlers.PostReloadScores(ctx, db, rdb, problems))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()

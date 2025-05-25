@@ -19,6 +19,39 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/reloadscores": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "/api/me": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MeOutput"
+                        }
+                    },
+                    "401": {
+                        "description": "missing credential",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/output": {
             "get": {
                 "parameters": [
@@ -134,6 +167,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/scores": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Problem ID",
+                        "name": "problemId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scores",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ScoreTable"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid problem id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "402": {
+                        "description": "jwt claim missing",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/submit": {
             "put": {
                 "security": [
@@ -210,6 +276,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.MeOutput": {
+            "type": "object",
+            "properties": {
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "jwtClaim": {
+                    "$ref": "#/definitions/models.JWTClaim"
+                },
+                "resource": {
+                    "$ref": "#/definitions/models.UserResource"
+                }
+            }
+        },
         "handlers.problemOutput": {
             "type": "object",
             "properties": {
@@ -331,6 +411,92 @@ const docTemplate = `{
                 "submitAt": {
                     "type": "integer"
                 }
+            }
+        },
+        "jwt.NumericDate": {
+            "type": "object",
+            "properties": {
+                "time.Time": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.JWTClaim": {
+            "type": "object",
+            "properties": {
+                "aud": {
+                    "description": "the ` + "`" + `aud` + "`" + ` (Audience) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "csId": {
+                    "type": "string"
+                },
+                "exp": {
+                    "type": "integer"
+                },
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "iat": {
+                    "type": "integer"
+                },
+                "iss": {
+                    "description": "the ` + "`" + `iss` + "`" + ` (Issuer) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1",
+                    "type": "string"
+                },
+                "jti": {
+                    "description": "the ` + "`" + `jti` + "`" + ` (JWT ID) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.7",
+                    "type": "string"
+                },
+                "nbf": {
+                    "description": "the ` + "`" + `nbf` + "`" + ` (Not Before) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.5",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jwt.NumericDate"
+                        }
+                    ]
+                },
+                "sub": {
+                    "description": "the ` + "`" + `sub` + "`" + ` (Subject) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.2",
+                    "type": "string"
+                }
+            }
+        },
+        "models.UserResource": {
+            "type": "object",
+            "properties": {
+                "csId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.UserScore": {
+            "type": "object",
+            "properties": {
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "utils.ScoreTable": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/models.UserScore"
             }
         }
     },

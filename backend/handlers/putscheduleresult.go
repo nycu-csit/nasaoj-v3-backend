@@ -18,6 +18,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gopkg.in/yaml.v2"
 )
 
 func PutScheduleResult(
@@ -149,10 +150,21 @@ func PutScheduleResult(
 					return fmt.Errorf("submission select failed, %s\n", err)
 				}
 
-				submission.Score += stage.Score
+				submission.Score.Total += stage.Score
+				submission.Score.Stages[job.StageName] += stage.Score
 				_, err = tx.NewUpdate().Model(&submission).WherePK().Exec(ctx)
 				if err != nil {
-					return fmt.Errorf("submission score upd failed, %s\n", err)
+					return fmt.Errorf("submission score upd to pg failed, %s\n", err)
+				}
+
+				b, err := yaml.Marshal(submission.Score)
+				if err != nil {
+					return fmt.Errorf("score marshal failed")
+				}
+				_, err = rdb.HSet(ctx, fmt.Sprintf("scores-%d", problem.ProblemId),
+					submission.CsId, string(b[:])).Result()
+				if err != nil {
+					return fmt.Errorf("redis HSET failed while upd score")
 				}
 				return nil
 			})
