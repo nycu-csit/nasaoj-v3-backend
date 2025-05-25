@@ -109,6 +109,7 @@ var rootCmd = &cobra.Command{
 
 		apiGroup := backend.NewGroup("/api").
 			Use(middlewares.ErrorHandler).
+			Use(middlewares.CORSHandler).
 			Use(middlewares.CheckJWT(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.PUT("/submit",

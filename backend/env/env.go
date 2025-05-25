@@ -38,6 +38,8 @@ var (
 	MINIO_USESSL    bool
 
 	ADMIN_ROLE string
+
+	CORS_ORIGIN string
 )
 
 func InitEnv() error {
@@ -79,5 +81,8 @@ func InitEnv() error {
 	}
 
 	ADMIN_ROLE = os.Getenv("ADMIN_ROLE")
+
+	CORS_ORIGIN = os.Getenv("CORS_ORIGIN")
+
 	return nil
 }
