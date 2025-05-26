@@ -44,5 +44,10 @@ func LoadProblems(dir string) (ProblemRepository, error) {
 		return problems, fmt.Errorf("filepath walk failed, %w\n", err)
 	}
 
+	err = CheckDeps(problems)
+	if err != nil {
+		return problems, err
+	}
+
 	return problems, nil
 }

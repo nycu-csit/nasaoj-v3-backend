@@ -1,30 +1,52 @@
 package worker
 
 import (
-	"fmt"
+	"archive/tar"
+	"bytes"
 	"testing"
 
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func TestRunJob(t *testing.T) {
 	t.Run("Run user script should get output", func(t *testing.T) {
 		ctx := t.Context()
-		job := models.Job{
-			TestContent: "echo hello, world\n",
-			SoftTL:      30,
+		viper.Set("running-dir", "/tmp/nasaoj-worker")
+
+		var tarbuf bytes.Buffer
+		tw := tar.NewWriter(&tarbuf)
+		if err := tw.Close(); err != nil {
+			t.Fatalf("tar writer close failed, %s\n", err)
 		}
 
-		retch := make(chan int)
-		jobin := make(chan models.Job, 1)
-		jobout := make(chan models.Job, 1)
-		jobin <- job
-		go func() { fmt.Printf("RunJob\n"); RunJob(ctx, retch, jobin, jobout) }()
-		if ret := <-retch; ret != STATUS_OK {
-			t.Fatalf("expected no error, got %v, %+v", ret, job)
+		job := models.JobWithFile{
+			Job: models.Job{
+				SubId:     114514,
+				StageName: "stage-1919",
+				TestName:  "test-810",
+
+				Script: "echo hello, world\n",
+
+				HardTL: 30,
+				SoftTL: 25,
+			},
+			Tarbuf: tarbuf.Bytes(),
 		}
 
-		job = <-jobout
+		retCh := make(chan error, 1)
+		jobIn := make(chan models.JobWithFile, 1)
+		jobOut := make(chan models.JobWithFile, 1)
+
+		jobIn <- job
+		go func() {
+			RunJob(ctx, retCh, jobIn, jobOut)
+		}()
+		if ret := <-retCh; ret != nil {
+			t.Fatalf("expected no error, got %v, %+v", ret, job.Job)
+		}
+
+		job = <-jobOut
 		expectedOutput := "hello, world\n"
 		if expectedOutput != job.Stdout {
 			t.Fatalf("expected %s, got %s", expectedOutput, job.Stdout)
