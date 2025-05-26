@@ -113,14 +113,23 @@ func PutScheduleResult(
 		}
 
 		_, err = mc.PutObject(ctx, viper.GetString("minio-bucket"),
-			fmt.Sprintf("%s-output", job.Id()),
-			strings.NewReader(job.Stdout),
-			int64(len(job.Stdout)),
-			minio.PutObjectOptions{})
+			job.StdoutKey(), strings.NewReader(job.Stdout),
+			int64(len(job.Stdout)), minio.PutObjectOptions{})
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
-				Message:     "minio put output failed",
+				Message:     "minio put stdout failed",
+				OriginError: err,
+			}
+		}
+
+		_, err = mc.PutObject(ctx, viper.GetString("minio-bucket"),
+			job.StderrKey(), strings.NewReader(job.Stderr),
+			int64(len(job.Stderr)), minio.PutObjectOptions{})
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "minio put stderr failed",
 				OriginError: err,
 			}
 		}

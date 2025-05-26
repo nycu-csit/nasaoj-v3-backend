@@ -42,3 +42,11 @@ func (self Job) Id() string {
 func (self Job) Stage() string {
 	return fmt.Sprintf("%d-%s", self.SubId, self.StageName)
 }
+
+func (self Job) StdoutKey() string {
+	return fmt.Sprintf("%s-stdout", self.Id())
+}
+
+func (self Job) StderrKey() string {
+	return fmt.Sprintf("%s-stderr", self.Id())
+}

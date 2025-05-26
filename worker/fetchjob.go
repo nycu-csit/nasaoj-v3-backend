@@ -37,7 +37,7 @@ func FetchJob(
 		return
 	}
 	if res.StatusCode == http.StatusServiceUnavailable {
-		retCh <- err
+		retCh <- fmt.Errorf("no job left in queue\n")
 		return
 	}
 

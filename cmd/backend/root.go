@@ -122,13 +122,14 @@ var RootCmd = &cobra.Command{
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.PUT("/submit",
 			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases))
-		apiGroup.GET("/output", handlers.GetOutput(ctx, db, mc))
+		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout"))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, rdb))
 		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
+		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr"))
 		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
 		apiAdminGroup.POST("/reloadscores",
 			handlers.PostReloadScores(ctx, db, rdb, problems))
@@ -142,9 +143,11 @@ var RootCmd = &cobra.Command{
 			handlers.PutScheduleResult(ctx, db, rdb, mc, problems, testcases))
 
 		go func() {
-			log.Println(http.ListenAndServe(":"+viper.GetString("scheduler-port"), scheduler))
+			log.Println(http.ListenAndServe(
+				":"+viper.GetString("scheduler-port"), scheduler))
 		}()
-		log.Println(http.ListenAndServe(":"+viper.GetString("backend-port"), backend))
+		log.Println(http.ListenAndServe(
+			":"+viper.GetString("backend-port"), backend))
 	},
 }
 
@@ -227,7 +230,7 @@ func init() {
 	viper.BindPFlag("admin-role",
 		RootCmd.PersistentFlags().Lookup("admin-role"))
 	RootCmd.PersistentFlags().
-		String("cors-origin", "http://localhost:8080", "CORS origin")
+		String("cors-origin", "", "CORS origin")
 	viper.BindPFlag("cors-origin",
 		RootCmd.PersistentFlags().Lookup("cors-origin"))
 	RootCmd.AddCommand(initDBCmd)

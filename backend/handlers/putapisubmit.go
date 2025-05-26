@@ -35,7 +35,6 @@ type submitOutput struct {
 
 // PutSubmit
 //
-//	@Security	ApiKeyAuth
 //	@Param		request	body	submitInput	true	"query params"
 //	@Accept		json
 //	@Success	200	{object}	submitOutput

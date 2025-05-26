@@ -16,7 +16,18 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-// GetOutput
+// GetStderr
+//
+//	@Param		subId		query		number	true	"Submission id"
+//	@Param		stage		query		string	true	"Stage name"
+//	@Param		testcase	query		string	true	"Testcase name"
+//	@Success	200			{string}	string "Testcase result Stderr"
+//	@Failure	400			{string}	string
+//	@Failure	404			{string}	string
+//	@Router		/api/admin/stderr [get]
+func getStderrPlaceholder() {}
+
+// GetStdout
 //
 //	@Param		subId		query		number	true	"Submission id"
 //	@Param		stage		query		string	true	"Stage name"
@@ -24,11 +35,12 @@ import (
 //	@Success	200			{string}	string	"Testcase result output"
 //	@Failure	400			{string}	string
 //	@Failure	404			{string}	string
-//	@Router		/api/output [get]
+//	@Router		/api/stdout [get]
 func GetOutput(
 	ctx context.Context,
 	db *bun.DB,
 	mc *minio.Client,
+	target string,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -71,7 +83,7 @@ func GetOutput(
 			}
 		}
 
-		fileName := fmt.Sprintf("%d-%s-%s-output", subId, stageName, testName)
+		fileName := fmt.Sprintf("%d-%s-%s-%s", subId, stageName, testName, target)
 		fmt.Fprintf(os.Stderr, "fileName: %s\n", fileName)
 
 		output, err := mc.GetObject(ctx, viper.GetString("minio-bucket"), fileName,
