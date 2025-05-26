@@ -7,8 +7,8 @@ import (
 	"os"
 	"slices"
 
+	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
@@ -49,7 +49,7 @@ func GetMe(
 		}
 
 		bunrouter.JSON(w, MeOutput{
-			IsAdmin:  slices.Contains(jwtClaim.Groups, env.ADMIN_ROLE),
+			IsAdmin:  slices.Contains(jwtClaim.Groups, viper.GetString("admin-role")),
 			JWTClaim: jwtClaim,
 			Resource: resource,
 		})

@@ -5,12 +5,13 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
 )
 
-func LoadTestcases(dir string) (map[string]*template.Template, error) {
-	testcases := make(map[string]*template.Template)
+type TestcaseRepository = map[string]*template.Template
+
+func LoadTestcases(dir string) (TestcaseRepository, error) {
+	testcases := make(TestcaseRepository)
 
 	err := filepath.WalkDir(dir,
 		func(path string, d fs.DirEntry, err error) error {
@@ -26,9 +27,9 @@ func LoadTestcases(dir string) (map[string]*template.Template, error) {
 				return fmt.Errorf("file '%s' read failed, %w\n", path, err)
 			}
 
-			name, found := strings.CutPrefix(path, dir+"/")
-			if !found {
-				return fmt.Errorf("path parse failed\n")
+			name, err := filepath.Rel(dir, path)
+			if err != nil {
+				return fmt.Errorf("parse relative path failed, %w\n", err)
 			}
 			tmpl, err := template.New(name).Parse(string(b[:]))
 			testcases[name] = tmpl
@@ -38,7 +39,6 @@ func LoadTestcases(dir string) (map[string]*template.Template, error) {
 	if err != nil {
 		return testcases, fmt.Errorf("filepath walk failed, %w\n", err)
 	}
-	fmt.Fprintf(os.Stderr, "testcases: %+v\n", testcases)
 
 	return testcases, nil
 }

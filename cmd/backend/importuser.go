@@ -1,4 +1,4 @@
-package cmd
+package backend
 
 import (
 	"bufio"
@@ -10,13 +10,14 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-var ImportUserCmd = &cobra.Command{
+var importUserCmd = &cobra.Command{
 	Use:   "import-user",
 	Short: "Import user from csv file (line format: {csid},{subnet})",
 	Args:  cobra.ExactArgs(1),
@@ -24,9 +25,8 @@ var ImportUserCmd = &cobra.Command{
 		ctx := context.Background()
 
 		// Initialize DB instance
-		dsn := os.Getenv("PG_CONNECTION_STRING")
-
-		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
+			viper.GetString("pg-connection-string"))))
 		db := bun.NewDB(sqldb, pgdialect.New())
 
 		csvFilePath := args[0]

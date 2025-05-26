@@ -12,9 +12,9 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/viper"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -112,7 +112,7 @@ func PutScheduleResult(
 			}
 		}
 
-		_, err = mc.PutObject(ctx, env.MINIO_BUCKET,
+		_, err = mc.PutObject(ctx, viper.GetString("minio-bucket"),
 			fmt.Sprintf("%s-output", job.Id()),
 			strings.NewReader(job.Stdout),
 			int64(len(job.Stdout)),

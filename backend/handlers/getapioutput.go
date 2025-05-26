@@ -9,9 +9,9 @@ import (
 	"strconv"
 
 	"github.com/minio/minio-go/v7"
+	"github.com/spf13/viper"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
@@ -74,7 +74,7 @@ func GetOutput(
 		fileName := fmt.Sprintf("%d-%s-%s-output", subId, stageName, testName)
 		fmt.Fprintf(os.Stderr, "fileName: %s\n", fileName)
 
-		output, err := mc.GetObject(ctx, env.MINIO_BUCKET, fileName,
+		output, err := mc.GetObject(ctx, viper.GetString("minio-bucket"), fileName,
 			minio.GetObjectOptions{})
 		if err != nil {
 			return middlewares.HTTPError{

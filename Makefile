@@ -1,7 +1,7 @@
-.PHONY: up build
+.PHONY: all swagger
 
-up:
-	COMPOSE_BAKE=true docker compose up
+all: swagger
 
-build:
-	COMPOSE_BAKE=true docker compose build --no-cache
+swagger:
+	~/go/bin/swag fmt
+	~/go/bin/swag init -o backend/docs -g cmd/backend/backend.go -pdl 1

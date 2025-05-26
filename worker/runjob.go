@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"archive/tar"
@@ -10,20 +10,20 @@ import (
 	"path"
 	"time"
 
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/env"
 )
 
 func RunJob(
 	pctx context.Context,
-	ret chan int,
-	jobin chan models.JobWithFile,
-	jobout chan models.JobWithFile,
+	retCh chan error,
+	jobIn chan models.JobWithFile,
+	jobOut chan models.JobWithFile,
 ) {
 	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 
-	job := <-jobin
+	job := <-jobIn
 
 	// Setup environment
 	buf := bytes.NewBuffer(job.Tarbuf)
@@ -34,26 +34,26 @@ func RunJob(
 			break
 		}
 		if err != nil {
-			ret <- STATUS_TAR_PARSE_FAILED
+			retCh <- err
 			return
 		}
 
 		b, err := io.ReadAll(tr)
 		if err != nil {
-			ret <- STATUS_BODY_READ_FAILED
+			retCh <- err
 			return
 		}
 
-		filepath := path.Join(env.RUNNING_DIR, job.Id(), hdr.Name)
+		filepath := path.Join(viper.GetString("running-dir"), job.Id(), hdr.Name)
 		err = os.MkdirAll(path.Dir(filepath), 0700)
 		if err != nil && !os.IsExist(err) {
-			ret <- STATUS_DIR_CREATE_FAILED
+			retCh <- err
 			return
 		}
 
 		err = os.WriteFile(filepath, b, os.FileMode(hdr.Mode))
 		if err != nil {
-			ret <- STATUS_FILE_WRITE_FAILED
+			retCh <- err
 			return
 		}
 	}
@@ -65,20 +65,20 @@ func RunJob(
 
 	// Run script
 	cmd := exec.CommandContext(cmdCtx, "bash")
-	cmd.Dir = path.Join(env.RUNNING_DIR, job.Id())
+	cmd.Dir = path.Join(viper.GetString("running-dir"), job.Id())
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		ret <- STATUS_EXEC_PREP_FAILED
+		retCh <- err
 		return
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		ret <- STATUS_EXEC_PREP_FAILED
+		retCh <- err
 		return
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		ret <- STATUS_EXEC_PREP_FAILED
+		retCh <- err
 		return
 	}
 
@@ -88,29 +88,32 @@ func RunJob(
 	}()
 
 	if err = cmd.Start(); err != nil {
-		ret <- STATUS_EXEC_FAILED
+		retCh <- err
 		return
 	}
 
 	stdoutContent, err := io.ReadAll(stdout)
 	if err != nil {
-		ret <- STATUS_CMD_OUTPUT_FAILED
+		retCh <- err
 		return
 	}
 	job.Stdout = string(stdoutContent[:])
 
 	stderrContent, err := io.ReadAll(stderr)
 	if err != nil {
-		ret <- STATUS_CMD_OUTPUT_FAILED
+		retCh <- err
 		return
 	}
 	job.Stderr = string(stderrContent[:])
 
-	if err = cmd.Wait(); err != nil {
-		ret <- STATUS_EXEC_FAILED
-		return
+	err = cmd.Wait()
+	switch t := err.(type) {
+	case *exec.ExitError:
+		job.RetCode = t.ExitCode()
+	default:
+		retCh <- err
 	}
 
-	jobout <- job
-	ret <- STATUS_OK
+	jobOut <- job
+	retCh <- nil
 }

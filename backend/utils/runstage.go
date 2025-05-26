@@ -1,18 +1,16 @@
 package utils
 
 import (
-	"archive/tar"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
-	"text/template"
 	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -21,7 +19,7 @@ func RunStage(
 	rdb *redis.Client,
 	mc *minio.Client,
 	problems ProblemRepository,
-	testcases map[string]*template.Template,
+	testcases TestcaseRepository,
 	submission models.Submission,
 	stageName string,
 ) error {
@@ -69,36 +67,12 @@ func RunStage(
 		)
 
 		var tarbuf bytes.Buffer
-		tw := tar.NewWriter(&tarbuf)
-		for _, content := range contents {
-			for _, fileName := range content.Files {
-				testTmpl, ok := testcases[fileName]
-				if !ok {
-					return fmt.Errorf("testcase %s not exist\n", fileName)
-				}
-
-				b := bytes.NewBufferString("")
-				if err := testTmpl.Execute(b, args); err != nil {
-					return fmt.Errorf("template execute failed, %w\n", err)
-				}
-
-				hdr := &tar.Header{
-					Name: fileName,
-					Mode: 0600,
-					Size: int64(b.Len()),
-				}
-				if err := tw.WriteHeader(hdr); err != nil {
-					return fmt.Errorf("tar header write failed, %w\n", err)
-				}
-				if _, err := tw.Write(b.Bytes()); err != nil {
-					return fmt.Errorf("tar body write failed, %w\n", err)
-				}
-			}
+		err := WriteTar(&tarbuf, contents, testcases, args)
+		if err != nil {
+			return fmt.Errorf("write to tar failed, %w\n", err)
 		}
-		if err := tw.Close(); err != nil {
-			return fmt.Errorf("tar writer close failed, %w\n", err)
-		}
-		_, err := mc.PutObject(ctx, env.MINIO_BUCKET,
+
+		_, err = mc.PutObject(ctx, viper.GetString("minio-bucket"),
 			fmt.Sprintf("%s.tar", job.Id()),
 			bytes.NewReader(tarbuf.Bytes()),
 			int64(tarbuf.Len()),
@@ -109,7 +83,7 @@ func RunStage(
 		}
 
 		timeout := time.Duration(job.HardTL) * time.Second
-		fileURL, err := mc.PresignedGetObject(ctx, env.MINIO_BUCKET,
+		fileURL, err := mc.PresignedGetObject(ctx, viper.GetString("minio-bucket"),
 			fmt.Sprintf("%s.tar", job.Id()), timeout, nil)
 		if err != nil {
 			return fmt.Errorf("minio generate presigned url failed, %w\n", err)
