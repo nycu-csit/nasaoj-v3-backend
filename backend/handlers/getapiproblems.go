@@ -29,7 +29,6 @@ type problemOutput struct {
 
 // GetProblems
 //
-// @Security ApiKeyAuth
 // @Produce	json
 // @Success	200	{object}	[]problemOutput
 // @Failure 500 {object} string "Problem loading error"

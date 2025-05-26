@@ -179,18 +179,7 @@ paths:
           description: Invalid problem id
           schema:
             type: string
-  /api/me:
-    get:
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/handlers.MeOutput'
-        "401":
-          description: missing credential
-          schema:
-            type: string
-  /api/output:
+  /api/admin/stderr:
     get:
       parameters:
       - description: Submission id
@@ -210,7 +199,7 @@ paths:
         type: string
       responses:
         "200":
-          description: Testcase result output
+          description: Testcase result Stderr
           schema:
             type: string
         "400":
@@ -219,6 +208,17 @@ paths:
             type: string
         "404":
           description: Not Found
+          schema:
+            type: string
+  /api/me:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MeOutput'
+        "401":
+          description: missing credential
           schema:
             type: string
   /api/problems:
@@ -236,8 +236,6 @@ paths:
           description: Problem loading error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
   /api/results:
     get:
       parameters:
@@ -282,6 +280,37 @@ paths:
           description: Invalid problem id
           schema:
             type: string
+  /api/stdout:
+    get:
+      parameters:
+      - description: Submission id
+        in: query
+        name: subId
+        required: true
+        type: number
+      - description: Stage name
+        in: query
+        name: stage
+        required: true
+        type: string
+      - description: Testcase name
+        in: query
+        name: testcase
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Testcase result output
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
   /api/submit:
     put:
       consumes:
@@ -310,8 +339,6 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      security:
-      - ApiKeyAuth: []
   /auth/callback:
     get:
       responses:

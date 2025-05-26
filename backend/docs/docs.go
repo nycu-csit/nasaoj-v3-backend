@@ -64,25 +64,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/me": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/handlers.MeOutput"
-                        }
-                    },
-                    "401": {
-                        "description": "missing credential",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/output": {
+        "/api/admin/stderr": {
             "get": {
                 "parameters": [
                     {
@@ -109,7 +91,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Testcase result output",
+                        "description": "Testcase result Stderr",
                         "schema": {
                             "type": "string"
                         }
@@ -129,13 +111,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/me": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.MeOutput"
+                        }
+                    },
+                    "401": {
+                        "description": "missing credential",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/problems": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -227,13 +222,55 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/submit": {
-            "put": {
-                "security": [
+        "/api/stdout": {
+            "get": {
+                "parameters": [
                     {
-                        "ApiKeyAuth": []
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "Testcase result output",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/submit": {
+            "put": {
                 "consumes": [
                     "application/json"
                 ],

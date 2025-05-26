@@ -4,4 +4,4 @@ all: swagger
 
 swagger:
 	~/go/bin/swag fmt
-	~/go/bin/swag init -o backend/docs -g cmd/backend/backend.go -pdl 1
+	~/go/bin/swag init -o backend/docs -g cmd/backend/root.go -pdl 1

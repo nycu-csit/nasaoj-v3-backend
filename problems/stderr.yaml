@@ -1,0 +1,13 @@
+---
+name: Test stderr
+problemId: 4
+description: Test stderr
+stages:
+  stage1:
+    testcases:
+      - name: test1
+        files:
+          - stderr.sh
+        scripts:
+          - bash stderr.sh
+    score: 100
