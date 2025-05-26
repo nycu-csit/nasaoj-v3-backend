@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +18,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type jobOutput struct {
+type jobInType struct {
+	StageName string
+	TestName  string
+}
+
+type jobOutType struct {
 	StageName string
 	TestName  string
 	RetCode   int
@@ -34,6 +40,8 @@ func runStage(
 	stageName string,
 	testcases utils.TestcaseRepository,
 ) error {
+	color.Magenta("Run Stage %s\n", stageName)
+
 	stage := problem.Stages[stageName]
 	for _, testcase := range stage.Testcases {
 		contents := []models.Content{
@@ -75,6 +83,10 @@ func runStage(
 		}
 
 		wg.Add(1)
+		color.Yellow("job scheduled, job: %+v\n", jobInType{
+			StageName: job.StageName,
+			TestName:  job.TestName,
+		})
 		jobIn <- models.JobWithFile{
 			Job:    job,
 			Tarbuf: tarbuf.Bytes(),
@@ -106,12 +118,12 @@ var RunProblemCmd = &cobra.Command{
 			mockArgs[strs[0]] = strs[1]
 		}
 
-		color.HiMagenta("Problem Dir: %s\n", viper.GetString("problems-dir"))
+		color.Magenta("Problem Dir: %s\n", viper.GetString("problems-dir"))
 		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
 		if err != nil {
 			return fmt.Errorf("load problems failed, %w\n", err)
 		}
-		color.HiMagenta("Testcases Dir: %s\n", viper.GetString("testcases-dir"))
+		color.Magenta("Testcases Dir: %s\n", viper.GetString("testcases-dir"))
 		testcases, err := utils.LoadTestcases(viper.GetString("testcases-dir"))
 		if err != nil {
 			return fmt.Errorf("load testcases failed, %w\n", err)
@@ -126,12 +138,11 @@ var RunProblemCmd = &cobra.Command{
 			go worker.RunJob(ctx, retCh, jobIn, jobOut)
 		}
 		go func() {
-			color.HiMagenta("Worker threads running\n")
+			color.Magenta("Worker threads running\n")
 			for {
 				ret := <-retCh
 				if ret != nil {
 					color.Red("worker died with error, %w\n", ret)
-					wg.Done()
 				}
 				go worker.RunJob(ctx, retCh, jobIn, jobOut)
 			}
@@ -162,10 +173,10 @@ var RunProblemCmd = &cobra.Command{
 		color.Cyan("Problem: %s\n", string(b[:]))
 
 		go func() {
-			color.HiMagenta("Output thread running\n")
+			color.Magenta("Output thread running\n")
 			for {
 				job := <-jobOut
-				color.HiYellow("job: %+v\n", jobOutput{
+				color.Yellow("job: %+v\n", jobOutType{
 					StageName: job.StageName,
 					TestName:  job.TestName,
 					RetCode:   job.RetCode,
@@ -179,6 +190,11 @@ var RunProblemCmd = &cobra.Command{
 				color.Cyan("===== Stderr =====\n")
 				color.White("%s\n", job.Stderr)
 				color.Cyan("==================\n")
+
+				if job.RetCode != 0 {
+					color.Red("Job Failed\n")
+					os.Exit(1)
+				}
 
 				stageJobCnt[job.StageName] -= 1
 				if stageJobCnt[job.StageName] == 0 {
@@ -205,7 +221,7 @@ var RunProblemCmd = &cobra.Command{
 		}
 
 		wg.Wait()
-		color.Green("Job Succeed")
+		color.Green("Job Succeed\n")
 		return nil
 	},
 }
@@ -228,7 +244,7 @@ func init() {
 	viper.BindPFlag("buffer-size",
 		RunProblemCmd.PersistentFlags().Lookup("buffer-size"))
 	RunProblemCmd.PersistentFlags().
-		Int64("threads", 20, "Thread count")
+		Int64("threads", 1, "Thread count")
 	viper.BindPFlag("threads",
 		RunProblemCmd.PersistentFlags().Lookup("threads"))
 	RunProblemCmd.Flags().
