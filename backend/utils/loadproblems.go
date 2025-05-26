@@ -43,7 +43,6 @@ func LoadProblems(dir string) (ProblemRepository, error) {
 	if err != nil {
 		return problems, fmt.Errorf("filepath walk failed, %w\n", err)
 	}
-	fmt.Fprintf(os.Stderr, "problems: %+v\n", problems)
 
 	return problems, nil
 }

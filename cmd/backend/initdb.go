@@ -1,4 +1,4 @@
-package cmd
+package backend
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 )
 
-var InitDBCmd = &cobra.Command{
+var initDBCmd = &cobra.Command{
 	Use:   "initdb",
 	Short: "Initialize and reset the database (NOTE: all data will be lost)",
 	RunE: func(cmd *cobra.Command, args []string) error {

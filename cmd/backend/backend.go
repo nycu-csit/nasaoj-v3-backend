@@ -1,11 +1,10 @@
-package main
+package backend
 
 import (
 	"context"
 	"database/sql"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/minio/minio-go/v7"
@@ -17,20 +16,31 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bunrouter"
-	"golang.org/x/oauth2"
-
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/cmd"
-	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
+	"golang.org/x/oauth2"
+
+	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "nasaoj",
+//	@title			NASAOJ v3
+//	@version		2.0
+//	@termsOfService	http://swagger.io/terms/
+
+//	@license.name	WTFPL
+//	@BasePath		/
+
+// @Securitydefinitions.apikey	ApiKeyAuth
+// @In							header
+// @Name						Cookie
+// @Description				jwt=value, get it at /auth/login
+var BackendCmd = &cobra.Command{
+	Use:   "backend",
 	Short: "NASAOJ backend server",
 	Run: func(cmd *cobra.Command, args []string) {
+		env.InitEnv()
 		ctx := context.Background()
 
 		provider, err := oidc.NewProvider(ctx, "https://oauth.cs.nycu.edu.tw")
@@ -83,11 +93,11 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Load problems and testcases
-		problems, err := utils.LoadProblems(os.Getenv("PROBLEMS_DIR"))
+		problems, err := utils.LoadProblems(env.PROBLEMS_DIR)
 		if err != nil {
 			panic(err)
 		}
-		testcases, err := utils.LoadTestcases(os.Getenv("TESTCASES_DIR"))
+		testcases, err := utils.LoadTestcases(env.TESTCASES_DIR)
 		if err != nil {
 			panic(err)
 		}
@@ -104,7 +114,7 @@ var rootCmd = &cobra.Command{
 		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
 		authGroup.GET("/callback", handlers.GetCallback(ctx, db,
 			oauth2Config, provider.Verifier(&oidc.Config{
-				ClientID: os.Getenv("OAUTH_CLIENT_ID"),
+				ClientID: env.OAUTH_CLIENT_ID,
 			})))
 
 		apiGroup := backend.NewGroup("/api").
@@ -134,27 +144,13 @@ var rootCmd = &cobra.Command{
 			handlers.PutScheduleResult(ctx, db, rdb, mc, problems, testcases))
 
 		go func() {
-			log.Println(http.ListenAndServe(":"+os.Getenv("SCHEDULER_PORT"), scheduler))
+			log.Println(http.ListenAndServe(":"+env.SCHEDULER_PORT, scheduler))
 		}()
-		log.Println(http.ListenAndServe(":"+os.Getenv("BACKEND_PORT"), backend))
+		log.Println(http.ListenAndServe(":"+env.BACKEND_PORT, backend))
 	},
 }
 
-//	@title			NASAOJ v3
-//	@version		2.0
-//	@termsOfService	http://swagger.io/terms/
-
-//	@license.name	WTFPL
-//	@BasePath		/
-
-// @Securitydefinitions.apikey	ApiKeyAuth
-// @In							header
-// @Name						Cookie
-// @Description				jwt=value, get it at /auth/login
-func main() {
-	env.InitEnv()
-
-	rootCmd.AddCommand(cmd.InitDBCmd)
-	rootCmd.AddCommand(cmd.ImportUserCmd)
-	rootCmd.Execute()
+func init() {
+	BackendCmd.AddCommand(initDBCmd)
+	BackendCmd.AddCommand(importUserCmd)
 }

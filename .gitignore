@@ -1,3 +1,2 @@
 **/.env
-backend/backend
-worker/worker
+judge
