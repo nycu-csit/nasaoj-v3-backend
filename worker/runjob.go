@@ -59,9 +59,9 @@ func RunJob(
 	}
 
 	job.ExecAt = time.Now().Unix()
-	duration := time.Now().Add(time.Duration(job.SoftTL) * time.Second)
-	cmdCtx, cancel := context.WithDeadline(ctx, duration)
-	defer cancel()
+	duration := time.Duration(job.SoftTL) * time.Second
+	cmdCtx, cmdCancel := context.WithTimeout(ctx, duration)
+	defer cmdCancel()
 
 	// Run script
 	cmd := exec.CommandContext(cmdCtx, "bash")
