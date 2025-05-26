@@ -29,10 +29,11 @@ CMD ["backend"]
 
 #####
 
-FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12-slim:main AS worker_runtime
+FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12:main AS worker_runtime
 
 RUN mkdir -p /var/run/nasaoj-worker
-RUN apt-get update && apt-get install -y netcat-openbsd swaks
+RUN apt-get update && apt-get install -y \
+      netcat-openbsd swaks ldap-utils bind9-dnsutils
 
 COPY --from=build /go/bin/judge /work/
 WORKDIR /work
