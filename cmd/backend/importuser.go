@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -25,9 +25,8 @@ var importUserCmd = &cobra.Command{
 		ctx := context.Background()
 
 		// Initialize DB instance
-		dsn := env.PG_CONNECTION_STRING
-
-		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
+			viper.GetString("pg-connection-string"))))
 		db := bun.NewDB(sqldb, pgdialect.New())
 
 		csvFilePath := args[0]

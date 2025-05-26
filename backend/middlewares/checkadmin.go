@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -24,7 +24,7 @@ func CheckAdmin(
 				}
 			}
 
-			if !slices.Contains(jwtClaim.Groups, env.ADMIN_ROLE) {
+			if !slices.Contains(jwtClaim.Groups, viper.GetString("admin-role")) {
 				return HTTPError{
 					StatusCode: http.StatusUnauthorized,
 					Message:    "not admin",

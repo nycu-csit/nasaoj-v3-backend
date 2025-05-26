@@ -10,11 +10,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	backendEnv "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker"
-	workerEnv "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/env"
+	"gopkg.in/yaml.v2"
 )
 
 type jobOutput struct {
@@ -90,9 +90,6 @@ var RunProblemCmd = &cobra.Command{
 	Short: "Run a single problem for testing purpose",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		backendEnv.InitEnv()
-		workerEnv.InitEnv()
-
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
@@ -109,27 +106,33 @@ var RunProblemCmd = &cobra.Command{
 			mockArgs[strs[0]] = strs[1]
 		}
 
-		problems, err := utils.LoadProblems(backendEnv.PROBLEMS_DIR)
+		color.HiMagenta("Problem Dir: %s\n", viper.GetString("problems-dir"))
+		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
 		if err != nil {
 			return fmt.Errorf("load problems failed, %w\n", err)
 		}
-		testcases, err := utils.LoadTestcases(backendEnv.TESTCASES_DIR)
+		color.HiMagenta("Testcases Dir: %s\n", viper.GetString("testcases-dir"))
+		testcases, err := utils.LoadTestcases(viper.GetString("testcases-dir"))
 		if err != nil {
 			return fmt.Errorf("load testcases failed, %w\n", err)
 		}
 
 		var wg sync.WaitGroup
 
-		jobIn := make(chan models.JobWithFile, workerEnv.BUFFER_SIZE)
-		jobOut := make(chan models.JobWithFile, workerEnv.BUFFER_SIZE)
-		retCh := make(chan int)
-		for i := int64(0); i < workerEnv.THREADS; i++ {
+		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
+		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
+		retCh := make(chan error)
+		for i := int64(0); i < viper.GetInt64("threads"); i++ {
 			go worker.RunJob(ctx, retCh, jobIn, jobOut)
 		}
 		go func() {
-			fmt.Printf("Worker threads running\n")
+			color.HiMagenta("Worker threads running\n")
 			for {
-				_ = <-retCh
+				ret := <-retCh
+				if ret != nil {
+					color.Red("worker died with error, %w\n", ret)
+					wg.Done()
+				}
 				go worker.RunJob(ctx, retCh, jobIn, jobOut)
 			}
 		}()
@@ -145,15 +148,21 @@ var RunProblemCmd = &cobra.Command{
 			}
 		}
 
-		pendingStages := make(chan string, workerEnv.BUFFER_SIZE)
+		pendingStages := make(chan string, viper.GetInt64("buffer-size"))
 		for name, _ := range problem.Stages {
 			if _, exist := stageDepCnt[name]; !exist {
 				pendingStages <- name
 			}
 		}
 
+		b, err := yaml.Marshal(problem)
+		if err != nil {
+			return fmt.Errorf("problem yaml marshal error, %w\n", err)
+		}
+		color.Cyan("Problem: %s\n", string(b[:]))
+
 		go func() {
-			fmt.Printf("Output thread running\n")
+			color.HiMagenta("Output thread running\n")
 			for {
 				job := <-jobOut
 				color.HiYellow("job: %+v\n", jobOutput{
@@ -163,10 +172,12 @@ var RunProblemCmd = &cobra.Command{
 					ExecAt:    job.ExecAt,
 				})
 
+				color.Cyan("===== Script =====\n")
+				color.White("%s\n", job.Script)
 				color.Cyan("===== Stdout =====\n")
-				fmt.Printf("%s\n", job.Stdout)
+				color.White("%s\n", job.Stdout)
 				color.Cyan("===== Stderr =====\n")
-				fmt.Printf("%s\n", job.Stderr)
+				color.White("%s\n", job.Stderr)
 				color.Cyan("==================\n")
 
 				stageJobCnt[job.StageName] -= 1
@@ -194,12 +205,33 @@ var RunProblemCmd = &cobra.Command{
 		}
 
 		wg.Wait()
+		color.Green("Job Succeed")
 		return nil
 	},
 }
 
 func init() {
+	RunProblemCmd.PersistentFlags().
+		String("problems-dir", "./problems", "Directory to read problems")
+	viper.BindPFlag("problems-dir",
+		RunProblemCmd.PersistentFlags().Lookup("problems-dir"))
+	RunProblemCmd.PersistentFlags().
+		String("testcases-dir", "./testcases", "Directory to read testcases")
+	viper.BindPFlag("testcases-dir",
+		RunProblemCmd.PersistentFlags().Lookup("testcases-dir"))
+	RunProblemCmd.PersistentFlags().
+		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
+	viper.BindPFlag("running-dir",
+		RunProblemCmd.PersistentFlags().Lookup("running-dir"))
+	RunProblemCmd.PersistentFlags().
+		Int64("buffer-size", 100, "Channel buffer size")
+	viper.BindPFlag("buffer-size",
+		RunProblemCmd.PersistentFlags().Lookup("buffer-size"))
+	RunProblemCmd.PersistentFlags().
+		Int64("threads", 20, "Thread count")
+	viper.BindPFlag("threads",
+		RunProblemCmd.PersistentFlags().Lookup("threads"))
 	RunProblemCmd.Flags().
 		StringSliceVarP(&mockArgsRaw,
-			"arg", "a", []string{""}, "Mock submission args")
+			"arg", "a", []string{}, "Mock submission args")
 }

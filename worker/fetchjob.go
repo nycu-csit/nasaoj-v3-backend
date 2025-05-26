@@ -8,41 +8,43 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/env"
 )
 
 func FetchJob(
 	pctx context.Context,
-	ret chan int,
-	jobch chan models.JobWithFile,
+	retCh chan error,
+	jobIn chan models.JobWithFile,
 ) {
 	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, "GET",
-		fmt.Sprintf("%s/schedule/job?tags=%s", env.SCHEDULER_URL, env.TAGS), nil)
+		fmt.Sprintf("%s/schedule/job?tags=%s", viper.GetString("scheduler-url"),
+			viper.GetString("tags")), nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed\n")
-		ret <- STATUS_HTTP_NEW_REQUEST_FAILED
+		retCh <- err
 		return
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", env.PRESHARED_KEY))
+	req.Header.Add("Authorization",
+		fmt.Sprintf("Bearer %s", viper.GetString("preshared-key")))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http GET request failed\n")
-		ret <- STATUS_HTTP_GET_FAILED
+		retCh <- err
 		return
 	}
 	if res.StatusCode == http.StatusServiceUnavailable {
-		ret <- STATUS_JOB_QUEUE_EMPTY
+		retCh <- err
 		return
 	}
 
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "body read failed\n")
-		ret <- STATUS_BODY_READ_FAILED
+		retCh <- err
 		return
 	}
 
@@ -50,7 +52,7 @@ func FetchJob(
 	err = json.Unmarshal(b, &job)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "json unmarshal failed\n")
-		ret <- STATUS_JSON_MARSHAL_FAILED
+		retCh <- err
 		return
 	}
 
@@ -59,26 +61,26 @@ func FetchJob(
 	req, err = http.NewRequestWithContext(ctx, "GET", job.FileURL, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed\n")
-		ret <- STATUS_HTTP_NEW_REQUEST_FAILED
+		retCh <- err
 		return
 	}
 	res, err = http.DefaultClient.Do(req)
 	if err != nil || res.StatusCode != http.StatusOK {
 		fmt.Fprintf(os.Stderr, "http GET request failed\n")
-		ret <- STATUS_HTTP_GET_FAILED
+		retCh <- err
 		return
 	}
 
 	b, err = io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "body read failed\n")
-		ret <- STATUS_BODY_READ_FAILED
+		retCh <- err
 		return
 	}
 
-	jobch <- models.JobWithFile{
+	jobIn <- models.JobWithFile{
 		Job:    job,
 		Tarbuf: b,
 	}
-	ret <- STATUS_OK
+	retCh <- nil
 }

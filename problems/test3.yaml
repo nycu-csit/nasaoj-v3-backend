@@ -1,0 +1,13 @@
+---
+name: test3
+problemId: 3
+description: Test 3
+stages:
+  stage1:
+    testcases:
+      - name: test1
+        files:
+          - failed.sh
+        scripts:
+          - bash failed.sh
+    score: 100

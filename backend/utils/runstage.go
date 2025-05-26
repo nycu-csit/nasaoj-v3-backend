@@ -10,7 +10,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/env"
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -72,7 +72,7 @@ func RunStage(
 			return fmt.Errorf("write to tar failed, %w\n", err)
 		}
 
-		_, err = mc.PutObject(ctx, env.MINIO_BUCKET,
+		_, err = mc.PutObject(ctx, viper.GetString("minio-bucket"),
 			fmt.Sprintf("%s.tar", job.Id()),
 			bytes.NewReader(tarbuf.Bytes()),
 			int64(tarbuf.Len()),
@@ -83,7 +83,7 @@ func RunStage(
 		}
 
 		timeout := time.Duration(job.HardTL) * time.Second
-		fileURL, err := mc.PresignedGetObject(ctx, env.MINIO_BUCKET,
+		fileURL, err := mc.PresignedGetObject(ctx, viper.GetString("minio-bucket"),
 			fmt.Sprintf("%s.tar", job.Id()), timeout, nil)
 		if err != nil {
 			return fmt.Errorf("minio generate presigned url failed, %w\n", err)
