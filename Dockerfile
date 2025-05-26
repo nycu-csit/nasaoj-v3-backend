@@ -33,7 +33,8 @@ FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12:main AS worker_runti
 
 RUN mkdir -p /var/run/nasaoj-worker
 RUN apt-get update && apt-get install -y \
-      netcat-openbsd swaks ldap-utils bind9-dnsutils
+      netcat-openbsd swaks ldap-utils bind9-dnsutils iputils-ping \
+      openssh-client python3-minimal python3-mailutils curl
 
 COPY --from=build /go/bin/judge /work/
 WORKDIR /work
