@@ -26,7 +26,7 @@ var RootCmd = &cobra.Command{
 				go worker.FetchJob(ctx, retCh, jobIn)
 				ret := <-retCh
 				if ret != nil {
-					fmt.Fprintf(os.Stderr, "fetch thread end with error, %w\n", ret)
+					fmt.Fprintf(os.Stderr, "fetch thread end with error, %s\n", ret)
 					time.Sleep(time.Duration(
 						viper.GetInt64("thread-backoff")) * time.Second)
 				}
@@ -39,7 +39,7 @@ var RootCmd = &cobra.Command{
 				go worker.PutJob(ctx, retCh, jobOut)
 				ret := <-retCh
 				if ret != nil {
-					fmt.Fprintf(os.Stderr, "put thread end with error, %w\n", ret)
+					fmt.Fprintf(os.Stderr, "put thread end with error, %s\n", ret)
 				}
 			}
 		}()
@@ -51,7 +51,7 @@ var RootCmd = &cobra.Command{
 		for {
 			ret := <-retCh
 			if ret != nil {
-				fmt.Fprintf(os.Stderr, "run thread end with error, %w\n", ret)
+				fmt.Fprintf(os.Stderr, "run thread end with error, %s\n", ret)
 			}
 			go worker.RunJob(ctx, retCh, jobIn, jobOut)
 		}

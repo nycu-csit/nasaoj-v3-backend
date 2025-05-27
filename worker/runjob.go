@@ -26,6 +26,13 @@ func RunJob(
 	job := <-jobIn
 
 	// Setup environment
+	filepath := path.Join(viper.GetString("running-dir"), job.Id())
+	err := os.MkdirAll(filepath, 0700)
+	if err != nil && !os.IsExist(err) {
+		retCh <- err
+		return
+	}
+
 	buf := bytes.NewBuffer(job.Tarbuf)
 	tr := tar.NewReader(buf)
 	for {

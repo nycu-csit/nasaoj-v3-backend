@@ -84,7 +84,7 @@ func GetResults(
 		}
 
 		jobcnt, err := rdb.HLen(ctx,
-			fmt.Sprintf("sub-job-%s", submission.Id)).Result()
+			fmt.Sprintf("sub-job-%d", submission.Id)).Result()
 		if err != nil {
 			jobcnt = 0
 		}
