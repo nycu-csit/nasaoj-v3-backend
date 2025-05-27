@@ -17,8 +17,11 @@ var (
 var RootCmd = &cobra.Command{
 	Use:   "judge",
 	Short: "NASAOJ",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return nil
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		viper.AutomaticEnv()
+		viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+		viper.BindPFlags(cmd.PersistentFlags())
+		viper.BindPFlags(cmd.Flags())
 	},
 }
 
@@ -32,9 +35,6 @@ func init() {
 }
 
 func initConfig() {
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 		if err := viper.ReadInConfig(); err != nil {

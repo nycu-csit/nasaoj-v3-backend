@@ -13,6 +13,7 @@ var checkDepsCmd = &cobra.Command{
 	Use:   "check-deps",
 	Short: "Check problem dependencies",
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("Problems dir: %s\n", viper.GetString("problems-dir"))
 		_, err := utils.LoadProblems(viper.GetString("problems-dir"))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "load problems failed, %+v", err)
@@ -22,8 +23,6 @@ var checkDepsCmd = &cobra.Command{
 }
 
 func init() {
-	checkDepsCmd.PersistentFlags().
+	checkDepsCmd.Flags().
 		String("problems-dir", "./problems", "Directory to read problems")
-	viper.BindPFlag("problems-dir",
-		checkDepsCmd.PersistentFlags().Lookup("problems-dir"))
 }

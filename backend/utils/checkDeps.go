@@ -1,13 +1,22 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func CheckDeps(problems ProblemRepository) error {
 	for _, problem := range problems {
+		fmt.Fprintf(os.Stderr, "Checking problem '%s'\n", problem.Name)
 
 		stageDepCnt := make(map[string]int64)
 		for _, stage := range problem.Stages {
 			for _, next := range stage.Before {
+				if _, exist := problem.Stages[next]; !exist {
+					return fmt.Errorf(
+						"dependency '%s' in problem '%s' does not exist",
+						stage, problem.Name)
+				}
 				stageDepCnt[next] += 1
 			}
 		}
@@ -19,7 +28,7 @@ func CheckDeps(problems ProblemRepository) error {
 			}
 		}
 
-		stagePassCnt := 0
+		stagePass := []string{}
 		for len(pendingStages) > 0 {
 			name := pendingStages[0]
 			pendingStages = pendingStages[1:]
@@ -32,10 +41,10 @@ func CheckDeps(problems ProblemRepository) error {
 				}
 			}
 
-			stagePassCnt += 1
+			stagePass = append(stagePass, name)
 		}
 
-		if stagePassCnt != len(problem.Stages) {
+		if len(stagePass) != len(problem.Stages) {
 			return fmt.Errorf("problem '%s' contains cycle\n", problem.Name)
 		}
 	}
