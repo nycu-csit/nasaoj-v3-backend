@@ -45,6 +45,7 @@ type submitOutput struct {
 //	@Success	200	{object}	submitOutput
 //	@Failure	400
 //	@Failure	401
+//	@Failure	429
 //
 //	@Router		/api/admin/submit [put]
 func putAdminSubmitPlaceholder() {}
@@ -56,6 +57,7 @@ func putAdminSubmitPlaceholder() {}
 //	@Success	200	{object}	submitOutput
 //	@Failure	400	{object}	string
 //	@Failure	401	{object}	string
+//	@Failure	429	{object}	string
 //
 //	@Router		/api/submit [put]
 func PutSubmit(
