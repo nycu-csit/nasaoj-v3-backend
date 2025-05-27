@@ -111,6 +111,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/submit": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "query params",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.adminSubmitInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.submitOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
         "/api/me": {
             "get": {
                 "responses": {
@@ -303,12 +335,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 }
             }
@@ -368,6 +394,18 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "handlers.adminSubmitInput": {
+            "type": "object",
+            "properties": {
+                "asUser": {
+                    "type": "string"
+                },
+                "problemId": {
+                    "description": "Submit problem ID",
+                    "type": "integer"
                 }
             }
         },
