@@ -30,6 +30,8 @@ definitions:
         additionalProperties:
           $ref: '#/definitions/handlers.problemOutputStage'
         type: object
+      tag:
+        type: string
     type: object
   handlers.problemOutputStage:
     properties:

@@ -385,6 +385,9 @@ const docTemplate = `{
                     "additionalProperties": {
                         "$ref": "#/definitions/handlers.problemOutputStage"
                     }
+                },
+                "tag": {
+                    "type": "string"
                 }
             }
         },

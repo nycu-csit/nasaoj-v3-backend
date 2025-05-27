@@ -10,12 +10,12 @@ func CheckDeps(problems ProblemRepository) error {
 		fmt.Fprintf(os.Stderr, "Checking problem '%s'\n", problem.Name)
 
 		stageDepCnt := make(map[string]int64)
-		for _, stage := range problem.Stages {
+		for name, stage := range problem.Stages {
 			for _, next := range stage.Before {
 				if _, exist := problem.Stages[next]; !exist {
 					return fmt.Errorf(
 						"dependency '%s' in problem '%s' does not exist",
-						stage, problem.Name)
+						name, problem.Name)
 				}
 				stageDepCnt[next] += 1
 			}
