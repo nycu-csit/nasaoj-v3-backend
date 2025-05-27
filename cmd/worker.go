@@ -1,4 +1,4 @@
-package worker
+package cmd
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker"
 )
 
-var RootCmd = &cobra.Command{
+var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "NASAOJ worker server",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -59,32 +59,32 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.PersistentFlags().
+	workerCmd.PersistentFlags().
 		Int64("threads", 20, "Threads count")
 	viper.BindPFlag("threads",
-		RootCmd.PersistentFlags().Lookup("threads"))
-	RootCmd.PersistentFlags().
+		workerCmd.PersistentFlags().Lookup("threads"))
+	workerCmd.PersistentFlags().
 		Int64("buffer-size", 100, "Channel buffer size")
 	viper.BindPFlag("buffer-size",
-		RootCmd.PersistentFlags().Lookup("buffer-size"))
-	RootCmd.PersistentFlags().
+		workerCmd.PersistentFlags().Lookup("buffer-size"))
+	workerCmd.PersistentFlags().
 		Int64("thread-backoff", 100, "Thread backoff seconds")
 	viper.BindPFlag("thread-backoff",
-		RootCmd.PersistentFlags().Lookup("thread-backoff"))
-	RootCmd.PersistentFlags().
+		workerCmd.PersistentFlags().Lookup("thread-backoff"))
+	workerCmd.PersistentFlags().
 		String("scheduler-url", "http://localhost:8081", "Scheduler url")
 	viper.BindPFlag("scheduler-url",
-		RootCmd.PersistentFlags().Lookup("scheduler-url"))
-	RootCmd.PersistentFlags().
+		workerCmd.PersistentFlags().Lookup("scheduler-url"))
+	workerCmd.PersistentFlags().
 		String("preshared-key", "poop", "Scheduler pre-shared key")
 	viper.BindPFlag("preshared-key",
-		RootCmd.PersistentFlags().Lookup("preshared-key"))
-	RootCmd.PersistentFlags().
+		workerCmd.PersistentFlags().Lookup("preshared-key"))
+	workerCmd.PersistentFlags().
 		String("tags", "default", "Tags for worker to take jobs")
 	viper.BindPFlag("tags",
-		RootCmd.PersistentFlags().Lookup("tags"))
-	RootCmd.PersistentFlags().
+		workerCmd.PersistentFlags().Lookup("tags"))
+	workerCmd.PersistentFlags().
 		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
 	viper.BindPFlag("running-dir",
-		RootCmd.PersistentFlags().Lookup("running-dir"))
+		workerCmd.PersistentFlags().Lookup("running-dir"))
 }

@@ -1,4 +1,4 @@
-package backend
+package cmd
 
 import (
 	"context"
@@ -36,7 +36,7 @@ import (
 // @In							header
 // @Name						Cookie
 // @Description				jwt=value, get it at /auth/login
-var RootCmd = &cobra.Command{
+var backendCmd = &cobra.Command{
 	Use:   "backend",
 	Short: "NASAOJ backend server",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -152,87 +152,85 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.PersistentFlags().
+	backendCmd.PersistentFlags().
 		String("backend-port", "8080", "Port for backend to listen on")
 	viper.BindPFlag("backend-port",
-		RootCmd.PersistentFlags().Lookup("backend-port"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("backend-port"))
+	backendCmd.PersistentFlags().
 		String("scheduler-port", "8081", "Port for scheduler to listen on")
 	viper.BindPFlag("scheduler-port",
-		RootCmd.PersistentFlags().Lookup("scheduler-port"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("scheduler-port"))
+	backendCmd.PersistentFlags().
 		String("problems-dir", "./problems", "Directory to read problems")
 	viper.BindPFlag("problems-dir",
-		RootCmd.PersistentFlags().Lookup("problems-dir"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("problems-dir"))
+	backendCmd.PersistentFlags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
 	viper.BindPFlag("testcases-dir",
-		RootCmd.PersistentFlags().Lookup("testcases-dir"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("testcases-dir"))
+	backendCmd.PersistentFlags().
 		String("jwt-secret", "poop", "JWT HMAC secret")
 	viper.BindPFlag("jwt-secret",
-		RootCmd.PersistentFlags().Lookup("jwt-secret"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("jwt-secret"))
+	backendCmd.PersistentFlags().
 		String("preshared-key", "poop", "Pre-shared key for worker to auth")
 	viper.BindPFlag("preshared-key",
-		RootCmd.PersistentFlags().Lookup("preshared-key"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("preshared-key"))
+	backendCmd.PersistentFlags().
 		String("oauth-client-id", "", "OAuth client id")
 	viper.BindPFlag("oauth-client-id",
-		RootCmd.PersistentFlags().Lookup("oauth-client-id"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("oauth-client-id"))
+	backendCmd.PersistentFlags().
 		String("oauth-client-secret", "", "OAuth client secret")
 	viper.BindPFlag("oauth-client-secret",
-		RootCmd.PersistentFlags().Lookup("oauth-client-secret"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("oauth-client-secret"))
+	backendCmd.PersistentFlags().
 		String("oauth-redirect-url", "http://localhost:8080/auth/callback",
 			"OAuth redirect url")
 	viper.BindPFlag("oauth-redirect-url",
-		RootCmd.PersistentFlags().Lookup("oauth-redirect-url"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("oauth-redirect-url"))
+	backendCmd.PersistentFlags().
 		String("redis-host", "localhost:6379", "Redis host[:port]")
 	viper.BindPFlag("redis-host",
-		RootCmd.PersistentFlags().Lookup("redis-host"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("redis-host"))
+	backendCmd.PersistentFlags().
 		String("redis-user", "nasa", "Redis user")
 	viper.BindPFlag("redis-user",
-		RootCmd.PersistentFlags().Lookup("redis-user"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("redis-user"))
+	backendCmd.PersistentFlags().
 		String("redis-pass", "", "Redis password")
 	viper.BindPFlag("redis-pass",
-		RootCmd.PersistentFlags().Lookup("redis-pass"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("redis-pass"))
+	backendCmd.PersistentFlags().
 		Int("redis-db", 0, "Redis db")
 	viper.BindPFlag("redis-db",
-		RootCmd.PersistentFlags().Lookup("redis-db"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("redis-db"))
+	backendCmd.PersistentFlags().
 		String("minio-host", "localhost:9000", "MinIO host[:port]")
 	viper.BindPFlag("minio-host",
-		RootCmd.PersistentFlags().Lookup("minio-host"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("minio-host"))
+	backendCmd.PersistentFlags().
 		String("minio-bucket", "nasaoj", "MinIO bucket")
 	viper.BindPFlag("minio-bucket",
-		RootCmd.PersistentFlags().Lookup("minio-bucket"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("minio-bucket"))
+	backendCmd.PersistentFlags().
 		String("minio-accesskey", "poop", "MinIO accesskey")
 	viper.BindPFlag("minio-accesskey",
-		RootCmd.PersistentFlags().Lookup("minio-accesskey"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("minio-accesskey"))
+	backendCmd.PersistentFlags().
 		String("minio-secretkey", "poop", "MinIO secretkey")
 	viper.BindPFlag("minio-secretkey",
-		RootCmd.PersistentFlags().Lookup("minio-secretkey"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("minio-secretkey"))
+	backendCmd.PersistentFlags().
 		Bool("minio-usessl", false, "MinIO usessl")
 	viper.BindPFlag("minio-usessl",
-		RootCmd.PersistentFlags().Lookup("minio-usessl"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("minio-usessl"))
+	backendCmd.PersistentFlags().
 		String("admin-role", "nasata", "Admin role in OIDC groups")
 	viper.BindPFlag("admin-role",
-		RootCmd.PersistentFlags().Lookup("admin-role"))
-	RootCmd.PersistentFlags().
+		backendCmd.PersistentFlags().Lookup("admin-role"))
+	backendCmd.PersistentFlags().
 		String("cors-origin", "", "CORS origin")
 	viper.BindPFlag("cors-origin",
-		RootCmd.PersistentFlags().Lookup("cors-origin"))
-	RootCmd.AddCommand(initDBCmd)
-	RootCmd.AddCommand(importUserCmd)
+		backendCmd.PersistentFlags().Lookup("cors-origin"))
 }

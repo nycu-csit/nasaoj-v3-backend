@@ -7,8 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/backend"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/worker"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/utils"
 )
 
 var (
@@ -27,9 +26,9 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().StringVar(
 		&cfgFile, "config", "", "config file, default /etc/nasaoj/nasaoj.yaml")
-	RootCmd.AddCommand(RunProblemCmd)
-	RootCmd.AddCommand(backend.RootCmd)
-	RootCmd.AddCommand(worker.RootCmd)
+	RootCmd.AddCommand(backendCmd)
+	RootCmd.AddCommand(workerCmd)
+	RootCmd.AddCommand(utils.RootCmd)
 }
 
 func initConfig() {
@@ -38,13 +37,8 @@ func initConfig() {
 
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
-	} else {
-		viper.AddConfigPath("/etc/nasaoj/")
-		viper.SetConfigName("nasaoj.yaml")
-		viper.SetConfigType("yaml")
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot read config, %s\n", err)
+		if err := viper.ReadInConfig(); err != nil {
+			fmt.Fprintf(os.Stderr, "Cannot read config, %s\n", err)
+		}
 	}
 }
