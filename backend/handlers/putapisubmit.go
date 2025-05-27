@@ -45,6 +45,7 @@ type submitOutput struct {
 //	@Success	200	{object}	submitOutput
 //	@Failure	400
 //	@Failure	401
+//	@Failure	429
 //
 //	@Router		/api/admin/submit [put]
 func putAdminSubmitPlaceholder() {}
@@ -56,6 +57,7 @@ func putAdminSubmitPlaceholder() {}
 //	@Success	200	{object}	submitOutput
 //	@Failure	400	{object}	string
 //	@Failure	401	{object}	string
+//	@Failure	429	{object}	string
 //
 //	@Router		/api/submit [put]
 func PutSubmit(
@@ -134,6 +136,33 @@ func PutSubmit(
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
 					Message:    "user resource missing",
+				}
+			}
+		}
+
+		// Check last submission
+		fmt.Fprintf(os.Stderr, "%+v\n", problem.Timeout)
+		var lastSubmit models.Submission
+		err = db.NewSelect().Model(&lastSubmit).
+			Where("csid = ?", resource.CsId).
+			Where("problemid = ?", problem.ProblemId).
+			OrderExpr("id DESC").Limit(1).Scan(ctx)
+		if err == nil {
+			fmt.Fprintf(os.Stderr, "lastSubmit: %+v\n", lastSubmit)
+			// Check Job queue
+			subJob := fmt.Sprintf("sub-job-%d", lastSubmit.Id)
+			subJobCnt, err := rdb.HLen(ctx, subJob).Result()
+			if err == nil && subJobCnt > 0 {
+				fmt.Fprintf(os.Stderr, "subJobCnt: %+v\n", subJobCnt)
+				availableAt := time.Unix(lastSubmit.SubmitAt, 0).
+					Add(time.Duration(problem.Timeout) * time.Second)
+				if time.Now().Unix() < availableAt.Unix() {
+					w.Header().Set("Retry-After", fmt.Sprintf("%d",
+						int64(availableAt.Sub(time.Now()).Seconds())))
+					return middlewares.HTTPError{
+						StatusCode: http.StatusTooManyRequests,
+						Message:    "submit in cooldown",
+					}
 				}
 			}
 		}

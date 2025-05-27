@@ -14,6 +14,8 @@ type problem struct {
 	Tag        string            `json:"tag" yaml:"tag"`
 	PreScript  Content           `json:"preScript" yaml:"preScript"`
 	PostScript Content           `json:"postScript" yaml:"postScript"`
+
+	Timeout int64 `json:"-" yaml:"-"`
 }
 
 type Problem struct {
