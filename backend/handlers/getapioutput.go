@@ -16,7 +16,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-// GetStderr
+// GetAdminStderr
 //
 //	@Param		subId		query		number	true	"Submission id"
 //	@Param		stage		query		string	true	"Stage name"

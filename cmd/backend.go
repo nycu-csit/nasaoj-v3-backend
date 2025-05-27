@@ -121,7 +121,7 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CheckJWT(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.PUT("/submit",
-			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases))
+			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, false))
 		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout"))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, rdb))
 		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
@@ -129,6 +129,8 @@ var backendCmd = &cobra.Command{
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
+		apiAdminGroup.PUT("/submit",
+			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, true))
 		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr"))
 		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
 		apiAdminGroup.POST("/reloadscores",

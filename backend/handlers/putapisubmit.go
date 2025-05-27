@@ -19,6 +19,11 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+type adminSubmitInput struct {
+	submitInput `json:",inline"`
+	AsUser      string `json:"asUser"`
+}
+
 type submitInput struct {
 	// Submit problem ID
 	ProblemId int64 `json:"problemId"`
@@ -33,6 +38,17 @@ type submitOutput struct {
 	SubmitAt int64  `json:"submitAt"`
 }
 
+// PutAdminSubmit
+//
+//	@Param		request	body	adminSubmitInput	true	"query params"
+//	@Accept		json
+//	@Success	200	{object}	submitOutput
+//	@Failure	400
+//	@Failure	401
+//
+//	@Router		/api/admin/submit [put]
+func putAdminSubmitPlaceholder() {}
+
 // PutSubmit
 //
 //	@Param		request	body	submitInput	true	"query params"
@@ -40,7 +56,6 @@ type submitOutput struct {
 //	@Success	200	{object}	submitOutput
 //	@Failure	400	{object}	string
 //	@Failure	401	{object}	string
-//	@Failure	500	{object}	string
 //
 //	@Router		/api/submit [put]
 func PutSubmit(
@@ -50,6 +65,7 @@ func PutSubmit(
 	mc *minio.Client,
 	problems utils.ProblemRepository,
 	testcases map[string]*template.Template,
+	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "PUT /api/submit\n")
@@ -62,34 +78,69 @@ func PutSubmit(
 				OriginError: err,
 			}
 		}
-		var input submitInput
-		if err := json.Unmarshal(b, &input); err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusBadRequest,
-				Message:     "json unmarshal failed",
-				OriginError: err,
-			}
-		}
-		problem, ok := problems[input.ProblemId]
-		if !ok {
-			return middlewares.HTTPError{
-				StatusCode: http.StatusBadRequest,
-				Message:    "problem not exist",
-			}
-		}
 
-		resource, ok := req.Context().Value(
-			middlewares.UserResourceType("")).(models.UserResource)
-		if !ok {
-			return middlewares.HTTPError{
-				StatusCode: http.StatusUnauthorized,
-				Message:    "user resource missing",
+		var problem models.Problem
+		var resource models.UserResource
+		if isAdmin {
+			var input adminSubmitInput
+			if err := json.Unmarshal(b, &input); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "json unmarshal failed",
+					OriginError: err,
+				}
+			}
+
+			var ok bool
+			problem, ok = problems[input.ProblemId]
+			if !ok {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusBadRequest,
+					Message:    "problem not exist",
+				}
+			}
+
+			err = db.NewSelect().Model(&resource).
+				Where("csid = ?", input.AsUser).Scan(ctx)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "resource query failed or user not exist",
+					OriginError: err,
+				}
+			}
+		} else {
+			var input submitInput
+			if err := json.Unmarshal(b, &input); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "json unmarshal failed",
+					OriginError: err,
+				}
+			}
+
+			var ok bool
+			problem, ok = problems[input.ProblemId]
+			if !ok {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusBadRequest,
+					Message:    "problem not exist",
+				}
+			}
+
+			resource, ok = req.Context().Value(
+				middlewares.UserResourceType("")).(models.UserResource)
+			if !ok {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "user resource missing",
+				}
 			}
 		}
 
 		submission := models.Submission{
 			ProblemName: problem.Name,
-			ProblemId:   input.ProblemId,
+			ProblemId:   problem.ProblemId,
 
 			CsId:     resource.CsId,
 			SubmitAt: time.Now().Unix(),
