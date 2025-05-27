@@ -1,4 +1,4 @@
-package cmd
+package utils
 
 import (
 	"bytes"
@@ -97,7 +97,7 @@ func runStage(
 
 // Run problem locally
 // Note that timeout is not implemented
-var RunProblemCmd = &cobra.Command{
+var runProblemCmd = &cobra.Command{
 	Use:   "run-problem",
 	Short: "Run a single problem for testing purpose",
 	Args:  cobra.ExactArgs(1),
@@ -227,27 +227,27 @@ var RunProblemCmd = &cobra.Command{
 }
 
 func init() {
-	RunProblemCmd.PersistentFlags().
+	runProblemCmd.PersistentFlags().
 		String("problems-dir", "./problems", "Directory to read problems")
 	viper.BindPFlag("problems-dir",
-		RunProblemCmd.PersistentFlags().Lookup("problems-dir"))
-	RunProblemCmd.PersistentFlags().
+		runProblemCmd.PersistentFlags().Lookup("problems-dir"))
+	runProblemCmd.PersistentFlags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
 	viper.BindPFlag("testcases-dir",
-		RunProblemCmd.PersistentFlags().Lookup("testcases-dir"))
-	RunProblemCmd.PersistentFlags().
+		runProblemCmd.PersistentFlags().Lookup("testcases-dir"))
+	runProblemCmd.PersistentFlags().
 		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
 	viper.BindPFlag("running-dir",
-		RunProblemCmd.PersistentFlags().Lookup("running-dir"))
-	RunProblemCmd.PersistentFlags().
+		runProblemCmd.PersistentFlags().Lookup("running-dir"))
+	runProblemCmd.PersistentFlags().
 		Int64("buffer-size", 100, "Channel buffer size")
 	viper.BindPFlag("buffer-size",
-		RunProblemCmd.PersistentFlags().Lookup("buffer-size"))
-	RunProblemCmd.PersistentFlags().
+		runProblemCmd.PersistentFlags().Lookup("buffer-size"))
+	runProblemCmd.PersistentFlags().
 		Int64("threads", 1, "Thread count")
 	viper.BindPFlag("threads",
-		RunProblemCmd.PersistentFlags().Lookup("threads"))
-	RunProblemCmd.Flags().
+		runProblemCmd.PersistentFlags().Lookup("threads"))
+	runProblemCmd.Flags().
 		StringSliceVarP(&mockArgsRaw,
 			"arg", "a", []string{}, "Mock submission args")
 }
