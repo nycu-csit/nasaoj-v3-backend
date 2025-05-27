@@ -37,6 +37,15 @@ func LoadProblems(dir string) (ProblemRepository, error) {
 				return fmt.Errorf("duplicate problem id %d\b", problem.ProblemId)
 			}
 
+			problem.Timeout = 0
+			for _, stage := range problem.Stages {
+				maxTL := int64(0)
+				for _, testcase := range stage.Testcases {
+					maxTL = max(maxTL, testcase.HardTL)
+				}
+				problem.Timeout += maxTL
+			}
+
 			problems[problem.ProblemId] = problem
 			return nil
 		})
