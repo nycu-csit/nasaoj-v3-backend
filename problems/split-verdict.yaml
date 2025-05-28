@@ -1,0 +1,16 @@
+---
+name: Split verdicts
+problemId: 5
+description: Test for split verdicts
+stages:
+  stage1:
+    testcases:
+      - name: test1
+        files:
+          - failed.sh
+        scripts:
+          - bash failed.sh
+      - name: test2
+        scripts:
+          - echo poop
+    score: 100

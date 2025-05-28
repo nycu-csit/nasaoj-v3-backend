@@ -510,6 +510,9 @@ const docTemplate = `{
                 "stageName": {
                     "type": "string"
                 },
+                "status": {
+                    "$ref": "#/definitions/models.JobStatus"
+                },
                 "testName": {
                     "type": "string"
                 }
@@ -598,6 +601,25 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "models.JobStatus": {
+            "type": "integer",
+            "enum": [
+                260,
+                261,
+                262,
+                460,
+                461,
+                560
+            ],
+            "x-enum-varnames": [
+                "StatusPending",
+                "StatusRunning",
+                "StatusSuccess",
+                "StatusFailed",
+                "StatusSkip",
+                "StatusMissing"
+            ]
         },
         "models.UserResource": {
             "type": "object",

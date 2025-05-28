@@ -88,6 +88,8 @@ definitions:
         type: integer
       stageName:
         type: string
+      status:
+        $ref: '#/definitions/models.JobStatus'
       testName:
         type: string
     type: object
@@ -146,6 +148,22 @@ definitions:
         description: the `sub` (Subject) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.2
         type: string
     type: object
+  models.JobStatus:
+    enum:
+    - 260
+    - 261
+    - 262
+    - 460
+    - 461
+    - 560
+    type: integer
+    x-enum-varnames:
+    - StatusPending
+    - StatusRunning
+    - StatusSuccess
+    - StatusFailed
+    - StatusSkip
+    - StatusMissing
   models.UserResource:
     properties:
       csId:

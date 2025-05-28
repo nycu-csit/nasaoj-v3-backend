@@ -18,6 +18,8 @@ type resultOutputJob struct {
 	StageName string `json:"stageName"`
 	TestName  string `json:"testName"`
 
+	Status models.JobStatus `json:"status" enum:"260,261,262,460,461,560"`
+
 	RetCode int   `json:"retCode"`
 	ExecAt  int64 `json:"execAt"`
 }
@@ -104,6 +106,8 @@ func GetResults(
 			ret.Jobs = append(ret.Jobs, resultOutputJob{
 				StageName: job.StageName,
 				TestName:  job.TestName,
+
+				Status: job.Status,
 
 				RetCode: job.RetCode,
 				ExecAt:  job.ExecAt,

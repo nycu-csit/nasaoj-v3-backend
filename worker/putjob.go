@@ -26,11 +26,9 @@ func PutJob(
 		StageName: job.StageName,
 		TestName:  job.TestName,
 
-		Script: job.Script,
+		Status: job.Status,
 
-		FileURL: job.FileURL,
-		HardTL:  job.HardTL,
-		SoftTL:  job.SoftTL,
+		Script: job.Script,
 
 		Stdout:  job.Stdout,
 		Stderr:  job.Stderr,

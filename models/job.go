@@ -6,6 +6,17 @@ import (
 	"github.com/uptrace/bun"
 )
 
+type JobStatus = int64
+
+const (
+	StatusPending JobStatus = 260
+	StatusRunning JobStatus = 261
+	StatusSuccess JobStatus = 262
+	StatusFailed  JobStatus = 460
+	StatusSkip    JobStatus = 461
+	StatusMissing JobStatus = 560
+)
+
 // Testcase that schedule to worker
 type Job struct {
 	bun.BaseModel `bun:"table:job"`
@@ -13,6 +24,8 @@ type Job struct {
 	SubId     int64  `json:"subId" bun:"subid,pk"`
 	StageName string `json:"stageName" bun:"stagename,pk"`
 	TestName  string `json:"testName" bun:"testname,pk"`
+
+	Status JobStatus `json:"status" bun:"status"`
 
 	// Input script
 	Script string `json:"script" bun:"script"`

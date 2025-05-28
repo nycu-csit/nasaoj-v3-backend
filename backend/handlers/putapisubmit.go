@@ -186,14 +186,42 @@ func PutSubmit(
 			submission.Args[key] = val
 		}
 
-		err = db.NewInsert().Model(&submission).Scan(ctx)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "submission insertion failed",
-				OriginError: err,
+		// TODO: add tx and create jobs
+		err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+			err = tx.NewInsert().Model(&submission).Scan(ctx)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "submission insertion failed",
+					OriginError: err,
+				}
 			}
+
+			for stageName, stage := range problem.Stages {
+				for _, testcase := range stage.Testcases {
+					job := models.Job{
+						SubId:     submission.Id,
+						StageName: stageName,
+						TestName:  testcase.Name,
+
+						Status: models.StatusPending,
+					}
+					_, err = tx.NewInsert().Model(&job).Exec(ctx)
+					if err != nil {
+						return middlewares.HTTPError{
+							StatusCode:  http.StatusInternalServerError,
+							Message:     "job insertion failed",
+							OriginError: err,
+						}
+					}
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
+
 		subId := submission.Id
 
 		stageDeps := make(map[string]int64)
@@ -215,7 +243,8 @@ func PutSubmit(
 
 		for name := range problem.Stages {
 			if _, exist := stageDeps[name]; !exist {
-				err = utils.RunStage(ctx, rdb, mc, problems, testcases, submission, name)
+				err = utils.RunStage(
+					ctx, db, rdb, mc, problems, testcases, submission, name)
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusInternalServerError,
