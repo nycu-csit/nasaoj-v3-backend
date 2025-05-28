@@ -52,12 +52,15 @@ func PutJob(
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization",
 		fmt.Sprintf("Bearer %s", viper.GetString("preshared-key")))
-	res, err := http.DefaultClient.Do(req)
-	if err != nil || res.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, "http put failed\n")
-		retCh <- err
-		return
+
+	for i := 0; i < 3; i++ {
+		res, err := http.DefaultClient.Do(req)
+		if err == nil && res.StatusCode == http.StatusOK {
+			retCh <- nil
+			return
+		}
 	}
 
-	retCh <- nil
+	fmt.Fprintf(os.Stderr, "http put failed\n")
+	retCh <- err
 }

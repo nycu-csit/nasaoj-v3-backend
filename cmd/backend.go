@@ -174,6 +174,10 @@ func init() {
 		String("oauth-redirect-url", "http://localhost:8080/auth/callback",
 			"OAuth redirect url")
 	backendCmd.PersistentFlags().
+		String("pg-connection-string",
+			"postgres://poop:poop@pg:5432/poop?sslmode=disable",
+			"Postgres connection string")
+	backendCmd.PersistentFlags().
 		String("redis-host", "localhost:6379", "Redis host[:port]")
 	backendCmd.PersistentFlags().
 		String("redis-user", "nasa", "Redis user")
