@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"text/template"
 	"time"
 
@@ -146,14 +147,15 @@ func PutSubmit(
 		err = db.NewSelect().Model(&lastSubmit).
 			Where("csid = ?", resource.CsId).
 			Where("problemid = ?", problem.ProblemId).
-			OrderExpr("id DESC").Limit(1).Scan(ctx)
+			Relation("Jobs").OrderExpr("id DESC").Limit(1).Scan(ctx)
 		if err == nil {
 			fmt.Fprintf(os.Stderr, "lastSubmit: %+v\n", lastSubmit)
-			// Check Job queue
-			subJob := fmt.Sprintf("sub-job-%d", lastSubmit.Id)
-			subJobCnt, err := rdb.HLen(ctx, subJob).Result()
-			if err == nil && subJobCnt > 0 {
-				fmt.Fprintf(os.Stderr, "subJobCnt: %+v\n", subJobCnt)
+
+			// Check Job status
+			if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
+				return job.Status == models.StatusPending ||
+					job.Status == models.StatusRunning
+			}) {
 				availableAt := time.Unix(lastSubmit.SubmitAt, 0).
 					Add(time.Duration(problem.Timeout) * time.Second)
 				if time.Now().Unix() < availableAt.Unix() {
