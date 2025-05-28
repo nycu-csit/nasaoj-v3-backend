@@ -61,30 +61,18 @@ var workerCmd = &cobra.Command{
 func init() {
 	workerCmd.PersistentFlags().
 		Int64("threads", 20, "Threads count")
-	viper.BindPFlag("threads",
-		workerCmd.PersistentFlags().Lookup("threads"))
 	workerCmd.PersistentFlags().
 		Int64("buffer-size", 100, "Channel buffer size")
-	viper.BindPFlag("buffer-size",
-		workerCmd.PersistentFlags().Lookup("buffer-size"))
 	workerCmd.PersistentFlags().
-		Int64("thread-backoff", 100, "Thread backoff seconds")
-	viper.BindPFlag("thread-backoff",
-		workerCmd.PersistentFlags().Lookup("thread-backoff"))
+		Int64("thread-backoff", 10, "Thread backoff seconds")
+	workerCmd.PersistentFlags().
+		Int64("putjob-retry", 3, "How many times to retry if put job failed")
 	workerCmd.PersistentFlags().
 		String("scheduler-url", "http://localhost:8081", "Scheduler url")
-	viper.BindPFlag("scheduler-url",
-		workerCmd.PersistentFlags().Lookup("scheduler-url"))
 	workerCmd.PersistentFlags().
 		String("preshared-key", "poop", "Scheduler pre-shared key")
-	viper.BindPFlag("preshared-key",
-		workerCmd.PersistentFlags().Lookup("preshared-key"))
 	workerCmd.PersistentFlags().
 		String("tags", "default", "Tags for worker to take jobs")
-	viper.BindPFlag("tags",
-		workerCmd.PersistentFlags().Lookup("tags"))
 	workerCmd.PersistentFlags().
 		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
-	viper.BindPFlag("running-dir",
-		workerCmd.PersistentFlags().Lookup("running-dir"))
 }
