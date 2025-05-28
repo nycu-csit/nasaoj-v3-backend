@@ -11,11 +11,13 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
+	"github.com/uptrace/bun"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func RunStage(
 	ctx context.Context,
+	db *bun.DB,
 	rdb *redis.Client,
 	mc *minio.Client,
 	problems ProblemRepository,
@@ -53,10 +55,16 @@ func RunStage(
 			StageName: stageName,
 			TestName:  testcase.Name,
 
+			Status: models.StatusRunning,
+
 			Script: jobScript,
 
 			HardTL: testcase.HardTL,
 			SoftTL: testcase.SoftTL,
+		}
+		_, err := db.NewUpdate().Model(&job).WherePK().Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("update job status failed, %w\n", err)
 		}
 
 		args := ArgsOverlay(
@@ -67,7 +75,7 @@ func RunStage(
 		)
 
 		var tarbuf bytes.Buffer
-		err := WriteTar(&tarbuf, contents, testcases, args)
+		err = WriteTar(&tarbuf, contents, testcases, args)
 		if err != nil {
 			return fmt.Errorf("write to tar failed, %w\n", err)
 		}

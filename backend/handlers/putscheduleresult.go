@@ -49,7 +49,7 @@ func PutScheduleResult(
 			}
 		}
 
-		fmt.Fprintf(os.Stderr, "PUT /api/result\nbody: %s\n", body)
+		fmt.Fprintf(os.Stderr, "PUT /schedule/result\nbody: %s\n", body)
 
 		var job models.Job
 		err = json.Unmarshal(body, &job)
@@ -78,15 +78,6 @@ func PutScheduleResult(
 			}
 		}
 
-		_, err = db.NewInsert().Model(&job).Exec(ctx)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "job insertion failed",
-				OriginError: err,
-			}
-		}
-
 		submission := models.Submission{
 			Id: job.SubId,
 		}
@@ -94,14 +85,32 @@ func PutScheduleResult(
 		err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 			err = tx.NewSelect().Model(&submission).WherePK().Scan(ctx)
 			if err != nil {
-				return fmt.Errorf("submission select failed, %s\n", err)
+				return fmt.Errorf("submission select failed, %w\n", err)
 			}
 
-			submission.Jobs = append(submission.Jobs, &job)
-			_, err = tx.NewUpdate().Model(&submission).WherePK().Exec(ctx)
-			if err != nil {
-				return fmt.Errorf("submission job append failed, %s\n", err)
+			if job.RetCode == 0 {
+				job.Status = models.StatusSuccess
+			} else {
+				job.Status = models.StatusFailed
+				_, err = tx.NewUpdate().Model(&models.Job{}).
+					Set("status = ?", models.StatusSkip).
+					Where("subid = ?", job.SubId).
+					Where("status IN (?)", bun.In([]models.JobStatus{
+						models.StatusPending,
+					})).Exec(ctx)
+				if err != nil {
+					return fmt.Errorf("job status skip update failed, %w\n", err)
+				}
 			}
+			_, err = tx.NewUpdate().Model(&job).WherePK().Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("job status failed update failed, %w\n", err)
+			}
+			// submission.Jobs = append(submission.Jobs, &job)
+			// _, err = tx.NewUpdate().Model(&submission).WherePK().Exec(ctx)
+			// if err != nil {
+			// 	return fmt.Errorf("submission job append failed, %s\n", err)
+			// }
 			return nil
 		})
 		if err != nil {
@@ -197,7 +206,7 @@ func PutScheduleResult(
 
 				if jobdep <= 0 {
 					err = utils.RunStage(
-						ctx, rdb, mc, problems, testcases, submission, next)
+						ctx, db, rdb, mc, problems, testcases, submission, next)
 					if err != nil {
 						return middlewares.HTTPError{
 							StatusCode:  http.StatusInternalServerError,
