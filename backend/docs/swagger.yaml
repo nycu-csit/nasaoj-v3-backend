@@ -22,7 +22,7 @@ definitions:
     type: object
   handlers.adminSubmitInput:
     properties:
-      asUser:
+      asCsId:
         type: string
       problemId:
         description: Submit problem ID
@@ -227,7 +227,7 @@ paths:
         type: string
       responses:
         "200":
-          description: Testcase result Stderr
+          description: Testcase result stderr
           schema:
             type: string
         "400":
@@ -238,6 +238,33 @@ paths:
           description: Not Found
           schema:
             type: string
+  /api/admin/stdout:
+    get:
+      parameters:
+      - description: Submission id
+        in: query
+        name: subId
+        required: true
+        type: number
+      - description: Stage name
+        in: query
+        name: stage
+        required: true
+        type: string
+      - description: Testcase name
+        in: query
+        name: testcase
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Testcase result stdout
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
   /api/admin/submit:
     put:
       consumes:
@@ -363,7 +390,7 @@ paths:
         type: string
       responses:
         "200":
-          description: Testcase result output
+          description: Testcase result stdout
           schema:
             type: string
         "400":

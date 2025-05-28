@@ -91,7 +91,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Testcase result Stderr",
+                        "description": "Testcase result stderr",
                         "schema": {
                             "type": "string"
                         }
@@ -107,6 +107,47 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    }
+                }
+            }
+        },
+        "/api/admin/stdout": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Testcase result stdout",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
                     }
                 }
             }
@@ -305,7 +346,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Testcase result output",
+                        "description": "Testcase result stdout",
                         "schema": {
                             "type": "string"
                         }
@@ -430,7 +471,7 @@ const docTemplate = `{
         "handlers.adminSubmitInput": {
             "type": "object",
             "properties": {
-                "asUser": {
+                "asCsId": {
                     "type": "string"
                 },
                 "problemId": {

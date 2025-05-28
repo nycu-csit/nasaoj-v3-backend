@@ -22,7 +22,7 @@ import (
 
 type adminSubmitInput struct {
 	submitInput `json:",inline"`
-	AsUser      string `json:"asUser"`
+	AsCsId      string `json:"asCsId"`
 }
 
 type submitInput struct {
@@ -104,7 +104,7 @@ func PutSubmit(
 			}
 
 			err = db.NewSelect().Model(&resource).
-				Where("csid = ?", input.AsUser).Scan(ctx)
+				Where("csid = ?", input.AsCsId).Scan(ctx)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,

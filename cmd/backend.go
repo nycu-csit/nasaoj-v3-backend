@@ -122,17 +122,18 @@ var backendCmd = &cobra.Command{
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.PUT("/submit",
 			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, false))
-		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout"))
+		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, rdb))
 		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
+		apiAdminGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", true))
+		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr", true))
+		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
 		apiAdminGroup.POST("/reloadscores",
 			handlers.PostReloadScores(ctx, db, rdb, problems))
-		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
-		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr"))
 		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
 		apiAdminGroup.PUT("/submit",
 			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, true))
