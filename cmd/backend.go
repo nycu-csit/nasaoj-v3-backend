@@ -129,12 +129,13 @@ var backendCmd = &cobra.Command{
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
-		apiAdminGroup.PUT("/submit",
-			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, true))
-		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr"))
-		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
 		apiAdminGroup.POST("/reloadscores",
 			handlers.PostReloadScores(ctx, db, rdb, problems))
+		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
+		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr"))
+		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
+		apiAdminGroup.PUT("/submit",
+			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, true))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()

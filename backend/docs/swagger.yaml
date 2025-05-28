@@ -260,6 +260,19 @@ paths:
           description: Unauthorized
         "429":
           description: Too Many Requests
+  /api/admin/users:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserResource'
+            type: array
+        "401":
+          description: not admin or not login
+          schema:
+            type: string
   /api/me:
     get:
       responses:
