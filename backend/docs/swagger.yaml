@@ -69,8 +69,6 @@ definitions:
         items:
           $ref: '#/definitions/handlers.resultOutputJob'
         type: array
-      pending:
-        type: integer
       problemId:
         type: integer
       problemName:
@@ -265,6 +263,37 @@ paths:
           description: Bad Request
         "404":
           description: Not Found
+  /api/admin/submissions:
+    get:
+      parameters:
+      - default: 0
+        description: Page number, one page is 20 submissions
+        in: query
+        name: pageNum
+        type: integer
+      - description: Filter by CsId
+        in: query
+        name: csId
+        type: integer
+      - description: Filter by Problem Id
+        in: query
+        name: problemId
+        type: integer
+      responses:
+        "200":
+          description: All submission within the problem
+          schema:
+            items:
+              $ref: '#/definitions/handlers.resultOutput'
+            type: array
+        "400":
+          description: Problem Id invalid
+          schema:
+            type: string
+        "401":
+          description: not admin or didn't login
+          schema:
+            type: string
   /api/admin/submit:
     put:
       consumes:

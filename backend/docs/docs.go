@@ -152,6 +152,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/submissions": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Page number, one page is 20 submissions",
+                        "name": "pageNum",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by CsId",
+                        "name": "csId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by Problem Id",
+                        "name": "problemId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "All submission within the problem",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.resultOutput"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Problem Id invalid",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "not admin or didn't login",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/submit": {
             "put": {
                 "consumes": [
@@ -542,9 +590,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/handlers.resultOutputJob"
                     }
-                },
-                "pending": {
-                    "type": "integer"
                 },
                 "problemId": {
                     "type": "integer"

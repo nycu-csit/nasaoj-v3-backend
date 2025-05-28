@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -32,7 +31,6 @@ type resultOutput struct {
 	CsId     string `json:"csId"`
 	SubmitAt int64  `json:"submitAt"`
 	Score    int64  `json:"score"`
-	Pending  int64  `json:"pending"`
 
 	Jobs []resultOutputJob `json:"jobs"`
 }
@@ -48,7 +46,6 @@ type resultOutput struct {
 func GetResults(
 	ctx context.Context,
 	db *bun.DB,
-	rdb *redis.Client,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/results\n")
@@ -76,7 +73,7 @@ func GetResults(
 		err = db.NewSelect().Model(&submission).
 			Where("csid = ?", resource.CsId).
 			Where("problemid = ?", problemId).
-			Relation("Jobs").OrderExpr("id DESC").Limit(1).Scan(ctx)
+			Relation("Jobs").Order("id DESC").Limit(1).Scan(ctx)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusNotFound,
@@ -85,13 +82,6 @@ func GetResults(
 			}
 		}
 
-		jobcnt, err := rdb.HLen(ctx,
-			fmt.Sprintf("sub-job-%d", submission.Id)).Result()
-		if err != nil {
-			jobcnt = 0
-		}
-
-		w.WriteHeader(http.StatusOK)
 		ret := resultOutput{
 			Id:          submission.Id,
 			ProblemId:   submission.ProblemId,
@@ -100,7 +90,6 @@ func GetResults(
 			CsId:     submission.CsId,
 			SubmitAt: submission.SubmitAt,
 			Score:    submission.Score.Score,
-			Pending:  jobcnt,
 		}
 		for _, job := range submission.Jobs {
 			ret.Jobs = append(ret.Jobs, resultOutputJob{

@@ -147,7 +147,7 @@ func PutSubmit(
 		err = db.NewSelect().Model(&lastSubmit).
 			Where("csid = ?", resource.CsId).
 			Where("problemid = ?", problem.ProblemId).
-			Relation("Jobs").OrderExpr("id DESC").Limit(1).Scan(ctx)
+			Relation("Jobs").Order("id DESC").Limit(1).Scan(ctx)
 		if err == nil {
 			fmt.Fprintf(os.Stderr, "lastSubmit: %+v\n", lastSubmit)
 
