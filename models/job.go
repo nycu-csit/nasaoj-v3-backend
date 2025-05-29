@@ -52,6 +52,10 @@ func (self Job) Id() string {
 	return fmt.Sprintf("%d-%s-%s", self.SubId, self.StageName, self.TestName)
 }
 
+func (self Job) Filename() string {
+	return fmt.Sprintf("%s.tar", self.Id())
+}
+
 // Jobcnt key for stage
 func (self Job) Stage() string {
 	return fmt.Sprintf("%d-%s", self.SubId, self.StageName)
@@ -63,4 +67,11 @@ func (self Job) StdoutKey() string {
 
 func (self Job) StderrKey() string {
 	return fmt.Sprintf("%s-stderr", self.Id())
+}
+
+func (self Job) IsDone() bool {
+	return self.Status == StatusSuccess ||
+		self.Status == StatusFailed ||
+		self.Status == StatusSkip ||
+		self.Status == StatusMissing
 }

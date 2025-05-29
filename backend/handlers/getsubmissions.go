@@ -34,9 +34,9 @@ const pageSize int = 20
 
 // GetAdminSubmissions
 //
-//	@Param		pageNum		query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		csId		query		string				false	"Filter by CsId"							attribute(optional)
-//	@Param		problemId	query		int64				false	"Filter by Problem Id"						attribute(optional)
+//	@Param		pageNum		query		int64			false	"Page number, one page is 20 submissions"	default(0)
+//	@Param		csId		query		string			false	"Filter by CsId"							attribute(optional)
+//	@Param		problemId	query		int64			false	"Filter by Problem Id"						attribute(optional)
 //
 //	@Success	200			{object}	submissionsOutput	"Submissions"
 //	@Failure	400			{object}	string				"Problem Id invalid"

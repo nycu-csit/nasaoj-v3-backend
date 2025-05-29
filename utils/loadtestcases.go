@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-type TestcaseRepository = map[string]*template.Template
-
-func LoadTestcases(dir string) (TestcaseRepository, error) {
-	testcases := make(TestcaseRepository)
+func LoadTestcases(dir string) (models.TestcaseRepository, error) {
+	testcases := make(models.TestcaseRepository)
 
 	err := filepath.WalkDir(dir,
 		func(path string, d fs.DirEntry, err error) error {

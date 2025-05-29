@@ -18,7 +18,8 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"golang.org/x/oauth2"
 
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
@@ -99,6 +100,12 @@ var backendCmd = &cobra.Command{
 			panic(err)
 		}
 
+		// Initialize custom interfaces
+		bunDB := implements.NewBunDatabase(db)
+		s3 := implements.NewMinIOObjectStorage(mc)
+		jobQue := implements.NewRedisJobQueue(rdb)
+		scoreCache := implements.NewRedisScoreCache(rdb)
+
 		// Initialize backend router
 		backend := bunrouter.New()
 
@@ -120,8 +127,8 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CORSHandler).
 			Use(middlewares.CheckJWT(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
-		apiGroup.PUT("/submit",
-			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, false))
+		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, bunDB, jobQue,
+			s3, problems, testcases, false))
 		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
 		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
@@ -141,15 +148,16 @@ var backendCmd = &cobra.Command{
 			handlers.GetSubmissions(ctx, db, rdb, true))
 		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
 		apiAdminGroup.PUT("/submit",
-			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, true))
+			handlers.PutSubmit(ctx, bunDB, jobQue, s3, problems, testcases, true))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()
 		scheduleGroup := scheduler.NewGroup("/schedule").
-			Use(middlewares.ErrorHandler)
-		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, rdb))
-		scheduleGroup.PUT("/result",
-			handlers.PutScheduleResult(ctx, db, rdb, mc, problems, testcases))
+			Use(middlewares.ErrorHandler).
+			Use(middlewares.CheckPreSharedKey)
+		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, jobQue))
+		scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, bunDB,
+			jobQue, scoreCache, s3, problems, testcases))
 
 		go func() {
 			log.Println(http.ListenAndServe(

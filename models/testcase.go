@@ -1,13 +1,12 @@
 package models
 
 import (
+	"text/template"
+
 	"gopkg.in/yaml.v3"
 )
 
-type testcaseNode struct {
-	SoftTL yaml.Node `yaml:"softtl"`
-	HardTL yaml.Node `yaml:"hardtl"`
-}
+type TestcaseRepository = map[string]*template.Template
 
 type testcase struct {
 	Content `json:",inline" yaml:",inline"`
@@ -20,6 +19,11 @@ type testcase struct {
 
 type Testcase struct {
 	testcase `yaml:",inline"`
+}
+
+type testcaseNode struct {
+	SoftTL yaml.Node `yaml:"softtl"`
+	HardTL yaml.Node `yaml:"hardtl"`
 }
 
 func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {

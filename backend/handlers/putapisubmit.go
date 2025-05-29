@@ -11,13 +11,12 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/minio/minio-go/v7"
-	"github.com/redis/go-redis/v9"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/utils"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
 
 type adminSubmitInput struct {
@@ -63,15 +62,21 @@ func putAdminSubmitPlaceholder() {}
 //	@Router		/api/submit [put]
 func PutSubmit(
 	ctx context.Context,
-	db *bun.DB,
-	rdb *redis.Client,
-	mc *minio.Client,
+	db interfaces.Database,
+	jobQue interfaces.JobQueue,
+	s3 interfaces.ObjectStorage,
+
 	problems utils.ProblemRepository,
 	testcases map[string]*template.Template,
+
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		fmt.Fprintf(os.Stderr, "PUT /api/submit\n")
+		if isAdmin {
+			fmt.Fprintf(os.Stderr, "PUT /api/admin/submit\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "PUT /api/submit\n")
+		}
 
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -103,8 +108,7 @@ func PutSubmit(
 				}
 			}
 
-			err = db.NewSelect().Model(&resource).
-				Where("csid = ?", input.AsCsId).Scan(ctx)
+			resource, err = db.GetUserResource(ctx, input.AsCsId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -142,15 +146,9 @@ func PutSubmit(
 		}
 
 		// Check last submission
-		fmt.Fprintf(os.Stderr, "%+v\n", problem.Timeout)
-		var lastSubmit models.Submission
-		err = db.NewSelect().Model(&lastSubmit).
-			Where("csid = ?", resource.CsId).
-			Where("problemid = ?", problem.ProblemId).
-			Relation("Jobs").Order("id DESC").Limit(1).Scan(ctx)
+		lastSubmit, err := db.GetLastSubmission(ctx,
+			resource.CsId, problem.ProblemId)
 		if err == nil {
-			fmt.Fprintf(os.Stderr, "lastSubmit: %+v\n", lastSubmit)
-
 			// Check Job status
 			if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
 				return job.Status == models.StatusPending ||
@@ -182,88 +180,20 @@ func PutSubmit(
 				Stages: make(map[string]int64),
 			},
 		}
-		fmt.Fprintf(os.Stderr, "submission: %+v\n", submission)
 
 		for key, val := range resource.Map() {
 			submission.Args[key] = val
 		}
 
-		err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-			err = tx.NewInsert().Model(&submission).Scan(ctx)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "submission insertion failed",
-					OriginError: err,
-				}
-			}
-
-			for stageName, stage := range problem.Stages {
-				for _, testcase := range stage.Testcases {
-					job := models.Job{
-						SubId:     submission.Id,
-						StageName: stageName,
-						TestName:  testcase.Name,
-
-						Status: models.StatusPending,
-					}
-					_, err = tx.NewInsert().Model(&job).Exec(ctx)
-					if err != nil {
-						return middlewares.HTTPError{
-							StatusCode:  http.StatusInternalServerError,
-							Message:     "job insertion failed",
-							OriginError: err,
-						}
-					}
-				}
-			}
-			return nil
-		})
+		err = db.InsertSubmissionAndJobs(ctx, &submission, problem)
 		if err != nil {
 			return err
 		}
 
-		subId := submission.Id
-
-		stageDeps := make(map[string]int64)
-		for name, stage := range problem.Stages {
-			_, err = rdb.HSet(ctx, "jobcnt", fmt.Sprintf("%d-%s", subId, name),
-				len(stage.Testcases)).Result()
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "redis SET failed",
-					OriginError: err,
-				}
-			}
-			for _, next := range stage.Before {
-				stageDeps[next] += 1
-			}
-		}
-		fmt.Fprintf(os.Stderr, "stageDeps: %+v\n", stageDeps)
-
-		for name := range problem.Stages {
-			if _, exist := stageDeps[name]; !exist {
-				err = utils.RunStage(
-					ctx, db, rdb, mc, problems, testcases, submission, name)
-				if err != nil {
-					return middlewares.HTTPError{
-						StatusCode:  http.StatusInternalServerError,
-						Message:     "RunStage failed",
-						OriginError: err,
-					}
-				}
-			} else {
-				_, err = rdb.HSet(ctx, "depcnt", fmt.Sprintf("%d-%s", subId, name),
-					stageDeps[name]).Result()
-				if err != nil {
-					return middlewares.HTTPError{
-						StatusCode:  http.StatusInternalServerError,
-						Message:     "redis HSET failed",
-						OriginError: err,
-					}
-				}
-			}
+		err = workflows.RunProblem(ctx, jobQue, db, s3,
+			problems, testcases, submission)
+		if err != nil {
+			return err
 		}
 
 		w.WriteHeader(http.StatusOK)

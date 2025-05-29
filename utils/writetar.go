@@ -11,7 +11,7 @@ import (
 func WriteTar(
 	tarbuf *bytes.Buffer,
 	contents []models.Content,
-	testcases TestcaseRepository,
+	testcases models.TestcaseRepository,
 	args map[string]string,
 ) error {
 	tw := tar.NewWriter(tarbuf)

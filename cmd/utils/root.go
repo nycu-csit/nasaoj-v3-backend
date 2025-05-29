@@ -11,5 +11,5 @@ func init() {
 	RootCmd.AddCommand(checkDepsCmd)
 	RootCmd.AddCommand(importUserCmd)
 	RootCmd.AddCommand(initDBCmd)
-	RootCmd.AddCommand(runProblemCmd)
+	// RootCmd.AddCommand(runProblemCmd)
 }
