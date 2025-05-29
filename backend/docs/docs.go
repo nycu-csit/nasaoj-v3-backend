@@ -91,7 +91,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Testcase result Stderr",
+                        "description": "Testcase result stderr",
                         "schema": {
                             "type": "string"
                         }
@@ -104,6 +104,95 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/stdout": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Testcase result stdout",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/api/admin/submissions": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Page number, one page is 20 submissions",
+                        "name": "pageNum",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by CsId",
+                        "name": "csId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by Problem Id",
+                        "name": "problemId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "All submission within the problem",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.resultOutput"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Problem Id invalid",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "not admin or didn't login",
                         "schema": {
                             "type": "string"
                         }
@@ -142,6 +231,27 @@ const docTemplate = `{
                     },
                     "429": {
                         "description": "Too Many Requests"
+                    }
+                }
+            }
+        },
+        "/api/admin/users": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.UserResource"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "not admin or not login",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -284,7 +394,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Testcase result output",
+                        "description": "Testcase result stdout",
                         "schema": {
                             "type": "string"
                         }
@@ -409,7 +519,7 @@ const docTemplate = `{
         "handlers.adminSubmitInput": {
             "type": "object",
             "properties": {
-                "asUser": {
+                "asCsId": {
                     "type": "string"
                 },
                 "problemId": {
@@ -480,9 +590,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/handlers.resultOutputJob"
                     }
-                },
-                "pending": {
-                    "type": "integer"
                 },
                 "problemId": {
                     "type": "integer"

@@ -22,7 +22,7 @@ definitions:
     type: object
   handlers.adminSubmitInput:
     properties:
-      asUser:
+      asCsId:
         type: string
       problemId:
         description: Submit problem ID
@@ -69,8 +69,6 @@ definitions:
         items:
           $ref: '#/definitions/handlers.resultOutputJob'
         type: array
-      pending:
-        type: integer
       problemId:
         type: integer
       problemName:
@@ -227,7 +225,7 @@ paths:
         type: string
       responses:
         "200":
-          description: Testcase result Stderr
+          description: Testcase result stderr
           schema:
             type: string
         "400":
@@ -236,6 +234,64 @@ paths:
             type: string
         "404":
           description: Not Found
+          schema:
+            type: string
+  /api/admin/stdout:
+    get:
+      parameters:
+      - description: Submission id
+        in: query
+        name: subId
+        required: true
+        type: number
+      - description: Stage name
+        in: query
+        name: stage
+        required: true
+        type: string
+      - description: Testcase name
+        in: query
+        name: testcase
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Testcase result stdout
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+  /api/admin/submissions:
+    get:
+      parameters:
+      - default: 0
+        description: Page number, one page is 20 submissions
+        in: query
+        name: pageNum
+        type: integer
+      - description: Filter by CsId
+        in: query
+        name: csId
+        type: integer
+      - description: Filter by Problem Id
+        in: query
+        name: problemId
+        type: integer
+      responses:
+        "200":
+          description: All submission within the problem
+          schema:
+            items:
+              $ref: '#/definitions/handlers.resultOutput'
+            type: array
+        "400":
+          description: Problem Id invalid
+          schema:
+            type: string
+        "401":
+          description: not admin or didn't login
           schema:
             type: string
   /api/admin/submit:
@@ -260,6 +316,19 @@ paths:
           description: Unauthorized
         "429":
           description: Too Many Requests
+  /api/admin/users:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserResource'
+            type: array
+        "401":
+          description: not admin or not login
+          schema:
+            type: string
   /api/me:
     get:
       responses:
@@ -350,7 +419,7 @@ paths:
         type: string
       responses:
         "200":
-          description: Testcase result output
+          description: Testcase result stdout
           schema:
             type: string
         "400":

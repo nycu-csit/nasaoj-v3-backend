@@ -21,18 +21,29 @@ import (
 //	@Param		subId		query		number	true	"Submission id"
 //	@Param		stage		query		string	true	"Stage name"
 //	@Param		testcase	query		string	true	"Testcase name"
-//	@Success	200			{string}	string "Testcase result Stderr"
+//	@Success	200			{string}	string	"Testcase result stderr"
 //	@Failure	400			{string}	string
 //	@Failure	404			{string}	string
 //	@Router		/api/admin/stderr [get]
-func getStderrPlaceholder() {}
+func getAdminStderrPlaceholder() {}
+
+// GetAdminStdout
+//
+//	@Param		subId		query		number	true	"Submission id"
+//	@Param		stage		query		string	true	"Stage name"
+//	@Param		testcase	query		string	true	"Testcase name"
+//	@Success	200			{string}	string	"Testcase result stdout"
+//	@Failure	400
+//	@Failure	404
+//	@Router		/api/admin/stdout [get]
+func getAdminStdoutPlaceholder() {}
 
 // GetStdout
 //
 //	@Param		subId		query		number	true	"Submission id"
 //	@Param		stage		query		string	true	"Stage name"
 //	@Param		testcase	query		string	true	"Testcase name"
-//	@Success	200			{string}	string	"Testcase result output"
+//	@Success	200			{string}	string	"Testcase result stdout"
 //	@Failure	400			{string}	string
 //	@Failure	404			{string}	string
 //	@Router		/api/stdout [get]
@@ -41,6 +52,7 @@ func GetOutput(
 	db *bun.DB,
 	mc *minio.Client,
 	target string,
+	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -57,15 +69,6 @@ func GetOutput(
 		stageName := req.URL.Query().Get("stage")
 		testName := req.URL.Query().Get("testcase")
 
-		resource, ok := req.Context().
-			Value(middlewares.UserResourceType("")).(models.UserResource)
-		if !ok {
-			return middlewares.HTTPError{
-				StatusCode: http.StatusUnauthorized,
-				Message:    "user not exist",
-			}
-		}
-
 		submission := models.Submission{Id: subId}
 		err = db.NewSelect().Model(&submission).WherePK().Scan(ctx)
 		if err != nil {
@@ -76,10 +79,21 @@ func GetOutput(
 			}
 		}
 
-		if submission.CsId != resource.CsId {
-			return middlewares.HTTPError{
-				StatusCode: http.StatusUnauthorized,
-				Message:    "submission owner not match",
+		if !isAdmin {
+			resource, ok := req.Context().
+				Value(middlewares.UserResourceType("")).(models.UserResource)
+			if !ok {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "user not exist",
+				}
+			}
+
+			if submission.CsId != resource.CsId {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "submission owner not match",
+				}
 			}
 		}
 

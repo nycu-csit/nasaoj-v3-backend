@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -99,16 +98,13 @@ func runStage(
 // Note that timeout is not implemented
 var runProblemCmd = &cobra.Command{
 	Use:   "run-problem",
-	Short: "Run a single problem for testing purpose",
-	Args:  cobra.ExactArgs(1),
+	Short: "Run a single problem locally",
+	Long:  `Run problem locally, the status and result will not `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		execProblemId, err := strconv.ParseInt(args[0], 10, 64)
-		if err != nil {
-			return fmt.Errorf("parse problem id failed, %w\n", err)
-		}
+		execProblemId := viper.GetInt64("problem-id")
 		mockArgs := make(map[string]string)
 		for _, arg := range mockArgsRaw {
 			strs := strings.Split(arg, "=")
@@ -227,26 +223,20 @@ var runProblemCmd = &cobra.Command{
 }
 
 func init() {
+	runProblemCmd.Flags().
+		Int64("problem-id", 1, "Problem Id to test")
+	runProblemCmd.MarkFlagRequired("problem-id")
+
 	runProblemCmd.PersistentFlags().
 		String("problems-dir", "./problems", "Directory to read problems")
-	viper.BindPFlag("problems-dir",
-		runProblemCmd.PersistentFlags().Lookup("problems-dir"))
 	runProblemCmd.PersistentFlags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
-	viper.BindPFlag("testcases-dir",
-		runProblemCmd.PersistentFlags().Lookup("testcases-dir"))
 	runProblemCmd.PersistentFlags().
 		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
-	viper.BindPFlag("running-dir",
-		runProblemCmd.PersistentFlags().Lookup("running-dir"))
 	runProblemCmd.PersistentFlags().
 		Int64("buffer-size", 100, "Channel buffer size")
-	viper.BindPFlag("buffer-size",
-		runProblemCmd.PersistentFlags().Lookup("buffer-size"))
 	runProblemCmd.PersistentFlags().
 		Int64("threads", 1, "Thread count")
-	viper.BindPFlag("threads",
-		runProblemCmd.PersistentFlags().Lookup("threads"))
 	runProblemCmd.Flags().
 		StringSliceVarP(&mockArgsRaw,
 			"arg", "a", []string{}, "Mock submission args")

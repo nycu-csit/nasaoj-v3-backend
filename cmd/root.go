@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -26,19 +24,7 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(
-		&cfgFile, "config", "", "config file, default /etc/nasaoj/nasaoj.yaml")
 	RootCmd.AddCommand(backendCmd)
 	RootCmd.AddCommand(workerCmd)
 	RootCmd.AddCommand(utils.RootCmd)
-}
-
-func initConfig() {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-		if err := viper.ReadInConfig(); err != nil {
-			fmt.Fprintf(os.Stderr, "Cannot read config, %s\n", err)
-		}
-	}
 }
