@@ -34,6 +34,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/results": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Submission Id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Submission",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.resultOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
         "/api/admin/scores": {
             "get": {
                 "parameters": [
@@ -163,7 +193,7 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Filter by CsId",
                         "name": "csId",
                         "in": "query"
@@ -179,10 +209,7 @@ const docTemplate = `{
                     "200": {
                         "description": "All submission within the problem",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/handlers.resultOutput"
-                            }
+                            "$ref": "#/definitions/handlers.submissionsOutput"
                         }
                     },
                     "400": {
@@ -303,7 +330,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Problem ID",
+                        "description": "Problem Id",
                         "name": "problemId",
                         "in": "query",
                         "required": true
@@ -622,6 +649,46 @@ const docTemplate = `{
                 },
                 "testName": {
                     "type": "string"
+                }
+            }
+        },
+        "handlers.submissionsOutput": {
+            "type": "object",
+            "properties": {
+                "pageSize": {
+                    "type": "integer"
+                },
+                "submissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.submissionsOutputSubmission"
+                    }
+                },
+                "totalRowCnt": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.submissionsOutputSubmission": {
+            "type": "object",
+            "properties": {
+                "csId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "problemName": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "submitAt": {
+                    "type": "integer"
                 }
             }
         },

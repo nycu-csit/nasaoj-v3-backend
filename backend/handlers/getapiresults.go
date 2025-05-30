@@ -35,9 +35,19 @@ type resultOutput struct {
 	Jobs []resultOutputJob `json:"jobs"`
 }
 
+// GetAdminResults
+//
+//	@Param		subId	query		int				true	"Submission Id"
+//	@Success	200		{object}	resultOutput	"Submission"
+//	@Failure	400
+//	@Failure	401
+//	@Failure	404
+//	@Router		/api/admin/results [get]
+func getAdminResultsPlaceholder() {}
+
 // GetResults
 //
-//	@Param		problemId	query		int				true	"Problem ID"
+//	@Param		problemId	query		int				true	"Problem Id"
 //	@Success	200			{object}	resultOutput	"Last submission to the problem"
 //	@Failure	400			{object}	string			"Problem ID invalid"
 //	@Failure	401			{object}	string			"User resource missing"
@@ -46,39 +56,63 @@ type resultOutput struct {
 func GetResults(
 	ctx context.Context,
 	db *bun.DB,
+	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/results\n")
 
-		problemId, err := strconv.ParseInt(
-			req.URL.Query().Get("problemId"), 10, 64)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusBadRequest,
-				Message:     "invalid problem id",
-				OriginError: err,
-			}
-		}
-
-		resource, ok := req.Context().
-			Value(middlewares.UserResourceType("")).(models.UserResource)
-		if !ok {
-			return middlewares.HTTPError{
-				StatusCode: http.StatusUnauthorized,
-				Message:    "user resource missing",
-			}
-		}
-
 		var submission models.Submission
-		err = db.NewSelect().Model(&submission).
-			Where("csid = ?", resource.CsId).
-			Where("problemid = ?", problemId).
-			Relation("Jobs").Order("id DESC").Limit(1).Scan(ctx)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusNotFound,
-				Message:     "submission query failed or no previous submission",
-				OriginError: err,
+		if isAdmin {
+			subId, err := strconv.ParseInt(
+				req.URL.Query().Get("subId"), 10, 64)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "invalid submission id",
+					OriginError: err,
+				}
+			}
+
+			submission.Id = subId
+			err = db.NewSelect().Model(&submission).
+				WherePK().Relation("Jobs").Scan(ctx)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusNotFound,
+					Message:     "submission query failed",
+					OriginError: err,
+				}
+			}
+		} else {
+			problemId, err := strconv.ParseInt(
+				req.URL.Query().Get("problemId"), 10, 64)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "invalid problem id",
+					OriginError: err,
+				}
+			}
+
+			resource, ok := req.Context().
+				Value(middlewares.UserResourceType("")).(models.UserResource)
+			if !ok {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "user resource missing",
+				}
+			}
+
+			err = db.NewSelect().Model(&submission).
+				Where("csid = ?", resource.CsId).
+				Where("problemid = ?", problemId).
+				Relation("Jobs").Order("id DESC").Limit(1).Scan(ctx)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusNotFound,
+					Message:     "submission query failed or no previous submission",
+					OriginError: err,
+				}
 			}
 		}
 

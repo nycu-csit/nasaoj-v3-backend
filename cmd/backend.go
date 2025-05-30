@@ -123,7 +123,7 @@ var backendCmd = &cobra.Command{
 		apiGroup.PUT("/submit",
 			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, false))
 		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
-		apiGroup.GET("/results", handlers.GetResults(ctx, db))
+		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
 		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
 
@@ -136,6 +136,7 @@ var backendCmd = &cobra.Command{
 			handlers.PostReloadScores(ctx, db, rdb, problems))
 		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
 		apiAdminGroup.GET("/submissions", handlers.GetSubmissions(ctx, db, rdb))
+		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
 		apiAdminGroup.PUT("/submit",
 			handlers.PutSubmit(ctx, db, rdb, mc, problems, testcases, true))
 
