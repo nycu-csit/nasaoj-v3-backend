@@ -3,12 +3,13 @@ package middlewares
 import (
 	"net/http"
 
+	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
 )
 
 func CORSHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		origin := req.Header.Get("Origin")
+		origin := viper.GetString("cors-origin")
 		if origin == "" {
 			return next(w, req)
 		}
