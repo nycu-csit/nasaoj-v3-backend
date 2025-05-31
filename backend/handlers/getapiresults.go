@@ -124,6 +124,8 @@ func GetResults(
 			CsId:     submission.CsId,
 			SubmitAt: submission.SubmitAt,
 			Score:    submission.Score.Score,
+
+			Jobs: []resultOutputJob{},
 		}
 		for _, job := range submission.Jobs {
 			ret.Jobs = append(ret.Jobs, resultOutputJob{
