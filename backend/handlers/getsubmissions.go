@@ -38,20 +38,49 @@ const pageSize int = 20
 //	@Param		csId		query		string				false	"Filter by CsId"							attribute(optional)
 //	@Param		problemId	query		int64				false	"Filter by Problem Id"						attribute(optional)
 //
-//	@Success	200			{object}	submissionsOutput	"All submission within the problem"
+//	@Success	200			{object}	submissionsOutput	"Submissions"
 //	@Failure	400			{object}	string				"Problem Id invalid"
 //	@Failure	401			{object}	string				"not admin or didn't login"
 //	@Router		/api/admin/submissions [get]
+func getAdminSubmissionsPlaceHolder() {}
+
+// GetSubmissions
+//
+//	@Param		pageNum		query		int64				false	"Page number, one page is 20 submissions"	default(0)
+//	@Param		problemId	query		int64				false	"Filter by Problem Id"						attribute(optional)
+//	@Success	200			{object}	submissionsOutput	"Submissions"
+//	@Failure	400			{object}	string				"Problem Id invalid"
+//	@Failure	401			{object}	string				"didn't login"
+//	@Router		/api/submissions [get]
 func GetSubmissions(
 	ctx context.Context,
 	db *bun.DB,
 	rdb *redis.Client,
+	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		fmt.Fprintf(os.Stderr, "GET /api/admin/submissions\n")
+		fmt.Fprintf(os.Stderr, "GET /api/submissions\n")
 		queryValues := req.URL.Query()
 
 		dbQuery := db.NewSelect().Order("id DESC").Limit(pageSize)
+
+		if isAdmin {
+			if queryValues.Has("csId") {
+				csId := queryValues.Get("csId")
+				dbQuery = dbQuery.Where("csid = ?", csId)
+			}
+		} else {
+			resource, ok := req.Context().
+				Value(middlewares.UserResourceType("")).(models.UserResource)
+			if !ok {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "user resource missing",
+				}
+			}
+
+			dbQuery = dbQuery.Where("csid = ?", resource.CsId)
+		}
 
 		if queryValues.Has("pageNum") {
 			pageNum, err := strconv.ParseInt(
@@ -65,11 +94,6 @@ func GetSubmissions(
 			}
 
 			dbQuery = dbQuery.Offset(int(pageNum) * pageSize)
-		}
-
-		if queryValues.Has("csId") {
-			csId := queryValues.Get("csId")
-			dbQuery = dbQuery.Where("csid = ?", csId)
 		}
 
 		if queryValues.Has("problemId") {
