@@ -188,7 +188,6 @@ func PutSubmit(
 			submission.Args[key] = val
 		}
 
-		// TODO: add tx and create jobs
 		err = db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 			err = tx.NewInsert().Model(&submission).Scan(ctx)
 			if err != nil {

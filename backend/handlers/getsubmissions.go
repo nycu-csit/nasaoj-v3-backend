@@ -14,17 +14,33 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+type submissionsOutputSubmission struct {
+	Id          int64  `json:"id"`
+	ProblemId   int64  `json:"problemId"`
+	ProblemName string `json:"problemName"`
+
+	CsId     string `json:"csId"`
+	SubmitAt int64  `json:"submitAt"`
+	Score    int64  `json:"score"`
+}
+
+type submissionsOutput struct {
+	PageSize    int                           `json:"pageSize"`
+	TotalRowCnt int                           `json:"totalRowCnt"`
+	Submissions []submissionsOutputSubmission `json:"submissions"`
+}
+
 const pageSize int = 20
 
 // GetAdminSubmissions
 //
-//	@Param		pageNum		query		int64			false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		csId		query		int64			false	"Filter by CsId"							attribute(optional)
-//	@Param		problemId	query		int64			false	"Filter by Problem Id"						attribute(optional)
+//	@Param		pageNum		query		int64				false	"Page number, one page is 20 submissions"	default(0)
+//	@Param		csId		query		string				false	"Filter by CsId"							attribute(optional)
+//	@Param		problemId	query		int64				false	"Filter by Problem Id"						attribute(optional)
 //
-//	@Success	200			{object}	[]resultOutput	"All submission within the problem"
-//	@Failure	400			{object}	string			"Problem Id invalid"
-//	@Failure	401			{object}	string			"not admin or didn't login"
+//	@Success	200			{object}	submissionsOutput	"All submission within the problem"
+//	@Failure	400			{object}	string				"Problem Id invalid"
+//	@Failure	401			{object}	string				"not admin or didn't login"
 //	@Router		/api/admin/submissions [get]
 func GetSubmissions(
 	ctx context.Context,
@@ -35,7 +51,7 @@ func GetSubmissions(
 		fmt.Fprintf(os.Stderr, "GET /api/admin/submissions\n")
 		queryValues := req.URL.Query()
 
-		dbQuery := db.NewSelect().Order("id ASC").Limit(pageSize)
+		dbQuery := db.NewSelect().Order("id DESC").Limit(pageSize)
 
 		if queryValues.Has("pageNum") {
 			pageNum, err := strconv.ParseInt(
@@ -52,16 +68,7 @@ func GetSubmissions(
 		}
 
 		if queryValues.Has("csId") {
-			csId, err := strconv.ParseInt(
-				queryValues.Get("csId"), 10, 64)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusBadRequest,
-					Message:     "CsId parse failed",
-					OriginError: err,
-				}
-			}
-
+			csId := queryValues.Get("csId")
 			dbQuery = dbQuery.Where("csid = ?", csId)
 		}
 
@@ -80,7 +87,7 @@ func GetSubmissions(
 		}
 
 		var subs []models.Submission
-		err := dbQuery.Model(&subs).Scan(ctx)
+		count, err := dbQuery.Model(&subs).ScanAndCount(ctx)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
@@ -89,9 +96,9 @@ func GetSubmissions(
 			}
 		}
 
-		ret := []resultOutput{}
+		submissions := []submissionsOutputSubmission{}
 		for _, sub := range subs {
-			output := resultOutput{
+			output := submissionsOutputSubmission{
 				Id:          sub.Id,
 				ProblemId:   sub.ProblemId,
 				ProblemName: sub.ProblemName,
@@ -100,20 +107,13 @@ func GetSubmissions(
 				SubmitAt: sub.SubmitAt,
 				Score:    sub.Score.Score,
 			}
-			for _, job := range sub.Jobs {
-				output.Jobs = append(output.Jobs, resultOutputJob{
-					StageName: job.StageName,
-					TestName:  job.TestName,
-
-					Status: job.Status,
-
-					RetCode: job.RetCode,
-					ExecAt:  job.ExecAt,
-				})
-			}
-			ret = append(ret, output)
+			submissions = append(submissions, output)
 		}
-		bunrouter.JSON(w, ret)
+		bunrouter.JSON(w, submissionsOutput{
+			PageSize:    pageSize,
+			TotalRowCnt: count,
+			Submissions: submissions,
+		})
 		return nil
 	}
 }

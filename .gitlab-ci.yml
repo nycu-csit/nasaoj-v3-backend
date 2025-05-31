@@ -25,6 +25,10 @@ variables:
         }
       }
       EOF
+    - |
+      if [[ -n "$CI_COMMIT_TAG" ]]; then
+        ADDITIONAL_DEST="--destination $NASA_REGISTRY/$IMAGE_NAME:$CI_COMMIT_TAG --destination $CI_REGISTRY_IMAGE/$IMAGE_NAME:$CI_COMMIT_TAG"
+      fi
   script:
     - >-
       /kaniko/executor
@@ -32,6 +36,7 @@ variables:
       --dockerfile $CI_PROJECT_DIR/$DOCKERFILE
       --destination "$CI_REGISTRY_IMAGE/$IMAGE_NAME:$CI_COMMIT_REF_NAME"
       --destination "$NASA_REGISTRY/$IMAGE_NAME:$CI_COMMIT_REF_NAME"
+      $ADDITIONAL_DEST
       $KANIKO_CACHE_ARGS
       $KANIKO_ADDITIONAL_ARGS
   after_script:
