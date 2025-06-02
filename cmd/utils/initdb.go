@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"database/sql"
 	"os"
 
@@ -16,7 +15,7 @@ var initDBCmd = &cobra.Command{
 	Use:   "initdb",
 	Short: "Initialize and reset the database (NOTE: all data will be lost)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		// Initialize DB instance
 		dsn := os.Getenv("PG_CONNECTION_STRING")
