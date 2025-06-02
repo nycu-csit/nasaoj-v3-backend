@@ -795,6 +795,9 @@
                 },
                 "id": {
                     "type": "integer"
+                },
+                "roomId": {
+                    "type": "string"
                 }
             }
         }
