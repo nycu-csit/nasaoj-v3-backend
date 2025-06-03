@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"database/sql"
 	"log"
 	"net/http"
@@ -40,7 +39,7 @@ var backendCmd = &cobra.Command{
 	Use:   "backend",
 	Short: "NASAOJ backend server",
 	Run: func(cmd *cobra.Command, args []string) {
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		provider, err := oidc.NewProvider(ctx, "https://oauth.cs.nycu.edu.tw")
 		if err != nil {

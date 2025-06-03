@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/migrate"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/utils"
 )
 
@@ -24,7 +25,10 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
+	cobra.EnableTraverseRunHooks = true
+
 	RootCmd.AddCommand(backendCmd)
 	RootCmd.AddCommand(workerCmd)
 	RootCmd.AddCommand(utils.RootCmd)
+	RootCmd.AddCommand(migrate.RootCmd)
 }

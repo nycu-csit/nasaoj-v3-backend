@@ -25,7 +25,7 @@ func LoadScores(
 		var submissions []models.Submission
 		err := db.NewSelect().DistinctOn("csid").Model(&submissions).
 			Where("problemid = ?", problemId).
-			Relation("Jobs").Scan(ctx)
+			Relation("Jobs").Order("csid, id DESC").Scan(ctx)
 		if err != nil {
 			return ret, middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,

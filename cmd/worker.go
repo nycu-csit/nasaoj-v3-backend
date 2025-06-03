@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
@@ -16,7 +15,7 @@ var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "NASAOJ worker server",
 	Run: func(cmd *cobra.Command, args []string) {
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))

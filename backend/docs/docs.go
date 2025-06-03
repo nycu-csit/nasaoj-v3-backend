@@ -803,6 +803,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "roomId": {
+                    "type": "string"
                 }
             }
         }

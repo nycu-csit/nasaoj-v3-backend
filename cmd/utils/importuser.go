@@ -22,7 +22,7 @@ var importUserCmd = &cobra.Command{
 	Short: "Import user from csv file (line format: {csid},{subnet})",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()
+		ctx := cmd.Context()
 
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(

@@ -101,7 +101,7 @@ var runProblemCmd = &cobra.Command{
 	Short: "Run a single problem locally",
 	Long:  `Run problem locally, the status and result will not `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
 
 		execProblemId := viper.GetInt64("problem-id")
