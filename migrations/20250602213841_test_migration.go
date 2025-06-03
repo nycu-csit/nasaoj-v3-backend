@@ -19,7 +19,7 @@ func init() {
 		_, err = db.NewUpdate().
 			Table("userresource").
 			Where("TRUE"). // Bun ORM workaround
-			Set("roomid = ?", "316").Exec(ctx)
+			Set("roomid = ?", "16").Exec(ctx)
 		if err != nil {
 			return err
 		}
