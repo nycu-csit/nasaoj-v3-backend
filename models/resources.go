@@ -15,8 +15,9 @@ type Resource struct {
 
 func (self Resource) User(csid string) UserResource {
 	return UserResource{
-		CsId: csid,
-		Id:   self.Id,
+		CsId:   csid,
+		RoomId: self.RoomId,
+		Id:     self.Id,
 	}
 }
 
