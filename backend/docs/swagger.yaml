@@ -328,7 +328,7 @@ paths:
         type: integer
       responses:
         "200":
-          description: All submission within the problem
+          description: Submissions
           schema:
             $ref: '#/definitions/handlers.submissionsOutput'
         "400":
@@ -473,6 +473,31 @@ paths:
             type: string
         "404":
           description: Not Found
+          schema:
+            type: string
+  /api/submissions:
+    get:
+      parameters:
+      - default: 0
+        description: Page number, one page is 20 submissions
+        in: query
+        name: pageNum
+        type: integer
+      - description: Filter by Problem Id
+        in: query
+        name: problemId
+        type: integer
+      responses:
+        "200":
+          description: Submissions
+          schema:
+            $ref: '#/definitions/handlers.submissionsOutput'
+        "400":
+          description: Problem Id invalid
+          schema:
+            type: string
+        "401":
+          description: didn't login
           schema:
             type: string
   /api/submit:

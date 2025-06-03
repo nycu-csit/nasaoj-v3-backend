@@ -207,7 +207,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "All submission within the problem",
+                        "description": "Submissions",
                         "schema": {
                             "$ref": "#/definitions/handlers.submissionsOutput"
                         }
@@ -434,6 +434,45 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/submissions": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Page number, one page is 20 submissions",
+                        "name": "pageNum",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by Problem Id",
+                        "name": "problemId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Submissions",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.submissionsOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Problem Id invalid",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "didn't login",
                         "schema": {
                             "type": "string"
                         }
