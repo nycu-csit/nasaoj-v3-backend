@@ -107,7 +107,8 @@ var backendCmd = &cobra.Command{
 				httpSwagger.Handler()))
 
 		authGroup := backend.NewGroup("/auth").
-			Use(middlewares.ErrorHandler)
+			Use(middlewares.ErrorHandler).
+			Use(middlewares.CORSHandler)
 		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
 		authGroup.GET("/callback", handlers.GetCallback(ctx, db,
 			oauth2Config, provider.Verifier(&oidc.Config{
