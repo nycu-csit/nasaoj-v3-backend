@@ -179,6 +179,7 @@ definitions:
     - 262
     - 460
     - 461
+    - 462
     - 560
     type: integer
     x-enum-varnames:
@@ -187,6 +188,7 @@ definitions:
     - StatusSuccess
     - StatusFailed
     - StatusSkip
+    - StatusTimeout
     - StatusMissing
   models.UserResource:
     properties:

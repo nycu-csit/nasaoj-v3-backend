@@ -64,7 +64,6 @@ func RunJob(
 			return
 		}
 	}
-
 	job.ExecAt = time.Now().Unix()
 	duration := time.Duration(job.SoftTL) * time.Second
 	cmdCtx, cmdCancel := context.WithTimeout(ctx, duration)
@@ -78,49 +77,49 @@ func RunJob(
 		retCh <- err
 		return
 	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		retCh <- err
-		return
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		retCh <- err
-		return
-	}
-
 	go func() {
 		defer stdin.Close()
 		io.WriteString(stdin, job.Script)
 	}()
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
 
 	if err = cmd.Start(); err != nil {
 		retCh <- err
 		return
 	}
 
-	stdoutContent, err := io.ReadAll(stdout)
-	if err != nil {
-		retCh <- err
-		return
-	}
-	job.Stdout = string(stdoutContent[:])
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
 
-	stderrContent, err := io.ReadAll(stderr)
-	if err != nil {
-		retCh <- err
-		return
+	var ret error = nil
+	select {
+	case <-cmdCtx.Done(): // timeout
+		job.Status = models.StatusTimeout
+		if cmd.Process != nil {
+			if err := cmd.Process.Kill(); err != nil {
+				ret = err
+			}
+		}
+	case err := <-done:
+		if err != nil {
+			switch t := err.(type) {
+			case *exec.ExitError:
+				job.RetCode = t.ExitCode()
+				job.Status = models.StatusFailed
+			default:
+				ret = err
+			}
+		} else {
+			job.Status = models.StatusSuccess
+		}
 	}
-	job.Stderr = string(stderrContent[:])
 
-	err = cmd.Wait()
-	switch t := err.(type) {
-	case *exec.ExitError:
-		job.RetCode = t.ExitCode()
-	default:
-		retCh <- err
-	}
+	job.Stdout = string(stdoutBuf.Bytes()[:])
+	job.Stderr = string(stderrBuf.Bytes()[:])
 
 	jobOut <- job
-	retCh <- nil
+	retCh <- ret
 }

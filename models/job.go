@@ -14,6 +14,7 @@ const (
 	StatusSuccess JobStatus = 262
 	StatusFailed  JobStatus = 460
 	StatusSkip    JobStatus = 461
+	StatusTimeout JobStatus = 462
 	StatusMissing JobStatus = 560
 )
 

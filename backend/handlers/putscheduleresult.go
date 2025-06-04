@@ -88,20 +88,19 @@ func PutScheduleResult(
 				return fmt.Errorf("submission select failed, %w\n", err)
 			}
 
-			if job.RetCode == 0 {
-				job.Status = models.StatusSuccess
-			} else {
+			if job.Status != models.StatusTimeout {
 				job.Status = models.StatusFailed
-				_, err = tx.NewUpdate().Model(&models.Job{}).
-					Set("status = ?", models.StatusSkip).
-					Where("subid = ?", job.SubId).
-					Where("status IN (?)", bun.In([]models.JobStatus{
-						models.StatusPending,
-					})).Exec(ctx)
-				if err != nil {
-					return fmt.Errorf("job status skip update failed, %w\n", err)
-				}
 			}
+			_, err = tx.NewUpdate().Model(&models.Job{}).
+				Set("status = ?", models.StatusSkip).
+				Where("subid = ?", job.SubId).
+				Where("status IN (?)", bun.In([]models.JobStatus{
+					models.StatusPending,
+				})).Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("job status skip update failed, %w\n", err)
+			}
+
 			_, err = tx.NewUpdate().Model(&job).WherePK().Exec(ctx)
 			if err != nil {
 				return fmt.Errorf("job status failed update failed, %w\n", err)
@@ -143,7 +142,7 @@ func PutScheduleResult(
 			}
 		}
 
-		if job.RetCode != 0 {
+		if job.Status != models.StatusSuccess {
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprintf(w, "success")
 			return nil
