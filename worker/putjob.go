@@ -21,20 +21,7 @@ func PutJob(
 	defer cancel()
 
 	job := <-jobch
-	b, err := json.Marshal(models.Job{
-		SubId:     job.SubId,
-		StageName: job.StageName,
-		TestName:  job.TestName,
-
-		Status: job.Status,
-
-		Script: job.Script,
-
-		Stdout:  job.Stdout,
-		Stderr:  job.Stderr,
-		RetCode: job.RetCode,
-		ExecAt:  job.ExecAt,
-	})
+	b, err := json.Marshal(job.Job)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "json marshal failed, %s\n", err)
 		retCh <- err

@@ -51,17 +51,18 @@ func RunStage(
 			}
 		}
 
+		deadline := time.Now().
+			Add(time.Duration(testcase.HardTL) * time.Second).Unix()
 		job := models.Job{
 			SubId:     submission.Id,
 			StageName: stageName,
 			TestName:  testcase.Name,
 
-			Status: models.StatusRunning,
-
-			Script: jobScript,
-
-			HardTL: testcase.HardTL,
-			SoftTL: testcase.SoftTL,
+			Status:   models.StatusRunning,
+			Script:   jobScript,
+			Deadline: deadline,
+			HardTL:   testcase.HardTL,
+			SoftTL:   testcase.SoftTL,
 		}
 
 		err := db.UpdateJob(ctx, &job)
