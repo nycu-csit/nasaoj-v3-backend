@@ -49,7 +49,7 @@ func PutScheduleResult(
 
 		// TODO: handle expire
 
-		if job.Status == models.StatusFailed {
+		if job.Status != models.StatusSuccess {
 			if err = db.SkipJobs(ctx, job.SubId); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,

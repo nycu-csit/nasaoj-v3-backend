@@ -14,10 +14,6 @@ type ChanJobQueue struct {
 	jobDep map[string]int
 }
 
-func (self *ChanJobQueue) Size(tag models.TagType) int {
-	return len(self.data[tag])
-}
-
 func NewChanJobQueue() *ChanJobQueue {
 	return &ChanJobQueue{
 		data:   make(map[models.TagType]chan models.Job),
@@ -37,7 +33,11 @@ func (self *ChanJobQueue) GetJob(
 	if _, exist := self.data[tag]; !exist {
 		self.data[tag] = make(chan models.Job, viper.GetInt64("buffer-size"))
 	}
-	return <-self.data[tag], nil
+	ret, ok := <-self.data[tag]
+	if !ok {
+		return ret, fmt.Errorf("channel closed")
+	}
+	return ret, nil
 }
 
 func (self *ChanJobQueue) PutJob(
@@ -85,4 +85,13 @@ func (self *ChanJobQueue) StageDone(
 ) (int64, error) {
 	self.jobDep[stageId] -= 1
 	return int64(self.jobDep[stageId]), nil
+}
+
+// Custom functions
+func (self *ChanJobQueue) Size(tag models.TagType) int {
+	return len(self.data[tag])
+}
+
+func (self *ChanJobQueue) Close(tag models.TagType) {
+	close(self.data[tag])
 }

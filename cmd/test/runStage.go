@@ -24,7 +24,7 @@ var stageCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		color.Blue("Start running stage '%s' in problem '%d'\n",
 			viper.GetString("stage"),
-			viper.GetInt("problem-id"))
+			viper.GetInt64("problem-id"))
 
 		ctx := context.Background()
 		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
@@ -130,8 +130,6 @@ func init() {
 	stageCmd.MarkFlagRequired("stage")
 	stageCmd.Flags().
 		Int64("buffer-size", 100, "Channel buffer size")
-	stageCmd.Flags().
-		Int64("threads", 1, "Thread count")
 	stageCmd.Flags().
 		StringSliceP("arg", "a", []string{}, "Mock submission args (key=value)")
 }
