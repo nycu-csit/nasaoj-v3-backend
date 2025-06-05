@@ -16,7 +16,7 @@ func HandleStageDone(
 	scoreCache interfaces.ScoreCache,
 
 	problems models.ProblemRepository,
-	testcases models.TestcaseRepository,
+	testcases *models.TestcaseRepository,
 
 	job models.Job,
 ) error {

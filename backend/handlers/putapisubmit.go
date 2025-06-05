@@ -8,14 +8,12 @@ import (
 	"net/http"
 	"os"
 	"slices"
-	"text/template"
 	"time"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
 
@@ -66,8 +64,8 @@ func PutSubmit(
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
 
-	problems utils.ProblemRepository,
-	testcases map[string]*template.Template,
+	problems models.ProblemRepository,
+	testcases *models.TestcaseRepository,
 
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {

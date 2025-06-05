@@ -6,7 +6,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type TestcaseRepository = map[string]*template.Template
+type TestcaseRepository struct {
+	Tmpl  map[string]*template.Template
+	Other map[string][]byte
+}
+
+func NewTestcaseRepository() *TestcaseRepository {
+	return &TestcaseRepository{
+		Tmpl:  make(map[string]*template.Template),
+		Other: make(map[string][]byte),
+	}
+}
 
 type testcase struct {
 	Content `json:",inline" yaml:",inline"`

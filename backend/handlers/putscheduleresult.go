@@ -23,7 +23,7 @@ func PutScheduleResult(
 	s3 interfaces.ObjectStorage,
 
 	problems models.ProblemRepository,
-	testcases models.TestcaseRepository,
+	testcases *models.TestcaseRepository,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "PUT /schedule/result\n")
