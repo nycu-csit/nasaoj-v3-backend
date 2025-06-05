@@ -17,7 +17,7 @@ func RunProblem(
 	s3 interfaces.ObjectStorage,
 
 	problems models.ProblemRepository,
-	testcases models.TestcaseRepository,
+	testcases *models.TestcaseRepository,
 
 	submission models.Submission,
 ) error {
