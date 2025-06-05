@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
 
 var workerCmd = &cobra.Command{
@@ -43,16 +44,12 @@ var workerCmd = &cobra.Command{
 			}
 		}()
 
-		retCh := make(chan error)
 		for i := int64(0); i < viper.GetInt64("threads"); i++ {
-			go worker.RunJob(ctx, retCh, jobIn, jobOut)
+			go workflows.WorkerThread(ctx, jobIn, jobOut)
 		}
-		for {
-			ret := <-retCh
-			if ret != nil {
-				fmt.Fprintf(os.Stderr, "run thread end with error, %s\n", ret)
-			}
-			go worker.RunJob(ctx, retCh, jobIn, jobOut)
+
+		select {
+		case <-ctx.Done():
 		}
 	},
 }
