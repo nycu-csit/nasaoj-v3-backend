@@ -3,6 +3,7 @@ package implements
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/uptrace/bun"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -16,6 +17,18 @@ func NewBunDatabase(db *bun.DB) *BunDatabase {
 	return &BunDatabase{db: db}
 }
 
+func (self *BunDatabase) submissionQueryHook(
+	ctx context.Context,
+	subId int64,
+) error {
+	_, err := self.db.NewUpdate().Model((*models.Job)(nil)).
+		Set("status = ?", models.StatusTimeout).
+		Where("subid = ?", subId).
+		Where("deadline < ?", time.Now().Unix()).
+		Where("status = ?", models.StatusRunning).Exec(ctx)
+	return err
+}
+
 func (self *BunDatabase) GetLastSubmission(
 	ctx context.Context,
 	csId string,
@@ -25,8 +38,19 @@ func (self *BunDatabase) GetLastSubmission(
 	err := self.db.NewSelect().Model(&ret).
 		Where("csid = ?", csId).
 		Where("problemid = ?", problemId).
-		Relation("Jobs").Order("id DESC").Limit(1).Scan(ctx)
-	return ret, err
+		Order("id DESC").Limit(1).Scan(ctx)
+	if err != nil {
+		return ret, fmt.Errorf("select submission failed, %w", err)
+	}
+	if err = self.submissionQueryHook(ctx, ret.Id); err != nil {
+		return ret, fmt.Errorf("submission query hook failed, %w", err)
+	}
+	err = self.db.NewSelect().Model(&ret).
+		WherePK().Relation("Jobs").Scan(ctx)
+	if err != nil {
+		return ret, fmt.Errorf("select submission failed, %w", err)
+	}
+	return ret, nil
 }
 
 func (self *BunDatabase) GetSubmission(
@@ -34,8 +58,11 @@ func (self *BunDatabase) GetSubmission(
 	subId int64,
 ) (models.Submission, error) {
 	ret := models.Submission{Id: subId}
+	if err := self.submissionQueryHook(ctx, subId); err != nil {
+		return ret, fmt.Errorf("submission query hook failed, %w", err)
+	}
 	err := self.db.NewSelect().Model(&ret).
-		WherePK().Scan(ctx)
+		WherePK().Relation("Jobs").Scan(ctx)
 	return ret, err
 }
 

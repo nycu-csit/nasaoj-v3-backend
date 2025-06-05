@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -47,7 +48,10 @@ func PutScheduleResult(
 			}
 		}
 
-		// TODO: handle expire
+		// Handle hard timeout if timeout isn't put on worker
+		if time.Now().Compare(time.Unix(job.Deadline, 0)) > 0 {
+			job.Status = models.StatusTimeout
+		}
 
 		if job.Status != models.StatusSuccess {
 			if err = db.SkipJobs(ctx, job.SubId); err != nil {
@@ -58,8 +62,7 @@ func PutScheduleResult(
 				}
 			}
 		}
-		err = db.UpdateJob(ctx, &job)
-		if err != nil {
+		if err = db.UpdateJob(ctx, &job); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "job update failed",

@@ -130,7 +130,7 @@ var backendCmd = &cobra.Command{
 		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, bunDB, jobQue,
 			s3, problems, testcases, false))
 		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
-		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
+		apiGroup.GET("/results", handlers.GetResults(ctx, bunDB, false))
 		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
 		apiGroup.GET("/submissions",
@@ -146,7 +146,7 @@ var backendCmd = &cobra.Command{
 		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
 		apiAdminGroup.GET("/submissions",
 			handlers.GetSubmissions(ctx, db, rdb, true))
-		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
+		apiAdminGroup.GET("/results", handlers.GetResults(ctx, bunDB, true))
 		apiAdminGroup.PUT("/submit",
 			handlers.PutSubmit(ctx, bunDB, jobQue, s3, problems, testcases, true))
 
@@ -155,7 +155,7 @@ var backendCmd = &cobra.Command{
 		scheduleGroup := scheduler.NewGroup("/schedule").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CheckPreSharedKey)
-		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, jobQue))
+		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, bunDB, jobQue))
 		scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, bunDB,
 			jobQue, scoreCache, s3, problems, testcases))
 

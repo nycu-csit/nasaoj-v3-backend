@@ -26,15 +26,15 @@ type Job struct {
 	StageName string `json:"stageName" bun:"stagename,pk"`
 	TestName  string `json:"testName" bun:"testname,pk"`
 
+	// Metadata
 	Status JobStatus `json:"status" bun:"status"`
 
-	// Input script
-	Script string `json:"script" bun:"script"`
-
-	// Runtime metadata
-	FileURL string `json:"fileurl" bun:"-"`
-	HardTL  int64  `json:"hardtl" bun:"-"`
-	SoftTL  int64  `json:"softtl" bun:"-"`
+	// On Schedule
+	Script   string `json:"script" bun:"script"`
+	Deadline int64  `json:"deadline" bun:"deadline"`
+	FileURL  string `json:"fileurl" bun:"-"`
+	HardTL   int64  `json:"hardtl" bun:"-"`
+	SoftTL   int64  `json:"softtl" bun:"-"`
 
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`
@@ -73,5 +73,5 @@ func (self Job) IsDone() bool {
 	return self.Status == StatusSuccess ||
 		self.Status == StatusFailed ||
 		self.Status == StatusSkip ||
-		self.Status == StatusMissing
+		self.Status == StatusTimeout
 }

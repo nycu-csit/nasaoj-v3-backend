@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -15,6 +16,7 @@ import (
 
 func GetScheduleJob(
 	ctx context.Context,
+	db interfaces.Database,
 	jobQue interfaces.JobQueue,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -34,6 +36,16 @@ func GetScheduleJob(
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusServiceUnavailable,
 				Message:     "no job left in queue",
+				OriginError: err,
+			}
+		}
+
+		job.Deadline = time.Now().
+			Add(time.Duration(job.HardTL) * time.Second).Unix()
+		if err = db.UpdateJob(ctx, &job); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusServiceUnavailable,
+				Message:     "job update failed",
 				OriginError: err,
 			}
 		}
