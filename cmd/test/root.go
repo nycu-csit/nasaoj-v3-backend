@@ -1,0 +1,18 @@
+package test
+
+import "github.com/spf13/cobra"
+
+var RootCmd = &cobra.Command{
+	Use:   "test",
+	Short: "Test problems and testcases",
+}
+
+func init() {
+	RootCmd.AddCommand(checkDepsCmd)
+	RootCmd.AddCommand(stageCmd)
+
+	RootCmd.PersistentFlags().
+		String("problems-dir", "./problems", "Directory to read problems")
+	RootCmd.PersistentFlags().
+		String("testcases-dir", "./testcases", "Directory to read testcases")
+}

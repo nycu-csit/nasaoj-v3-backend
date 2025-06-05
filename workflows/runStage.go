@@ -92,8 +92,6 @@ func RunStage(
 			return fmt.Errorf("get file url for '%s' failed, %w", job.Filename(), err)
 		}
 
-		fmt.Fprintf(os.Stderr, "job: %+v\n", job)
-
 		err = jobQue.PutJob(ctx, job, problem.Tag)
 		if err != nil {
 			return fmt.Errorf("put job to queue failed, %w", err)

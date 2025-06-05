@@ -1,6 +1,7 @@
 package workflows
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os/exec"
@@ -16,11 +17,12 @@ func RunJob(
 	pctx context.Context,
 	retCh chan error,
 	job *models.JobWithFile,
-) error {
+) {
 	// Setup environment
 	basepath := path.Join(viper.GetString("running-dir"), job.Id())
 	if err := utils.UnTar(basepath, job.Tarbuf); err != nil {
-		return err
+		retCh <- err
+		return
 	}
 
 	job.ExecAt = time.Now().Unix()
@@ -34,15 +36,8 @@ func RunJob(
 	cmd.Dir = path.Join(basepath)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return err
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
+		retCh <- err
+		return
 	}
 
 	go func() {
@@ -50,29 +45,43 @@ func RunJob(
 		io.WriteString(stdin, job.Script)
 	}()
 
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
 	if err = cmd.Start(); err != nil {
-		return err
+		retCh <- err
+		return
 	}
 
-	stdoutContent, err := io.ReadAll(stdout)
-	if err != nil {
-		return err
-	}
-	job.Stdout = string(stdoutContent[:])
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
 
-	stderrContent, err := io.ReadAll(stderr)
-	if err != nil {
-		return err
+	var ret error = nil
+	select {
+	case <-ctx.Done(): // timeout
+		job.Status = models.StatusTimeout
+		if cmd.Process != nil {
+			if err := cmd.Process.Kill(); err != nil {
+				ret = err
+			}
+		}
+	case err := <-done:
+		if err != nil {
+			switch t := err.(type) {
+			case *exec.ExitError:
+				job.RetCode = t.ExitCode()
+				job.Status = models.StatusFailed
+			default:
+				ret = err
+			}
+		} else {
+			job.Status = models.StatusSuccess
+		}
 	}
-	job.Stderr = string(stderrContent[:])
 
-	err = cmd.Wait()
-	switch t := err.(type) {
-	case *exec.ExitError:
-		job.RetCode = t.ExitCode()
-	default:
-		return err
-	}
+	job.Stdout = string(stdoutBuf.Bytes()[:])
+	job.Stderr = string(stderrBuf.Bytes()[:])
 
-	return nil
+	retCh <- ret
 }
