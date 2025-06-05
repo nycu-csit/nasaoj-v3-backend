@@ -71,7 +71,7 @@ swag-test:
   before_script:
     - go install github.com/swaggo/swag/cmd/swag@latest
   script:
-    - /go/bin/swag init -o backend/docs -g cmd/backend.go -pdl 1
+    - make
     - |
       if ! git diff --exit-code; then
         echo "ERROR: /go/bin/swag command introduced uncommitted changes!"
