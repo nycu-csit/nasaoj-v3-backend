@@ -86,7 +86,7 @@ swag-test:
 deploy:
   tags: [nasa]
   rules:
-    - if: $CI_COMMIT_REF_PROTECTED == 'true'
+    - if: $CI_COMMIT_REF_NAME == 'main'
   stage: deploy
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/kubectl/3.21:main
   script:
