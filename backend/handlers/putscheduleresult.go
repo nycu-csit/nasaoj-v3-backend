@@ -49,10 +49,7 @@ func PutScheduleResult(
 
 		// TODO: handle expire
 
-		if job.RetCode == 0 {
-			job.Status = models.StatusSuccess
-		} else {
-			job.Status = models.StatusFailed
+		if job.Status == models.StatusFailed {
 			if err = db.SkipJobs(ctx, job.SubId); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -88,7 +85,7 @@ func PutScheduleResult(
 			}
 		}
 
-		if job.RetCode == 0 {
+		if job.Status == models.StatusSuccess {
 			err = workflows.HandleStageDone(ctx, db, jobQue, s3, scoreCache,
 				problems, testcases, job)
 			if err != nil {
