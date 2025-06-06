@@ -25,7 +25,7 @@ COPY --from=build /go/bin/judge /
 WORKDIR /
 
 ENTRYPOINT ["/judge"]
-CMD ["backend"]
+CMD ["serve", "backend"]
 
 #####
 
@@ -40,4 +40,4 @@ COPY --from=build /go/bin/judge /work/
 WORKDIR /work
 
 ENTRYPOINT ["/work/judge"]
-CMD ["worker"]
+CMD ["serve", "worker"]

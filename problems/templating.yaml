@@ -1,0 +1,18 @@
+---
+name: Go Templates
+problemId: 7
+description: Test for go templates
+stages:
+  stage1:
+    testcases:
+      - name: With template
+        files:
+          - test-template/poop.sh.tmpl
+        scripts:
+          - bash test-template/poop.sh.tmpl
+      - name: Without template
+        files:
+          - test-template/poop.sh
+        scripts:
+          - bash test-template/poop.sh
+    score: 100

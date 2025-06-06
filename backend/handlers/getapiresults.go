@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -55,7 +55,7 @@ func getAdminResultsPlaceholder() {}
 //	@Router		/api/results [get]
 func GetResults(
 	ctx context.Context,
-	db *bun.DB,
+	db interfaces.Database,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -73,9 +73,7 @@ func GetResults(
 				}
 			}
 
-			submission.Id = subId
-			err = db.NewSelect().Model(&submission).
-				WherePK().Relation("Jobs").Scan(ctx)
+			submission, err = db.GetSubmission(ctx, subId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusNotFound,
@@ -103,10 +101,7 @@ func GetResults(
 				}
 			}
 
-			err = db.NewSelect().Model(&submission).
-				Where("csid = ?", resource.CsId).
-				Where("problemid = ?", problemId).
-				Relation("Jobs").Order("id DESC").Limit(1).Scan(ctx)
+			submission, err = db.GetLastSubmission(ctx, resource.CsId, problemId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusNotFound,

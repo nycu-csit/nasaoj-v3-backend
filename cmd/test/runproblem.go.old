@@ -1,0 +1,243 @@
+package test
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/fatih/color"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/sqlitedialect"
+	"github.com/uptrace/bun/driver/sqliteshim"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
+)
+
+type jobInType struct {
+	StageName string
+	TestName  string
+}
+
+type jobOutType struct {
+	StageName string
+	TestName  string
+	RetCode   int
+	ExecAt    int64
+}
+
+func fetcherThread(
+	ctx context.Context,
+	chanJobQueue implements.ChanJobQueue,
+	fileStorage implements.MapFileStorage,
+	jobIn chan models.JobWithFile,
+	tag models.TagType,
+) {
+	color.Magenta("Fetcher thread is running\n")
+	for {
+		fmt.Printf("%+v\n", chanJobQueue)
+		job, err := chanJobQueue.GetJob(ctx, tag)
+		color.Blue("job fetched\n")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fetch job from queue failed, %v", err)
+		} else {
+			tarbuf, err := fileStorage.GetFile(ctx, job.FileURL)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "get file from storage failed\n")
+			}
+			jobIn <- models.JobWithFile{
+				Job:    job,
+				Tarbuf: tarbuf,
+			}
+		}
+	}
+}
+
+func workerThread(
+	ctx context.Context,
+	retCh chan error,
+	jobIn chan models.JobWithFile,
+	jobOut chan models.JobWithFile,
+) {
+	for i := int64(0); i < viper.GetInt64("threads"); i++ {
+		go worker.RunJob(ctx, retCh, jobIn, jobOut)
+	}
+	color.Magenta("Worker threads are running\n")
+	for {
+		ret, ok := <-retCh
+		if !ok {
+			close(jobOut)
+			return
+		}
+
+		if ret != nil {
+			color.Red("worker died with error, %w\n", ret)
+		}
+		go worker.RunJob(ctx, retCh, jobIn, jobOut)
+	}
+}
+
+func outputThread(
+	jobOut chan models.JobWithFile,
+	jobDead chan models.JobWithFile,
+) {
+	color.Magenta("Output thread is running\n")
+	for {
+		job, ok := <-jobOut
+		if !ok {
+			close(jobDead)
+			return
+		}
+
+		color.Yellow("job: %+v\n", jobOutType{
+			StageName: job.StageName,
+			TestName:  job.TestName,
+			RetCode:   job.RetCode,
+			ExecAt:    job.ExecAt,
+		})
+
+		color.Cyan("===== Script =====\n")
+		color.White("%s\n", job.Script)
+		color.Cyan("===== Stdout =====\n")
+		color.White("%s\n", job.Stdout)
+		color.Cyan("===== Stderr =====\n")
+		color.White("%s\n", job.Stderr)
+		color.Cyan("==================\n")
+
+		if job.RetCode != 0 {
+			color.Red("Job Failed\n")
+			os.Exit(1)
+		}
+
+		jobDead <- job
+	}
+}
+
+var runProblemCmd = &cobra.Command{
+	Use:   "run-problem",
+	Short: "Run a single problem locally",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+
+		// Use sqlite instead of Postgresql
+		sqldb, err := sql.Open(sqliteshim.ShimName, "file::memory:?cache=shared")
+		if err != nil {
+			return fmt.Errorf("sqlite init failed, %w", err)
+		}
+		db := bun.NewDB(sqldb, sqlitedialect.New())
+		err = utils.InitDB(ctx, db)
+		if err != nil {
+			return fmt.Errorf("db init failed, %w", err)
+		}
+
+		// Use map instead of MinIO
+		var fileStorage implements.MapFileStorage
+
+		execProblemId := viper.GetInt64("problem-id")
+		mockArgs := make(map[string]string)
+		for _, arg := range viper.GetStringSlice("arg") {
+			strs := strings.Split(arg, "=")
+			if len(strs) != 2 {
+				return fmt.Errorf("argument format incorrect, %s\n", strs)
+			}
+			mockArgs[strs[0]] = strs[1]
+		}
+
+		// Load resources
+		color.Magenta("Problem Dir: %s\n", viper.GetString("problems-dir"))
+		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
+		if err != nil {
+			return fmt.Errorf("load problems failed, %w\n", err)
+		}
+		color.Magenta("Testcases Dir: %s\n", viper.GetString("testcases-dir"))
+		testcases, err := utils.LoadTestcases(viper.GetString("testcases-dir"))
+		if err != nil {
+			return fmt.Errorf("load testcases failed, %w\n", err)
+		}
+
+		// Setup worker and output threads
+		retCh := make(chan error)
+		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
+		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
+		jobDead := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
+
+		problem := problems[execProblemId]
+		stageJobCnt := make(map[string]int64)
+		stageDepCnt := make(map[string]int64)
+
+		var chanJobQueue implements.ChanJobQueue
+
+		go fetcherThread(ctx, chanJobQueue, fileStorage, jobIn, problem.Tag)
+		go workerThread(ctx, retCh, jobIn, jobOut)
+		go outputThread(jobOut, jobDead)
+
+		workflows.RunProblem()
+
+		for pendingJobCnt > 0 {
+			job, ok := <-jobDead
+			if !ok {
+				break
+			}
+			pendingJobCnt -= 1
+
+			stage := problem.Stages[job.StageName]
+			stageJobCnt[job.StageName] -= 1
+			if stageJobCnt[job.StageName] == 0 {
+				for _, next := range stage.Before {
+					stageDepCnt[next] -= 1
+					if stageDepCnt[next] == 0 {
+						color.Blue("Run stage '%s'", next)
+						err = utils.RunStage(ctx,
+							chanJobQueue,
+							implements.BunJobStorage{db},
+							fileStorage,
+							problems,
+							testcases,
+							models.Submission{
+								Id:        114514,
+								ProblemId: viper.GetInt64("problem-id"),
+							},
+							next,
+						)
+						if err != nil {
+							return fmt.Errorf("RunStage failed, %w", err)
+						}
+
+						pendingJobCnt += len(problem.Stages[next].Testcases)
+					}
+				}
+				delete(stageJobCnt, job.StageName)
+			}
+		}
+
+		close(jobIn)
+		color.Green("Job Succeed\n")
+
+		return nil
+	},
+}
+
+func init() {
+	runProblemCmd.Flags().
+		Int64("problem-id", 1, "Problem Id to test")
+	runProblemCmd.MarkFlagRequired("problem-id")
+
+	runProblemCmd.PersistentFlags().
+		String("problems-dir", "./problems", "Directory to read problems")
+	runProblemCmd.PersistentFlags().
+		String("testcases-dir", "./testcases", "Directory to read testcases")
+	runProblemCmd.PersistentFlags().
+		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
+	runProblemCmd.PersistentFlags().
+		Int64("buffer-size", 100, "Channel buffer size")
+	runProblemCmd.PersistentFlags().
+		Int64("threads", 1, "Thread count")
+	runProblemCmd.Flags().
+		StringSliceP("arg", "a", []string{}, "Mock submission args (key=value)")
+}

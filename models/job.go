@@ -26,15 +26,15 @@ type Job struct {
 	StageName string `json:"stageName" bun:"stagename,pk"`
 	TestName  string `json:"testName" bun:"testname,pk"`
 
+	// Metadata
 	Status JobStatus `json:"status" bun:"status"`
 
-	// Input script
-	Script string `json:"script" bun:"script"`
-
-	// Runtime metadata
-	FileURL string `json:"fileurl" bun:"-"`
-	HardTL  int64  `json:"hardtl" bun:"-"`
-	SoftTL  int64  `json:"softtl" bun:"-"`
+	// On Schedule
+	Script   string `json:"script" bun:"script"`
+	Deadline int64  `json:"deadline" bun:"deadline"`
+	FileURL  string `json:"fileurl" bun:"-"`
+	HardTL   int64  `json:"hardtl" bun:"-"`
+	SoftTL   int64  `json:"softtl" bun:"-"`
 
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`
@@ -52,6 +52,10 @@ func (self Job) Id() string {
 	return fmt.Sprintf("%d-%s-%s", self.SubId, self.StageName, self.TestName)
 }
 
+func (self Job) Filename() string {
+	return fmt.Sprintf("%s.tar", self.Id())
+}
+
 // Jobcnt key for stage
 func (self Job) Stage() string {
 	return fmt.Sprintf("%d-%s", self.SubId, self.StageName)
@@ -63,4 +67,11 @@ func (self Job) StdoutKey() string {
 
 func (self Job) StderrKey() string {
 	return fmt.Sprintf("%s-stderr", self.Id())
+}
+
+func (self Job) IsDone() bool {
+	return self.Status == StatusSuccess ||
+		self.Status == StatusFailed ||
+		self.Status == StatusSkip ||
+		self.Status == StatusTimeout
 }

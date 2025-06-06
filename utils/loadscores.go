@@ -2,10 +2,9 @@ package utils
 
 import (
 	"context"
-	"net/http"
+	"fmt"
 
 	"github.com/uptrace/bun"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -25,13 +24,9 @@ func LoadScores(
 		var submissions []models.Submission
 		err := db.NewSelect().DistinctOn("csid").Model(&submissions).
 			Where("problemid = ?", problemId).
-			Relation("Jobs").Order("csid, id DESC").Scan(ctx)
+			Relation("Jobs").OrderExpr("csid, id DESC").Scan(ctx)
 		if err != nil {
-			return ret, middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "submission query failed",
-				OriginError: err,
-			}
+			return ret, fmt.Errorf("submission query failed, %w", err)
 		}
 
 		for _, submission := range submissions {

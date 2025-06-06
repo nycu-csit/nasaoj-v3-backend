@@ -56,8 +56,6 @@ func FetchJob(
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "%+v\n", job)
-
 	req, err = http.NewRequestWithContext(ctx, "GET", job.FileURL, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http new request failed\n")

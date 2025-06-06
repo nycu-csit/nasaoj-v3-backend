@@ -2,31 +2,32 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func GetScheduleJob(
 	ctx context.Context,
-	rdb *redis.Client,
+	db interfaces.Database,
+	jobQue interfaces.JobQueue,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		var err error
 		tags := req.URL.Query().Get("tags")
 		fmt.Fprintf(os.Stderr, "GET /schedule/job?tags=%s\n", tags)
 
-		// Get Job from redis queue
-		var jobkey string
+		// Get Job from queue
+		var err error
+		var job models.Job
 		for _, tag := range strings.Split(tags, ",") {
-			jobkey, err = rdb.RPop(ctx, fmt.Sprintf("queue-%s", tag)).Result()
+			job, err = jobQue.GetJob(ctx, tag)
 			if err == nil {
 				break
 			}
@@ -39,47 +40,17 @@ func GetScheduleJob(
 			}
 		}
 
-		var res string
-		res, err = rdb.Get(ctx, jobkey).Result()
-		if err != nil {
+		job.Deadline = time.Now().
+			Add(time.Duration(job.HardTL) * time.Second).Unix()
+		if err = db.UpdateJob(ctx, &job); err != nil {
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusNoContent,
-				Message:     "no content",
-				OriginError: err,
-			}
-		}
-		var job models.Job
-		err = json.Unmarshal([]byte(res), &job)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "redis json unmarshal failed",
+				StatusCode:  http.StatusServiceUnavailable,
+				Message:     "job update failed",
 				OriginError: err,
 			}
 		}
 
-		// Reply
-		payload, err := json.Marshal(&job)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "json parsing failed",
-				OriginError: err,
-			}
-		}
-
-		_, err = rdb.SAdd(ctx, "jobset", job.Id()).Result()
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "redis ZADD failed",
-				OriginError: err,
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "%s", string(payload[:]))
-		return nil
+		return bunrouter.JSON(w, job)
 	}
 }

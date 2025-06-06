@@ -1,82 +1,45 @@
-package worker
+package workflows
 
 import (
-	"archive/tar"
 	"bytes"
 	"context"
 	"io"
-	"os"
 	"os/exec"
 	"path"
 	"time"
 
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 func RunJob(
 	pctx context.Context,
 	retCh chan error,
-	jobIn chan models.JobWithFile,
-	jobOut chan models.JobWithFile,
+	job *models.JobWithFile,
 ) {
-	ctx, cancel := context.WithCancel(pctx)
-	defer cancel()
-
-	job := <-jobIn
-
 	// Setup environment
-	filepath := path.Join(viper.GetString("running-dir"), job.Id())
-	err := os.MkdirAll(filepath, 0700)
-	if err != nil && !os.IsExist(err) {
+	basepath := path.Join(viper.GetString("running-dir"), job.Id())
+	if err := utils.UnTar(basepath, job.Tarbuf); err != nil {
 		retCh <- err
 		return
 	}
 
-	buf := bytes.NewBuffer(job.Tarbuf)
-	tr := tar.NewReader(buf)
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			retCh <- err
-			return
-		}
-
-		b, err := io.ReadAll(tr)
-		if err != nil {
-			retCh <- err
-			return
-		}
-
-		filepath := path.Join(viper.GetString("running-dir"), job.Id(), hdr.Name)
-		err = os.MkdirAll(path.Dir(filepath), 0700)
-		if err != nil && !os.IsExist(err) {
-			retCh <- err
-			return
-		}
-
-		err = os.WriteFile(filepath, b, os.FileMode(hdr.Mode))
-		if err != nil {
-			retCh <- err
-			return
-		}
-	}
 	job.ExecAt = time.Now().Unix()
 	duration := time.Duration(job.SoftTL) * time.Second
-	cmdCtx, cmdCancel := context.WithTimeout(ctx, duration)
-	defer cmdCancel()
+
+	ctx, cancel := context.WithTimeout(pctx, duration)
+	defer cancel()
 
 	// Run script
-	cmd := exec.CommandContext(cmdCtx, "bash")
-	cmd.Dir = path.Join(viper.GetString("running-dir"), job.Id())
+	cmd := exec.CommandContext(ctx, "bash")
+	cmd.Dir = path.Join(basepath)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		retCh <- err
 		return
 	}
+
 	go func() {
 		defer stdin.Close()
 		io.WriteString(stdin, job.Script)
@@ -96,7 +59,7 @@ func RunJob(
 
 	var ret error = nil
 	select {
-	case <-cmdCtx.Done(): // timeout
+	case <-ctx.Done(): // timeout
 		job.Status = models.StatusTimeout
 		if cmd.Process != nil {
 			if err := cmd.Process.Kill(); err != nil {
@@ -120,6 +83,5 @@ func RunJob(
 	job.Stdout = string(stdoutBuf.Bytes()[:])
 	job.Stderr = string(stderrBuf.Bytes()[:])
 
-	jobOut <- job
 	retCh <- ret
 }
