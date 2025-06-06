@@ -43,7 +43,7 @@ func HandleStageDone(
 		return fmt.Errorf("stage '%s' not exist", job.StageName)
 	}
 
-	err = db.IncreaseScore(ctx, job.SubId, stage.Score)
+	err = db.IncreaseScore(ctx, job.SubId, job.StageName, stage.Score)
 	if err != nil {
 		return fmt.Errorf("score put to db failed, %w", err)
 	}

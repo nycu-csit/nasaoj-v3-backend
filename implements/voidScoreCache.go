@@ -3,6 +3,7 @@ package implements
 import (
 	"context"
 
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -28,4 +29,12 @@ func (self *VoidScoreCache) Get(
 	_ bool,
 ) ([]models.UserScore, error) {
 	return []models.UserScore{}, nil
+}
+
+func (self *VoidScoreCache) Reload(
+	_ context.Context,
+	_ interfaces.Database,
+	_ models.ProblemRepository,
+) error {
+	return nil
 }

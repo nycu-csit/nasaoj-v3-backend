@@ -144,7 +144,7 @@ var backendCmd = &cobra.Command{
 		apiAdminGroup.GET("/scores",
 			handlers.GetScores(ctx, scoreCache, problems, true))
 		apiAdminGroup.POST("/reloadscores",
-			handlers.PostReloadScores(ctx, db, rdb, problems))
+			handlers.PostReloadScores(ctx, bunDB, scoreCache, problems))
 		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
 		apiAdminGroup.GET("/submissions",
 			handlers.GetSubmissions(ctx, db, rdb, true))

@@ -3,10 +3,13 @@ package implements
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/redis/go-redis/v9"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type RedisScoreCache struct {
@@ -41,7 +44,7 @@ func (self *RedisScoreCache) Get(
 	problem models.Problem,
 	isAdmin bool,
 ) ([]models.UserScore, error) {
-	var ret []models.UserScore
+	ret := []models.UserScore{}
 	table := make(map[string]map[string]int64)
 
 	for stageName := range problem.Stages {
@@ -91,4 +94,34 @@ func (self *RedisScoreCache) Get(
 	}
 
 	return ret, nil
+}
+
+func (self *RedisScoreCache) Reload(
+	ctx context.Context,
+	db interfaces.Database,
+	problems models.ProblemRepository,
+) error {
+	scoreTables, err := utils.LoadScores(ctx, db, problems)
+	if err != nil {
+		return fmt.Errorf("load scores failed, %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "scoreTables: %+v\n", scoreTables)
+
+	_, err = self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		for problemId, table := range scoreTables {
+			for csId, score := range table {
+				for stageName, value := range score.Stages {
+					_, err = pipe.HSet(ctx,
+						fmt.Sprintf("score-%d-%s", problemId, stageName),
+						csId, value).Result()
+					fmt.Fprintf(os.Stderr, "reload score-%d-%s\n", problemId, stageName)
+					if err != nil {
+						return fmt.Errorf("redis HSET failed, %w", err)
+					}
+				}
+			}
+		}
+		return nil
+	})
+	return err
 }

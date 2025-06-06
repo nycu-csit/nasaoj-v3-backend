@@ -136,10 +136,35 @@ func (self *BunDatabase) GetUserResource(
 func (self *BunDatabase) IncreaseScore(
 	ctx context.Context,
 	subId int64,
+	stageName string,
 	delta int64,
 ) error {
 	_, err := self.db.NewUpdate().Model((*models.Submission)(nil)).
 		Set("score_score = score_score + ?", delta).
 		Where("id = ?", subId).Exec(ctx)
-	return err
+	if err != nil {
+		return fmt.Errorf("db score update failed, %w", err)
+	}
+	_, err = self.db.NewUpdate().Model((*models.Submission)(nil)).
+		Set("score_stages = score_stages || ?",
+			map[string]int64{stageName: delta}).
+		Where("id = ?", subId).Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("db stage score update failed, %w", err)
+	}
+	return nil
+}
+
+func (self *BunDatabase) GetAllSubmission(
+	ctx context.Context,
+	problemId int64,
+) ([]models.Submission, error) {
+	var ret []models.Submission
+	err := self.db.NewSelect().DistinctOn("csid").Model(&ret).
+		Where("problemid = ?", problemId).
+		Relation("Jobs").OrderExpr("csid, id DESC").Scan(ctx)
+	if err != nil {
+		return ret, fmt.Errorf("submission query failed, %w", err)
+	}
+	return ret, nil
 }

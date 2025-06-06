@@ -42,6 +42,12 @@ type Database interface {
 	IncreaseScore(
 		ctx context.Context,
 		subId int64,
+		stageName string,
 		delta int64,
 	) error
+
+	GetAllSubmission(
+		ctx context.Context,
+		problemId int64,
+	) ([]models.Submission, error)
 }

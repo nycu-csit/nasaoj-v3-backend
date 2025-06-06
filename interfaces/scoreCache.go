@@ -20,4 +20,10 @@ type ScoreCache interface {
 		problem models.Problem,
 		isAdmin bool,
 	) ([]models.UserScore, error)
+
+	Reload(
+		ctx context.Context,
+		db Database,
+		problems models.ProblemRepository,
+	) error
 }
