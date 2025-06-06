@@ -95,7 +95,7 @@ var problemCmd = &cobra.Command{
 			SubmitAt: time.Now().Unix(),
 			Args:     mockArgs,
 
-			Score: models.UserScore{
+			Score: models.Score{
 				Score:  0,
 				Stages: make(map[string]int64),
 			},

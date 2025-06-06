@@ -173,7 +173,7 @@ func PutSubmit(
 			SubmitAt: time.Now().Unix(),
 			Args:     make(map[string]string),
 
-			Score: models.UserScore{
+			Score: models.Score{
 				Score:  0,
 				Stages: make(map[string]int64),
 			},

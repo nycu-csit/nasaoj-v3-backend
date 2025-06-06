@@ -21,3 +21,11 @@ func (self *VoidScoreCache) Put(
 ) error {
 	return nil
 }
+
+func (self *VoidScoreCache) Get(
+	_ context.Context,
+	_ models.Problem,
+	_ bool,
+) ([]models.UserScore, error) {
+	return []models.UserScore{}, nil
+}

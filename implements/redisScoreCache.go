@@ -3,6 +3,7 @@ package implements
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/redis/go-redis/v9"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -33,4 +34,61 @@ func (self *RedisScoreCache) Put(
 	_, err := self.rdb.HSet(ctx, self.Id(problem, stageName),
 		csId, score).Result()
 	return err
+}
+
+func (self *RedisScoreCache) Get(
+	ctx context.Context,
+	problem models.Problem,
+	isAdmin bool,
+) ([]models.UserScore, error) {
+	var ret []models.UserScore
+	table := make(map[string]map[string]int64)
+
+	for stageName := range problem.Stages {
+		rawScores, err := self.rdb.HGetAll(ctx,
+			self.Id(problem, stageName)).Result()
+		if err != nil {
+			return ret, fmt.Errorf("score get failed, %w", err)
+		}
+
+		for csId, rawScore := range rawScores {
+			if _, ok := table[csId]; !ok {
+				table[csId] = make(map[string]int64)
+			}
+
+			score, err := strconv.ParseInt(rawScore, 10, 64)
+			if err != nil {
+				return ret, fmt.Errorf("score parse string failed, %w", err)
+			}
+
+			table[csId][stageName] = score
+		}
+	}
+
+	for csId, stage := range table {
+		var totalScore int64 = 0
+		for _, v := range stage {
+			totalScore += v
+		}
+
+		if isAdmin {
+			ret = append(ret, models.UserScore{
+				CsId: csId,
+				Score: models.Score{
+					Score:  totalScore,
+					Stages: stage,
+				},
+			})
+		} else {
+			ret = append(ret, models.UserScore{
+				CsId: csId,
+				Score: models.Score{
+					Score:  totalScore,
+					Stages: nil,
+				},
+			})
+		}
+	}
+
+	return ret, nil
 }

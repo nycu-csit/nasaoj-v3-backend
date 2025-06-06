@@ -8,7 +8,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-type ScoreTable = map[string]models.UserScore
+type ScoreTable = map[string]models.Score
 
 func LoadScores(
 	ctx context.Context,

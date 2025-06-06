@@ -131,7 +131,8 @@ var backendCmd = &cobra.Command{
 			s3, problems, testcases, false))
 		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
 		apiGroup.GET("/results", handlers.GetResults(ctx, bunDB, false))
-		apiGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, false))
+		apiGroup.GET("/scores",
+			handlers.GetScores(ctx, scoreCache, problems, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
 		apiGroup.GET("/submissions",
 			handlers.GetSubmissions(ctx, db, rdb, false))
@@ -140,7 +141,8 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CheckAdmin(ctx))
 		apiAdminGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", true))
 		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr", true))
-		apiAdminGroup.GET("/scores", handlers.GetScores(ctx, rdb, problems, true))
+		apiAdminGroup.GET("/scores",
+			handlers.GetScores(ctx, scoreCache, problems, true))
 		apiAdminGroup.POST("/reloadscores",
 			handlers.PostReloadScores(ctx, db, rdb, problems))
 		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))

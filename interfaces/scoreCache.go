@@ -14,4 +14,10 @@ type ScoreCache interface {
 		csId string,
 		score int64,
 	) error
+
+	Get(
+		ctx context.Context,
+		problem models.Problem,
+		isAdmin bool,
+	) ([]models.UserScore, error)
 }

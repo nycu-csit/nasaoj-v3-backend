@@ -2,28 +2,21 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
-
-type ScoreOutput struct {
-	models.UserScore
-	CsId string `json:"csId"`
-}
 
 // GetAdminScores
 //
 //	@Param		problemId	query		int				true	"Problem ID"
-//	@Success	200			{object}	[]ScoreOutput	"Scores"
+//	@Success	200			{object}	[]models.UserScore	"Scores"
 //	@Failure	400			{object}	string			"Invalid problem id"
 //	@Router		/api/admin/scores [get]
 func getAdminScoresPlaceholder() {}
@@ -31,12 +24,12 @@ func getAdminScoresPlaceholder() {}
 // GetScores
 //
 //	@Param		problemId	query		int				true	"Problem ID"
-//	@Success	200			{object}	[]ScoreOutput	"Scores"
+//	@Success	200			{object}	[]models.UserScore	"Scores"
 //	@Failure	400			{object}	string			"Invalid problem id"
 //	@Router		/api/scores [get]
 func GetScores(
 	ctx context.Context,
-	rdb *redis.Client,
+	scoreCache interfaces.ScoreCache,
 	problems utils.ProblemRepository,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -53,36 +46,21 @@ func GetScores(
 			}
 		}
 
-		rawScores, err := rdb.HGetAll(ctx,
-			fmt.Sprintf("scores-%d", problemId)).Result()
-		if err != nil {
+		problem, ok := problems[problemId]
+		if !ok {
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "redis HGETALL failed",
+				StatusCode:  http.StatusBadRequest,
+				Message:     "invalid problem id",
 				OriginError: err,
 			}
 		}
-		scores := []ScoreOutput{}
-		for csId, rawScore := range rawScores {
-			var score models.UserScore
-			err = json.Unmarshal([]byte(rawScore), &score)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "score unmarshal failed",
-					OriginError: err,
-				}
-			}
-			scores = append(scores, ScoreOutput{
-				UserScore: score,
-				CsId:      csId,
-			})
-		}
 
-		// Trim stages result if not admin
-		if !isAdmin {
-			for csId, _ := range scores {
-				scores[csId].Stages = make(map[string]int64)
+		scores, err := scoreCache.Get(ctx, problem, isAdmin)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "score cache get failed",
+				OriginError: err,
 			}
 		}
 
