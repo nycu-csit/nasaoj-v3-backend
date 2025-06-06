@@ -73,7 +73,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/handlers.ScoreOutput"
+                                "$ref": "#/definitions/models.UserScore"
                             }
                         }
                     },
@@ -373,7 +373,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/handlers.ScoreOutput"
+                                "$ref": "#/definitions/models.UserScore"
                             }
                         }
                     },
@@ -554,23 +554,6 @@
                 },
                 "resource": {
                     "$ref": "#/definitions/models.UserResource"
-                }
-            }
-        },
-        "handlers.ScoreOutput": {
-            "type": "object",
-            "properties": {
-                "csId": {
-                    "type": "string"
-                },
-                "score": {
-                    "type": "integer"
-                },
-                "stages": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
                 }
             }
         },
@@ -839,6 +822,23 @@
                 },
                 "roomId": {
                     "type": "string"
+                }
+            }
+        },
+        "models.UserScore": {
+            "type": "object",
+            "properties": {
+                "csId": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
                 }
             }
         }

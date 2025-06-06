@@ -15,17 +15,17 @@ import (
 
 // GetAdminScores
 //
-//	@Param		problemId	query		int				true	"Problem ID"
+//	@Param		problemId	query		int					true	"Problem ID"
 //	@Success	200			{object}	[]models.UserScore	"Scores"
-//	@Failure	400			{object}	string			"Invalid problem id"
+//	@Failure	400			{object}	string				"Invalid problem id"
 //	@Router		/api/admin/scores [get]
 func getAdminScoresPlaceholder() {}
 
 // GetScores
 //
-//	@Param		problemId	query		int				true	"Problem ID"
+//	@Param		problemId	query		int					true	"Problem ID"
 //	@Success	200			{object}	[]models.UserScore	"Scores"
-//	@Failure	400			{object}	string			"Invalid problem id"
+//	@Failure	400			{object}	string				"Invalid problem id"
 //	@Router		/api/scores [get]
 func GetScores(
 	ctx context.Context,

@@ -81,7 +81,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/handlers.ScoreOutput"
+                                "$ref": "#/definitions/models.UserScore"
                             }
                         }
                     },
@@ -381,7 +381,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/handlers.ScoreOutput"
+                                "$ref": "#/definitions/models.UserScore"
                             }
                         }
                     },
@@ -562,23 +562,6 @@ const docTemplate = `{
                 },
                 "resource": {
                     "$ref": "#/definitions/models.UserResource"
-                }
-            }
-        },
-        "handlers.ScoreOutput": {
-            "type": "object",
-            "properties": {
-                "csId": {
-                    "type": "string"
-                },
-                "score": {
-                    "type": "integer"
-                },
-                "stages": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
                 }
             }
         },
@@ -847,6 +830,23 @@ const docTemplate = `{
                 },
                 "roomId": {
                     "type": "string"
+                }
+            }
+        },
+        "models.UserScore": {
+            "type": "object",
+            "properties": {
+                "csId": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
                 }
             }
         }

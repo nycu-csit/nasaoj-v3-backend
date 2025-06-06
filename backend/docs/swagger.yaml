@@ -9,17 +9,6 @@ definitions:
       resource:
         $ref: '#/definitions/models.UserResource'
     type: object
-  handlers.ScoreOutput:
-    properties:
-      csId:
-        type: string
-      score:
-        type: integer
-      stages:
-        additionalProperties:
-          type: integer
-        type: object
-    type: object
   handlers.adminSubmitInput:
     properties:
       asCsId:
@@ -199,6 +188,17 @@ definitions:
       roomId:
         type: string
     type: object
+  models.UserScore:
+    properties:
+      csId:
+        type: string
+      score:
+        type: integer
+      stages:
+        additionalProperties:
+          type: integer
+        type: object
+    type: object
 info:
   contact: {}
   license:
@@ -248,7 +248,7 @@ paths:
           description: Scores
           schema:
             items:
-              $ref: '#/definitions/handlers.ScoreOutput'
+              $ref: '#/definitions/models.UserScore'
             type: array
         "400":
           description: Invalid problem id
@@ -440,7 +440,7 @@ paths:
           description: Scores
           schema:
             items:
-              $ref: '#/definitions/handlers.ScoreOutput'
+              $ref: '#/definitions/models.UserScore'
             type: array
         "400":
           description: Invalid problem id
