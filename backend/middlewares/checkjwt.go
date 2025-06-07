@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -16,7 +16,7 @@ type UserResourceType string
 
 func CheckJWT(
 	ctx context.Context,
-	db *bun.DB,
+	db interfaces.Database,
 ) func(bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	JWT_SECRET := os.Getenv("JWT_SECRET")
 
@@ -52,8 +52,7 @@ func CheckJWT(
 				}
 			}
 
-			var user models.UserResource
-			err = db.NewSelect().Model(&user).Where("csid = ?", claim.CsId).Scan(ctx)
+			user, err := db.GetUserResource(ctx, claim.CsId)
 			if err != nil {
 				return HTTPError{
 					StatusCode:  http.StatusUnauthorized,

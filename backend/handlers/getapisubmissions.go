@@ -7,10 +7,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/redis/go-redis/v9"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -54,20 +53,20 @@ func getAdminSubmissionsPlaceHolder() {}
 //	@Router		/api/submissions [get]
 func GetSubmissions(
 	ctx context.Context,
-	db *bun.DB,
-	rdb *redis.Client,
+	db interfaces.Database,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/submissions\n")
 		queryValues := req.URL.Query()
+		var err error
 
-		dbQuery := db.NewSelect().Order("id DESC").Limit(pageSize)
-
+		var csId string
+		var isCsId bool = false
 		if isAdmin {
 			if queryValues.Has("csId") {
-				csId := queryValues.Get("csId")
-				dbQuery = dbQuery.Where("csid = ?", csId)
+				csId = queryValues.Get("csId")
+				isCsId = true
 			}
 		} else {
 			resource, ok := req.Context().
@@ -78,12 +77,14 @@ func GetSubmissions(
 					Message:    "user resource missing",
 				}
 			}
-
-			dbQuery = dbQuery.Where("csid = ?", resource.CsId)
+			csId = resource.CsId
+			isCsId = true
 		}
 
+		var pageNum int
+		var isPageNum bool = false
 		if queryValues.Has("pageNum") {
-			pageNum, err := strconv.ParseInt(
+			pageNum64, err := strconv.ParseInt(
 				queryValues.Get("pageNum"), 10, 32)
 			if err != nil {
 				return middlewares.HTTPError{
@@ -92,12 +93,14 @@ func GetSubmissions(
 					OriginError: err,
 				}
 			}
-
-			dbQuery = dbQuery.Offset(int(pageNum) * pageSize)
+			pageNum = int(pageNum64)
+			isPageNum = true
 		}
 
+		var problemId int64
+		var isProblemId bool = false
 		if queryValues.Has("problemId") {
-			problemId, err := strconv.ParseInt(
+			problemId, err = strconv.ParseInt(
 				queryValues.Get("problemId"), 10, 64)
 			if err != nil {
 				return middlewares.HTTPError{
@@ -106,12 +109,13 @@ func GetSubmissions(
 					OriginError: err,
 				}
 			}
-
-			dbQuery = dbQuery.Where("problemid = ?", problemId)
+			isProblemId = true
 		}
 
-		var subs []models.Submission
-		count, err := dbQuery.Model(&subs).ScanAndCount(ctx)
+		subs, count, err := db.GetSubmissionsAndCount(ctx,
+			csId, isCsId,
+			pageNum, isPageNum, pageSize,
+			problemId, isProblemId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,

@@ -9,9 +9,9 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"golang.org/x/oauth2"
 )
@@ -31,7 +31,7 @@ type Claim struct {
 //	@Router		/auth/callback [get]
 func GetCallback(
 	ctx context.Context,
-	db *bun.DB,
+	db interfaces.Database,
 	config oauth2.Config,
 	verifier *oidc.IDTokenVerifier,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -84,7 +84,6 @@ func GetCallback(
 		}
 		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaim)
 		jwtString, err := jwtToken.SignedString(secretKey)
-
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
@@ -93,32 +92,16 @@ func GetCallback(
 			}
 		}
 
-		exist, err := db.NewSelect().Model((*models.UserResource)(nil)).
-			Where("csid = ?", jwtClaim.CsId).Exists(ctx)
+		exist, err := db.ExistUserResource(ctx, jwtClaim.CsId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusUnauthorized,
-				Message:     "user not exist",
+				Message:     "check exist failed",
 				OriginError: err,
 			}
 		}
 		if !exist {
-			var resource models.Resource
-			err = db.NewDelete().Model((*models.Resource)(nil)).
-				Where(
-					"id IN (?)",
-					db.NewSelect().Model((*models.Resource)(nil)).Column("id").Limit(1),
-				).Returning("*").Scan(ctx, &resource)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "no user resource left",
-					OriginError: err,
-				}
-			}
-
-			user := resource.User(jwtClaim.CsId)
-			_, err = db.NewInsert().Model(&user).Exec(ctx)
+			err := db.InsertNewUserFromResources(ctx, jwtClaim.CsId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,

@@ -10,9 +10,9 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -49,7 +49,7 @@ func getAdminStdoutPlaceholder() {}
 //	@Router		/api/stdout [get]
 func GetOutput(
 	ctx context.Context,
-	db *bun.DB,
+	db interfaces.Database,
 	mc *minio.Client,
 	target string,
 	isAdmin bool,
@@ -69,8 +69,7 @@ func GetOutput(
 		stageName := req.URL.Query().Get("stage")
 		testName := req.URL.Query().Get("testcase")
 
-		submission := models.Submission{Id: subId}
-		err = db.NewSelect().Model(&submission).WherePK().Scan(ctx)
+		submission, err := db.GetSubmission(ctx, subId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusNotFound,

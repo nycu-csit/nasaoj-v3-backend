@@ -116,37 +116,35 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler)
 		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
-		authGroup.GET("/callback", handlers.GetCallback(ctx, bunDB,
-			oauth2Config, provider.Verifier(&oidc.Config{
+		authGroup.GET("/callback", handlers.GetCallback(ctx, db, oauth2Config,
+			provider.Verifier(&oidc.Config{
 				ClientID: viper.GetString("oauth-client-id"),
 			})))
 
 		apiGroup := backend.NewGroup("/api").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler).
-			Use(middlewares.CheckJWT(ctx, bunDB))
+			Use(middlewares.CheckJWT(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, jobQue,
 			s3, problems, testcases, false))
-		apiGroup.GET("/stdout", handlers.GetOutput(ctx, bunDB, mc, "stdout", false))
+		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
 		apiGroup.GET("/scores",
 			handlers.GetScores(ctx, db, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
-		apiGroup.GET("/submissions",
-			handlers.GetSubmissions(ctx, bunDB, rdb, false))
+		apiGroup.GET("/submissions", handlers.GetSubmissions(ctx, db, false))
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
 		apiAdminGroup.GET("/stdout",
-			handlers.GetOutput(ctx, bunDB, mc, "stdout", true))
+			handlers.GetOutput(ctx, db, mc, "stdout", true))
 		apiAdminGroup.GET("/stderr",
-			handlers.GetOutput(ctx, bunDB, mc, "stderr", true))
+			handlers.GetOutput(ctx, db, mc, "stderr", true))
 		apiAdminGroup.GET("/scores",
 			handlers.GetScores(ctx, db, true))
-		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, bunDB))
-		apiAdminGroup.GET("/submissions",
-			handlers.GetSubmissions(ctx, bunDB, rdb, true))
+		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
+		apiAdminGroup.GET("/submissions", handlers.GetSubmissions(ctx, db, true))
 		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
 		apiAdminGroup.PUT("/submit",
 			handlers.PutSubmit(ctx, db, jobQue, s3, problems, testcases, true))

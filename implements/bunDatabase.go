@@ -228,3 +228,70 @@ func (self *BunDatabase) InsertUserResources(
 	}
 	return nil
 }
+
+func (self *BunDatabase) ExistUserResource(
+	ctx context.Context,
+	csId string,
+) (bool, error) {
+	return self.db.NewSelect().
+		Model((*models.UserResource)(nil)).
+		Where("csid = ?", csId).
+		Exists(ctx)
+}
+
+func (self *BunDatabase) InsertNewUserFromResources(
+	ctx context.Context,
+	csId string,
+) error {
+	var resource models.Resource
+	err := self.db.NewDelete().Model((*models.Resource)(nil)).
+		Where("id IN (?)",
+			self.db.NewSelect().Model((*models.Resource)(nil)).
+				Column("id").Limit(1)).
+		Returning("*").Scan(ctx, &resource)
+	if err != nil {
+		return fmt.Errorf("no user resource left, %w", err)
+	}
+
+	// Transform into UserResource
+	user := resource.User(csId)
+	_, err = self.db.NewInsert().Model(&user).Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("insert user failed, %w", err)
+	}
+	return nil
+}
+
+func (self *BunDatabase) GetSubmissionsAndCount(
+	ctx context.Context,
+	csId string,
+	isCsId bool,
+	pageNum int,
+	isPageNum bool,
+	pageSize int,
+	problemId int64,
+	isProblemId bool,
+) ([]models.Submission, int, error) {
+	query := self.db.NewSelect().Order("id DESC").Limit(pageSize)
+	if isCsId {
+		query = query.Where("csid = ?", csId)
+	}
+	if isPageNum {
+		query = query.Offset(pageNum * pageSize)
+	}
+	if isProblemId {
+		query = query.Where("problemid = ?", problemId)
+	}
+
+	var ret []models.Submission
+	count, err := query.Model(&ret).ScanAndCount(ctx)
+	return ret, count, err
+}
+
+func (self *BunDatabase) GetUsers(
+	ctx context.Context,
+) ([]models.UserResource, error) {
+	var ret []models.UserResource
+	err := self.db.NewSelect().Model(&ret).Scan(ctx)
+	return ret, err
+}
