@@ -63,7 +63,7 @@ var backendCmd = &cobra.Command{
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
 			viper.GetString("pg-connection-string"))))
-		db := bun.NewDB(sqldb, pgdialect.New())
+		bunDB := bun.NewDB(sqldb, pgdialect.New())
 
 		// Initialize Redis instance
 		rdb := redis.NewClient(&redis.Options{
@@ -101,10 +101,9 @@ var backendCmd = &cobra.Command{
 		}
 
 		// Initialize custom interfaces
-		bunDB := implements.NewBunDatabase(db)
+		db := implements.NewBunDatabase(bunDB)
 		s3 := implements.NewMinIOObjectStorage(mc)
 		jobQue := implements.NewRedisJobQueue(rdb)
-		scoreCache := implements.NewRedisScoreCache(rdb)
 
 		// Initialize backend router
 		backend := bunrouter.New()
@@ -117,7 +116,7 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler)
 		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
-		authGroup.GET("/callback", handlers.GetCallback(ctx, db,
+		authGroup.GET("/callback", handlers.GetCallback(ctx, bunDB,
 			oauth2Config, provider.Verifier(&oidc.Config{
 				ClientID: viper.GetString("oauth-client-id"),
 			})))
@@ -125,41 +124,39 @@ var backendCmd = &cobra.Command{
 		apiGroup := backend.NewGroup("/api").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler).
-			Use(middlewares.CheckJWT(ctx, db))
+			Use(middlewares.CheckJWT(ctx, bunDB))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
-		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, bunDB, jobQue,
+		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, jobQue,
 			s3, problems, testcases, false))
-		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
-		apiGroup.GET("/results", handlers.GetResults(ctx, bunDB, false))
+		apiGroup.GET("/stdout", handlers.GetOutput(ctx, bunDB, mc, "stdout", false))
+		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
 		apiGroup.GET("/scores",
-			handlers.GetScores(ctx, scoreCache, problems, false))
+			handlers.GetScores(ctx, db, false))
 		apiGroup.GET("/me", handlers.GetMe(ctx))
 		apiGroup.GET("/submissions",
-			handlers.GetSubmissions(ctx, db, rdb, false))
+			handlers.GetSubmissions(ctx, bunDB, rdb, false))
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
-		apiAdminGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", true))
-		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, db, mc, "stderr", true))
+		apiAdminGroup.GET("/stdout", handlers.GetOutput(ctx, bunDB, mc, "stdout", true))
+		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, bunDB, mc, "stderr", true))
 		apiAdminGroup.GET("/scores",
-			handlers.GetScores(ctx, scoreCache, problems, true))
-		apiAdminGroup.POST("/reloadscores",
-			handlers.PostReloadScores(ctx, bunDB, scoreCache, problems))
-		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
+			handlers.GetScores(ctx, db, true))
+		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, bunDB))
 		apiAdminGroup.GET("/submissions",
-			handlers.GetSubmissions(ctx, db, rdb, true))
-		apiAdminGroup.GET("/results", handlers.GetResults(ctx, bunDB, true))
+			handlers.GetSubmissions(ctx, bunDB, rdb, true))
+		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
 		apiAdminGroup.PUT("/submit",
-			handlers.PutSubmit(ctx, bunDB, jobQue, s3, problems, testcases, true))
+			handlers.PutSubmit(ctx, db, jobQue, s3, problems, testcases, true))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()
 		scheduleGroup := scheduler.NewGroup("/schedule").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CheckPreSharedKey)
-		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, bunDB, jobQue))
-		scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, bunDB,
-			jobQue, scoreCache, s3, problems, testcases))
+		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, db, jobQue))
+		scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, db,
+			jobQue, s3, problems, testcases))
 
 		go func() {
 			log.Println(http.ListenAndServe(

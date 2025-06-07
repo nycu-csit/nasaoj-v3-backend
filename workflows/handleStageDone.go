@@ -13,7 +13,6 @@ func HandleStageDone(
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
-	scoreCache interfaces.ScoreCache,
 
 	problems models.ProblemRepository,
 	testcases *models.TestcaseRepository,
@@ -46,11 +45,6 @@ func HandleStageDone(
 	err = db.IncreaseScore(ctx, job.SubId, job.StageName, stage.Score)
 	if err != nil {
 		return fmt.Errorf("score put to db failed, %w", err)
-	}
-	err = scoreCache.Put(ctx, problem, job.StageName,
-		submission.CsId, stage.Score)
-	if err != nil {
-		return fmt.Errorf("score put to cache failed, %w", err)
 	}
 
 	for _, next := range stage.Before {

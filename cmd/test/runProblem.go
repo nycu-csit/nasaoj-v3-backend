@@ -60,7 +60,6 @@ var problemCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
-		scoreCache := implements.NewVoidScoreCache()
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -127,7 +126,7 @@ var problemCmd = &cobra.Command{
 			}
 
 			if job.Status == models.StatusSuccess {
-				err = workflows.HandleStageDone(ctx, db, jobQue, s3, scoreCache,
+				err = workflows.HandleStageDone(ctx, db, jobQue, s3,
 					problems, testcases, job)
 				if err != nil {
 					return fmt.Errorf("handle job done failed, %w", err)

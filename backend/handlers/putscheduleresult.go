@@ -20,7 +20,6 @@ func PutScheduleResult(
 	ctx context.Context,
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
-	scoreCache interfaces.ScoreCache,
 	s3 interfaces.ObjectStorage,
 
 	problems models.ProblemRepository,
@@ -89,7 +88,7 @@ func PutScheduleResult(
 		}
 
 		if job.Status == models.StatusSuccess {
-			err = workflows.HandleStageDone(ctx, db, jobQue, s3, scoreCache,
+			err = workflows.HandleStageDone(ctx, db, jobQue, s3,
 				problems, testcases, job)
 			if err != nil {
 				return middlewares.HTTPError{

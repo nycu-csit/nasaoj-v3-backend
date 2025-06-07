@@ -155,16 +155,36 @@ func (self *BunDatabase) IncreaseScore(
 	return nil
 }
 
-func (self *BunDatabase) GetAllSubmission(
+func (self *BunDatabase) GetScores(
 	ctx context.Context,
 	problemId int64,
-) ([]models.Submission, error) {
-	var ret []models.Submission
-	err := self.db.NewSelect().DistinctOn("csid").Model(&ret).
+	isAdmin bool,
+) ([]models.UserScore, error) {
+	var submissions []models.Submission
+	var ret []models.UserScore
+	query := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
 		Where("problemid = ?", problemId).
-		Relation("Jobs").OrderExpr("csid, id DESC").Scan(ctx)
-	if err != nil {
-		return ret, fmt.Errorf("submission query failed, %w", err)
+		OrderExpr("csid, id DESC")
+	if isAdmin {
+		query = query.Column("csid", "score_score", "score_stages")
+	} else {
+		query = query.Column("csid", "score_score")
 	}
+	err := query.Scan(ctx)
+	if err != nil {
+		return ret, fmt.Errorf("score query failed, %w", err)
+	}
+
+	for _, submission := range submissions {
+		userScore := models.UserScore{
+			CsId:  submission.CsId,
+			Score: submission.Score,
+		}
+		if userScore.Score.Stages == nil {
+			userScore.Score.Stages = make(map[string]int64)
+		}
+		ret = append(ret, userScore)
+	}
+
 	return ret, nil
 }

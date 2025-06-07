@@ -10,7 +10,6 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 // GetAdminScores
@@ -29,8 +28,7 @@ func getAdminScoresPlaceholder() {}
 //	@Router		/api/scores [get]
 func GetScores(
 	ctx context.Context,
-	scoreCache interfaces.ScoreCache,
-	problems utils.ProblemRepository,
+	db interfaces.Database,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -46,20 +44,11 @@ func GetScores(
 			}
 		}
 
-		problem, ok := problems[problemId]
-		if !ok {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusBadRequest,
-				Message:     "invalid problem id",
-				OriginError: err,
-			}
-		}
-
-		scores, err := scoreCache.Get(ctx, problem, isAdmin)
+		scores, err := db.GetScores(ctx, problemId, isAdmin)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
-				Message:     "score cache get failed",
+				Message:     "score get failed",
 				OriginError: err,
 			}
 		}

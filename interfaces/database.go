@@ -46,8 +46,9 @@ type Database interface {
 		delta int64,
 	) error
 
-	GetAllSubmission(
+	GetScores(
 		ctx context.Context,
 		problemId int64,
-	) ([]models.Submission, error)
+		isAdmin bool,
+	) ([]models.UserScore, error)
 }

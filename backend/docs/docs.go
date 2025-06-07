@@ -19,21 +19,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/admin/reloadscores": {
-            "post": {
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    }
-                }
-            }
-        },
         "/api/admin/results": {
             "get": {
                 "parameters": [
