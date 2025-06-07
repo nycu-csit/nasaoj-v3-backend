@@ -8,8 +8,8 @@ type ProblemIdType = int64
 type TagType = string
 type problem struct {
 	Name        string            `json:"name" yaml:"name"`
-	Description string            `json:"description" yaml:"description"`
 	ProblemId   ProblemIdType     `json:"problemId" yaml:"problemId"`
+	Description string            `json:"description" yaml:"description"`
 	Stages      map[string]Stage  `json:"stages" yaml:"stages"`
 	Args        map[string]string `json:"args" yaml:"args"`
 	Tag         TagType           `json:"tag" yaml:"tag"`

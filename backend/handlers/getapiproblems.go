@@ -22,10 +22,11 @@ type problemOutputStage struct {
 }
 
 type problemOutput struct {
-	Name      string                        `json:"name"`
-	ProblemId int64                         `json:"problemId"`
-	Stages    map[string]problemOutputStage `json:"stages"`
-	Tag       string                        `json:"tag"`
+	Name        string                        `json:"name"`
+	ProblemId   int64                         `json:"problemId"`
+	Description string                        `json:"description"`
+	Stages      map[string]problemOutputStage `json:"stages"`
+	Tag         string                        `json:"tag"`
 }
 
 // GetProblems
@@ -41,10 +42,11 @@ func GetProblems(problems utils.ProblemRepository) func(http.ResponseWriter, bun
 		var ret []problemOutput
 		for _, problem := range slices.Collect(maps.Values(problems)) {
 			retProblem := problemOutput{
-				Name:      problem.Name,
-				ProblemId: problem.ProblemId,
-				Stages:    make(map[string]problemOutputStage),
-				Tag:       problem.Tag,
+				Name:        problem.Name,
+				ProblemId:   problem.ProblemId,
+				Description: problem.Description,
+				Stages:      make(map[string]problemOutputStage),
+				Tag:         problem.Tag,
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{

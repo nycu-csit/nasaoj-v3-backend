@@ -19,6 +19,8 @@ definitions:
     type: object
   handlers.problemOutput:
     properties:
+      description:
+        type: string
       name:
         type: string
       problemId:
@@ -163,6 +165,7 @@ definitions:
     type: object
   models.JobStatus:
     enum:
+    - 263
     - 260
     - 261
     - 262
@@ -172,6 +175,7 @@ definitions:
     - 560
     type: integer
     x-enum-varnames:
+    - StatusBlocked
     - StatusPending
     - StatusRunning
     - StatusSuccess

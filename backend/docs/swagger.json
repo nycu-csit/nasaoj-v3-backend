@@ -562,6 +562,9 @@
         "handlers.problemOutput": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -783,6 +786,7 @@
         "models.JobStatus": {
             "type": "integer",
             "enum": [
+                263,
                 260,
                 261,
                 262,
@@ -792,6 +796,7 @@
                 560
             ],
             "x-enum-varnames": [
+                "StatusBlocked",
                 "StatusPending",
                 "StatusRunning",
                 "StatusSuccess",

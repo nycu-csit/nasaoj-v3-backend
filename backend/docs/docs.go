@@ -570,6 +570,9 @@ const docTemplate = `{
         "handlers.problemOutput": {
             "type": "object",
             "properties": {
+                "description": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -791,6 +794,7 @@ const docTemplate = `{
         "models.JobStatus": {
             "type": "integer",
             "enum": [
+                263,
                 260,
                 261,
                 262,
@@ -800,6 +804,7 @@ const docTemplate = `{
                 560
             ],
             "x-enum-varnames": [
+                "StatusBlocked",
                 "StatusPending",
                 "StatusRunning",
                 "StatusSuccess",
