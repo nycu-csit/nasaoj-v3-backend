@@ -51,4 +51,9 @@ type Database interface {
 		problemId int64,
 		isAdmin bool,
 	) ([]models.UserScore, error)
+
+	InsertUserResources(
+		ctx context.Context,
+		userResources []models.UserResource,
+	) error
 }

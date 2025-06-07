@@ -188,3 +188,20 @@ func (self *BunDatabase) GetScores(
 
 	return ret, nil
 }
+
+func (self *BunDatabase) InsertUserResources(
+	ctx context.Context,
+	userResources []models.UserResource,
+) error {
+	for _, user := range userResources {
+		_, err := self.db.NewInsert().Model(&user).
+			On("CONFLICT (csid) DO UPDATE").
+			Set("id = EXCLUDED.id").
+			Set("roomid = EXCLUDED.roomid").
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("insert user resource '%+v' failed, %w", user, err)
+		}
+	}
+	return nil
+}

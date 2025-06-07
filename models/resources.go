@@ -25,8 +25,8 @@ func (self Resource) User(csid string) UserResource {
 type UserResource struct {
 	bun.BaseModel `bun:"table:userresource"`
 	CsId          string `json:"csId" bun:"csid,pk"`
-	RoomId        string `json:"roomId" bun:"roomid"`
-	Id            int64  `json:"id" bun:"id,unique"`
+	RoomId        string `json:"roomId" bun:"roomid,unique:pc_resources"`
+	Id            int64  `json:"id" bun:"id,unique:pc_resources"`
 }
 
 func (self UserResource) Map() map[string]string {

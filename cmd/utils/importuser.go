@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bufio"
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -14,12 +13,13 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 var importUserCmd = &cobra.Command{
 	Use:   "import-user",
-	Short: "Import user from csv file (line format: {csid},{subnet})",
+	Short: "Import user from csv file (line format: {csid},{roomid},{subnet})",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -27,41 +27,46 @@ var importUserCmd = &cobra.Command{
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
 			viper.GetString("pg-connection-string"))))
-		db := bun.NewDB(sqldb, pgdialect.New())
+		bunDB := bun.NewDB(sqldb, pgdialect.New())
+		db := implements.NewBunDatabase(bunDB)
 
 		csvFilePath := args[0]
 		file, err := os.Open(csvFilePath)
 		if err != nil {
-			return fmt.Errorf("failed to open file: %w", err)
+			return fmt.Errorf("open file failed, %w", err)
 		}
 		defer file.Close()
 
-		return db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				line := scanner.Text()
-				parts := strings.Split(line, ",")
-				if len(parts) != 2 {
-					return fmt.Errorf("invalid line format: %s", line)
-				}
-
-				id, err := strconv.ParseInt(parts[1], 10, 64)
-				if err != nil {
-					return fmt.Errorf("failed to parse id, %s", err)
-				}
-				userResource := models.UserResource{
-					CsId: parts[0],
-					Id:   id,
-				}
-				_, err = tx.NewInsert().Model(&userResource).
-					On("CONFLICT (csid) DO NOTHING").
-					Exec(ctx)
-				if err != nil {
-					return fmt.Errorf("failed to insert user resource: %w", err)
-				}
+		scanner := bufio.NewScanner(file)
+		var userResources []models.UserResource
+		for scanner.Scan() {
+			line := scanner.Text()
+			parts := strings.Split(line, ",")
+			if len(parts) != 3 {
+				continue
 			}
 
-			return nil
-		})
+			id, err := strconv.ParseInt(parts[2], 10, 64)
+			if err != nil {
+				return fmt.Errorf("parse id failed '%s', %w", parts[2], err)
+			}
+
+			userResources = append(userResources, models.UserResource{
+				CsId:   parts[0],
+				RoomId: parts[1],
+				Id:     id,
+			})
+		}
+
+		if err := bunDB.ResetModel(ctx, (*models.UserResource)(nil)); err != nil {
+			return fmt.Errorf("reset user resource failed, %w", err)
+		}
+
+		err = db.InsertUserResources(ctx, userResources)
+		if err != nil {
+			return fmt.Errorf("insert user resource failed, %w", err)
+		}
+
+		return nil
 	},
 }
