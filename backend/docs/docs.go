@@ -317,8 +317,13 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Problem Id",
                         "name": "problemId",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Submission Id",
+                        "name": "subId",
+                        "in": "query"
                     }
                 ],
                 "responses": {

@@ -399,7 +399,10 @@ paths:
       - description: Problem Id
         in: query
         name: problemId
-        required: true
+        type: integer
+      - description: Submission Id
+        in: query
+        name: subId
         type: integer
       responses:
         "200":

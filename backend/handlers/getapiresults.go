@@ -47,7 +47,8 @@ func getAdminResultsPlaceholder() {}
 
 // GetResults
 //
-//	@Param		problemId	query		int				true	"Problem Id"
+//	@Param		problemId	query		int				false	"Problem Id"	attribute(optional)
+//	@Param		subId		query		int				false	"Submission Id"	attribute(optional)
 //	@Success	200			{object}	resultOutput	"Last submission to the problem"
 //	@Failure	400			{object}	string			"Problem ID invalid"
 //	@Failure	401			{object}	string			"User resource missing"
@@ -82,15 +83,8 @@ func GetResults(
 				}
 			}
 		} else {
-			problemId, err := strconv.ParseInt(
-				req.URL.Query().Get("problemId"), 10, 64)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusBadRequest,
-					Message:     "invalid problem id",
-					OriginError: err,
-				}
-			}
+			problemIdRaw := req.URL.Query().Get("problemId")
+			subIdRaw := req.URL.Query().Get("subId")
 
 			resource, ok := req.Context().
 				Value(middlewares.UserResourceType("")).(models.UserResource)
@@ -101,12 +95,53 @@ func GetResults(
 				}
 			}
 
-			submission, err = db.GetLastSubmission(ctx, resource.CsId, problemId)
-			if err != nil {
+			if len(subIdRaw) > 0 {
+				subId, err := strconv.ParseInt(subIdRaw, 10, 64)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusBadRequest,
+						Message:     "invalid submission id",
+						OriginError: err,
+					}
+				}
+
+				submission, err = db.GetSubmission(ctx, subId)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusNotFound,
+						Message:     "submission query failed",
+						OriginError: err,
+					}
+				}
+
+				if submission.CsId != resource.CsId {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusUnauthorized,
+						Message:     "submission author mismatch",
+						OriginError: err,
+					}
+				}
+			} else if len(problemIdRaw) > 0 {
+				problemId, err := strconv.ParseInt(problemIdRaw, 10, 64)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusBadRequest,
+						Message:     "invalid problem id",
+						OriginError: err,
+					}
+				}
+				submission, err = db.GetLastSubmission(ctx, resource.CsId, problemId)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusNotFound,
+						Message:     "submission query failed or no previous submission",
+						OriginError: err,
+					}
+				}
+			} else {
 				return middlewares.HTTPError{
-					StatusCode:  http.StatusNotFound,
-					Message:     "submission query failed or no previous submission",
-					OriginError: err,
+					StatusCode: http.StatusBadRequest,
+					Message:    "invalid query param",
 				}
 			}
 		}
