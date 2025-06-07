@@ -36,7 +36,7 @@ type submitOutput struct {
 	SubmitAt int64  `json:"submitAt"`
 }
 
-// PutAdminSubmit
+// PostAdminSubmit
 //
 //	@Param		request	body	adminSubmitInput	true	"query params"
 //	@Accept		json
@@ -45,10 +45,10 @@ type submitOutput struct {
 //	@Failure	401
 //	@Failure	429
 //
-//	@Router		/api/admin/submit [put]
+//	@Router		/api/admin/submit [post]
 func putAdminSubmitPlaceholder() {}
 
-// PutSubmit
+// PostSubmit
 //
 //	@Param		request	body	submitInput	true	"query params"
 //	@Accept		json
@@ -57,8 +57,8 @@ func putAdminSubmitPlaceholder() {}
 //	@Failure	401	{object}	string
 //	@Failure	429	{object}	string
 //
-//	@Router		/api/submit [put]
-func PutSubmit(
+//	@Router		/api/submit [post]
+func PostSubmit(
 	ctx context.Context,
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
@@ -71,9 +71,9 @@ func PutSubmit(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		if isAdmin {
-			fmt.Fprintf(os.Stderr, "PUT /api/admin/submit\n")
+			fmt.Fprintf(os.Stderr, "POST /api/admin/submit\n")
 		} else {
-			fmt.Fprintf(os.Stderr, "PUT /api/submit\n")
+			fmt.Fprintf(os.Stderr, "POST /api/submit\n")
 		}
 
 		b, err := io.ReadAll(req.Body)

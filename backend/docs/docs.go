@@ -213,7 +213,7 @@ const docTemplate = `{
             }
         },
         "/api/admin/submit": {
-            "put": {
+            "post": {
                 "consumes": [
                     "application/json"
                 ],
@@ -471,7 +471,7 @@ const docTemplate = `{
             }
         },
         "/api/submit": {
-            "put": {
+            "post": {
                 "consumes": [
                     "application/json"
                 ],

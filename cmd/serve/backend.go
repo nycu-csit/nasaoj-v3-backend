@@ -126,7 +126,7 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CORSHandler).
 			Use(middlewares.CheckJWT(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
-		apiGroup.PUT("/submit", handlers.PutSubmit(ctx, db, jobQue,
+		apiGroup.POST("/submit", handlers.PostSubmit(ctx, db, jobQue,
 			s3, problems, testcases, false))
 		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
@@ -146,8 +146,8 @@ var backendCmd = &cobra.Command{
 		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
 		apiAdminGroup.GET("/submissions", handlers.GetSubmissions(ctx, db, true))
 		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
-		apiAdminGroup.PUT("/submit",
-			handlers.PutSubmit(ctx, db, jobQue, s3, problems, testcases, true))
+		apiAdminGroup.POST("/submit",
+			handlers.PostSubmit(ctx, db, jobQue, s3, problems, testcases, true))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()

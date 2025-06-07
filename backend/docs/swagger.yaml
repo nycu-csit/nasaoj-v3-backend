@@ -344,7 +344,7 @@ paths:
           schema:
             type: string
   /api/admin/submit:
-    put:
+    post:
       consumes:
       - application/json
       parameters:
@@ -508,7 +508,7 @@ paths:
           schema:
             type: string
   /api/submit:
-    put:
+    post:
       consumes:
       - application/json
       parameters:
