@@ -1,0 +1,23 @@
+---
+name: Skip jobs
+problemId: 8
+description: Check skip jobs
+stages:
+  stage1:
+    testcases:
+      - name: this will fail
+        files:
+          - failed.sh
+        scripts:
+          - bash failed.sh
+    before:
+      - stage2
+    score: 50
+  stage2:
+    testcases:
+      - name: this will skip
+        files:
+          - poop.sh.tmpl
+        scripts:
+          - bash poop.sh.tmpl
+    score: 50

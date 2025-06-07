@@ -1,3 +1,9 @@
+.git
 .dockerignore
+Makefile
+Dockerfile
 docker-compose.yaml
 README.md
+problems/
+testcases/
+judge

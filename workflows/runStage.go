@@ -58,7 +58,7 @@ func RunStage(
 			StageName: stageName,
 			TestName:  testcase.Name,
 
-			Status:   models.StatusRunning,
+			Status:   models.StatusPending,
 			Script:   jobScript,
 			Deadline: deadline,
 			HardTL:   testcase.HardTL,

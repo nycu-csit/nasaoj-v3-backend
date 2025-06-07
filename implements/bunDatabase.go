@@ -73,7 +73,12 @@ func (self *BunDatabase) SkipJobs(
 	_, err := self.db.NewUpdate().Model((*models.Job)(nil)).
 		Set("status = ?", models.StatusSkip).
 		Where("subid = ?", subId).
-		Where("status = ?", models.StatusPending).Exec(ctx)
+		WhereGroup(" AND ", func(q *bun.UpdateQuery) *bun.UpdateQuery {
+			return q.
+				Where("status = ?", models.StatusBlocked).
+				WhereOr("status = ?", models.StatusPending)
+		}).
+		Exec(ctx)
 	return err
 }
 
@@ -103,7 +108,7 @@ func (self *BunDatabase) InsertSubmissionAndJobs(
 					StageName: stageName,
 					TestName:  testcase.Name,
 
-					Status: models.StatusPending,
+					Status: models.StatusBlocked,
 				}
 
 				_, err = tx.NewInsert().Model(&job).Exec(ctx)

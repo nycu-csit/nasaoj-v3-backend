@@ -17,7 +17,7 @@ type resultOutputJob struct {
 	StageName string `json:"stageName"`
 	TestName  string `json:"testName"`
 
-	Status models.JobStatus `json:"status" enum:"260,261,262,460,461,462,560"`
+	Status models.JobStatus `json:"status" enum:"260,261,262,263,460,461,462,560"`
 
 	RetCode int   `json:"retCode"`
 	ExecAt  int64 `json:"execAt"`

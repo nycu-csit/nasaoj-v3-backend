@@ -42,6 +42,7 @@ func GetScheduleJob(
 
 		job.Deadline = time.Now().
 			Add(time.Duration(job.HardTL) * time.Second).Unix()
+		job.Status = models.StatusRunning
 		if err = db.UpdateJob(ctx, &job); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusServiceUnavailable,
