@@ -49,8 +49,12 @@ type Database interface {
 	GetScores(
 		ctx context.Context,
 		problemId int64,
-		isAdmin bool,
 	) ([]models.UserScore, error)
+
+	GetScoresWithStages(
+		ctx context.Context,
+		problemId int64,
+	) ([]models.UserScoreWithStages, error)
 
 	InsertUserResources(
 		ctx context.Context,

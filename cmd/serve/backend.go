@@ -138,8 +138,10 @@ var backendCmd = &cobra.Command{
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
 			Use(middlewares.CheckAdmin(ctx))
-		apiAdminGroup.GET("/stdout", handlers.GetOutput(ctx, bunDB, mc, "stdout", true))
-		apiAdminGroup.GET("/stderr", handlers.GetOutput(ctx, bunDB, mc, "stderr", true))
+		apiAdminGroup.GET("/stdout",
+			handlers.GetOutput(ctx, bunDB, mc, "stdout", true))
+		apiAdminGroup.GET("/stderr",
+			handlers.GetOutput(ctx, bunDB, mc, "stderr", true))
 		apiAdminGroup.GET("/scores",
 			handlers.GetScores(ctx, db, true))
 		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, bunDB))

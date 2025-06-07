@@ -155,22 +155,43 @@ func (self *BunDatabase) IncreaseScore(
 	return nil
 }
 
+func (self *BunDatabase) GetScoresWithStages(
+	ctx context.Context,
+	problemId int64,
+) ([]models.UserScoreWithStages, error) {
+	ret := []models.UserScoreWithStages{}
+	var submissions []models.Submission
+	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
+		Column("csid", "score_score", "score_stages").
+		Where("problemid = ?", problemId).
+		OrderExpr("csid, id DESC").
+		Scan(ctx)
+	if err != nil {
+		return ret, fmt.Errorf("score query failed, %w", err)
+	}
+
+	for _, submission := range submissions {
+		userScore := models.UserScoreWithStages{
+			CsId:  submission.CsId,
+			Score: submission.Score,
+		}
+		ret = append(ret, userScore)
+	}
+
+	return ret, nil
+}
+
 func (self *BunDatabase) GetScores(
 	ctx context.Context,
 	problemId int64,
-	isAdmin bool,
 ) ([]models.UserScore, error) {
+	ret := []models.UserScore{}
 	var submissions []models.Submission
-	var ret []models.UserScore
-	query := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
+	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
+		Column("csid", "score_score").
 		Where("problemid = ?", problemId).
-		OrderExpr("csid, id DESC")
-	if isAdmin {
-		query = query.Column("csid", "score_score", "score_stages")
-	} else {
-		query = query.Column("csid", "score_score")
-	}
-	err := query.Scan(ctx)
+		OrderExpr("csid, id DESC").
+		Scan(ctx)
 	if err != nil {
 		return ret, fmt.Errorf("score query failed, %w", err)
 	}
@@ -178,10 +199,7 @@ func (self *BunDatabase) GetScores(
 	for _, submission := range submissions {
 		userScore := models.UserScore{
 			CsId:  submission.CsId,
-			Score: submission.Score,
-		}
-		if userScore.Score.Stages == nil {
-			userScore.Score.Stages = make(map[string]int64)
+			Score: submission.Score.Score,
 		}
 		ret = append(ret, userScore)
 	}

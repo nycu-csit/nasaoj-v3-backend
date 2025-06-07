@@ -66,7 +66,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.UserScore"
+                                "$ref": "#/definitions/models.UserScoreWithStages"
                             }
                         }
                     },
@@ -824,6 +824,17 @@ const docTemplate = `{
             }
         },
         "models.UserScore": {
+            "type": "object",
+            "properties": {
+                "csId": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.UserScoreWithStages": {
             "type": "object",
             "properties": {
                 "csId": {

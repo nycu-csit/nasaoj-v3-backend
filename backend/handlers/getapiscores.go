@@ -14,9 +14,9 @@ import (
 
 // GetAdminScores
 //
-//	@Param		problemId	query		int					true	"Problem ID"
-//	@Success	200			{object}	[]models.UserScore	"Scores"
-//	@Failure	400			{object}	string				"Invalid problem id"
+//	@Param		problemId	query		int								true	"Problem ID"
+//	@Success	200			{object}	[]models.UserScoreWithStages	"Scores"
+//	@Failure	400			{object}	string							"Invalid problem id"
 //	@Router		/api/admin/scores [get]
 func getAdminScoresPlaceholder() {}
 
@@ -44,17 +44,31 @@ func GetScores(
 			}
 		}
 
-		scores, err := db.GetScores(ctx, problemId, isAdmin)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "score get failed",
-				OriginError: err,
+		if isAdmin {
+			scores, err := db.GetScoresWithStages(ctx, problemId)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "score get failed",
+					OriginError: err,
+				}
 			}
-		}
 
-		w.WriteHeader(http.StatusOK)
-		bunrouter.JSON(w, scores)
+			w.WriteHeader(http.StatusOK)
+			bunrouter.JSON(w, scores)
+		} else {
+			scores, err := db.GetScores(ctx, problemId)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "score get failed",
+					OriginError: err,
+				}
+			}
+
+			w.WriteHeader(http.StatusOK)
+			bunrouter.JSON(w, scores)
+		}
 		return nil
 	}
 }

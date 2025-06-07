@@ -194,6 +194,13 @@ definitions:
         type: string
       score:
         type: integer
+    type: object
+  models.UserScoreWithStages:
+    properties:
+      csId:
+        type: string
+      score:
+        type: integer
       stages:
         additionalProperties:
           type: integer
@@ -239,7 +246,7 @@ paths:
           description: Scores
           schema:
             items:
-              $ref: '#/definitions/models.UserScore'
+              $ref: '#/definitions/models.UserScoreWithStages'
             type: array
         "400":
           description: Invalid problem id
