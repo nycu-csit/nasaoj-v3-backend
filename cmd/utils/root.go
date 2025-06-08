@@ -10,4 +10,5 @@ var RootCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(importUserCmd)
 	RootCmd.AddCommand(initDBCmd)
+	RootCmd.AddCommand(exportScoresCmd)
 }
