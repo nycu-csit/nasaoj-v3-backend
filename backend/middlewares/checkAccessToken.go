@@ -13,44 +13,25 @@ import (
 
 type AccessTokenType string
 
-func CheckJWT(
+func CheckAccessToken(
 	ctx context.Context,
 	db interfaces.Database,
 ) func(bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
+			refreshTokenClaim, ok := req.Context().
+				Value(RefreshTokenType("")).(models.RefreshTokenClaim)
+			if !ok {
+				return HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "refresh token not exist",
+				}
+			}
+
 			var accessTokenString string
 			accessTokenCookie, err := req.Cookie("access_token")
-			if err != nil { // access token not exist
-				refreshTokenCookie, err := req.Cookie("refresh_token")
-				if err != nil {
-					return HTTPError{
-						StatusCode:  http.StatusUnauthorized,
-						Message:     "user didn't login",
-						OriginError: err,
-					}
-				}
-
-				var claim models.RefreshTokenClaim
-				token, err := jwt.ParseWithClaims(refreshTokenCookie.Value, &claim,
-					func(*jwt.Token) (interface{}, error) {
-						return []byte(viper.GetString("REFRESH_TOKEN_SECRET")), nil
-					})
-				if err != nil {
-					return HTTPError{
-						StatusCode:  http.StatusUnauthorized,
-						Message:     "refresh token jwt cannot parse",
-						OriginError: err,
-					}
-				}
-				if !token.Valid {
-					return HTTPError{
-						StatusCode: http.StatusUnauthorized,
-						Message:    "refresh token jwt invalid",
-					}
-				}
-
-				session, err := db.GetSession(ctx, claim.CsId)
+			if err != nil {
+				session, err := db.GetSession(ctx, refreshTokenClaim.CsId)
 				if err != nil {
 					return HTTPError{
 						StatusCode:  http.StatusUnauthorized,
@@ -59,7 +40,7 @@ func CheckJWT(
 					}
 				}
 
-				user, err := db.GetUserResource(ctx, claim.CsId)
+				user, err := db.GetUserResource(ctx, refreshTokenClaim.CsId)
 				if err != nil {
 					return HTTPError{
 						StatusCode:  http.StatusUnauthorized,

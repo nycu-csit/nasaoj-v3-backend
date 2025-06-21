@@ -124,7 +124,8 @@ var backendCmd = &cobra.Command{
 		apiGroup := backend.NewGroup("/api").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler).
-			Use(middlewares.CheckJWT(ctx, db))
+			Use(middlewares.CheckRefreshToken(ctx, db)).
+			Use(middlewares.CheckAccessToken(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.POST("/submit", handlers.PostSubmit(ctx, db, jobQue,
 			s3, problems, testcases, false))

@@ -318,3 +318,24 @@ func (self *BunDatabase) UpsertSession(
 		Exec(ctx)
 	return err
 }
+
+func (self *BunDatabase) UpdateRefreshToken(
+	ctx context.Context,
+	csId string,
+) error {
+	session := models.Session{
+		CsId: csId,
+	}
+	err := self.db.NewSelect().Model(&session).WherePK().Scan(ctx)
+	if err != nil {
+		return err
+	}
+	if err := session.RotateRefreshToken(); err != nil {
+		return err
+	}
+	_, err = self.db.NewUpdate().Model((*models.Session)(nil)).
+		Where("cs_id = ?", csId).
+		Set("refresh_token = ?", session.RefreshToken).
+		Exec(ctx)
+	return nil
+}

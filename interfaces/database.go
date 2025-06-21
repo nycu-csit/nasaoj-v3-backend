@@ -99,4 +99,9 @@ type Database interface {
 		ctx context.Context,
 		session *models.Session,
 	) error
+
+	UpdateRefreshToken(
+		ctx context.Context,
+		csId string,
+	) error
 }
