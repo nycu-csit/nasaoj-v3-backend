@@ -103,5 +103,10 @@ type Database interface {
 	UpdateRefreshToken(
 		ctx context.Context,
 		csId string,
+	) (models.Session, error)
+
+	InvalidateSession(
+		ctx context.Context,
+		csId string,
 	) error
 }

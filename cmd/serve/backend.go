@@ -116,6 +116,7 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler)
 		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
+		authGroup.PUT("/logout", handlers.PutLogout(ctx, db))
 		authGroup.GET("/callback", handlers.GetCallback(ctx, db, oauth2Config,
 			provider.Verifier(&oidc.Config{
 				ClientID: viper.GetString("oauth-client-id"),

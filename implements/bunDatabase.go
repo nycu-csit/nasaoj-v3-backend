@@ -322,20 +322,31 @@ func (self *BunDatabase) UpsertSession(
 func (self *BunDatabase) UpdateRefreshToken(
 	ctx context.Context,
 	csId string,
-) error {
-	session := models.Session{
+) (models.Session, error) {
+	ret := models.Session{
 		CsId: csId,
 	}
-	err := self.db.NewSelect().Model(&session).WherePK().Scan(ctx)
+	err := self.db.NewSelect().Model(&ret).WherePK().Scan(ctx)
 	if err != nil {
-		return err
+		return ret, err
 	}
-	if err := session.RotateRefreshToken(); err != nil {
-		return err
+	if err := ret.RotateRefreshToken(); err != nil {
+		return ret, err
 	}
-	_, err = self.db.NewUpdate().Model((*models.Session)(nil)).
+	err = self.db.NewUpdate().Model((*models.Session)(nil)).
 		Where("cs_id = ?", csId).
-		Set("refresh_token = ?", session.RefreshToken).
+		Set("refresh_token = ?", ret.RefreshToken).
+		Returning("*").Scan(ctx, &ret)
+	return ret, nil
+}
+
+func (self *BunDatabase) InvalidateSession(
+	ctx context.Context,
+	csId string,
+) error {
+	_, err := self.db.NewUpdate().Model((*models.Session)(nil)).
+		Where("cs_id = ?", csId).
+		Set("is_valid = ?", false).
 		Exec(ctx)
-	return nil
+	return err
 }

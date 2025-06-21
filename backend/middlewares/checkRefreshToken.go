@@ -2,9 +2,7 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -51,17 +49,25 @@ func CheckRefreshToken(
 			}
 
 			// check time and refresh
-			fmt.Fprintf(os.Stderr, "claim: %+v\n", claim)
 			timeLeft := claim.ExpiresAt.Time.Sub(time.Now()) / time.Second
-			fmt.Fprintf(os.Stderr, "%+v\n", timeLeft)
 			if int64(timeLeft) < viper.GetInt64("REFRESH_TOKEN_TIMEOUT")/2 {
-				if err := db.UpdateRefreshToken(ctx, claim.CsId); err != nil {
+				session, err := db.UpdateRefreshToken(ctx, claim.CsId)
+				if err != nil {
 					return HTTPError{
 						StatusCode:  http.StatusInternalServerError,
 						Message:     "upsert session failed",
 						OriginError: err,
 					}
 				}
+
+				http.SetCookie(w, &http.Cookie{
+					Name:     "refresh_token",
+					Value:    session.RefreshToken,
+					Path:     "/",
+					Secure:   false,
+					HttpOnly: true,
+					SameSite: http.SameSiteLaxMode,
+				})
 			}
 
 			retctx := req.Context()
