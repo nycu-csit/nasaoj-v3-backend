@@ -79,8 +79,8 @@ func GetOutput(
 		}
 
 		if !isAdmin {
-			resource, ok := req.Context().
-				Value(middlewares.UserResourceType("")).(models.UserResource)
+			claim, ok := req.Context().
+				Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
 			if !ok {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
@@ -88,7 +88,7 @@ func GetOutput(
 				}
 			}
 
-			if submission.CsId != resource.CsId {
+			if submission.CsId != claim.CsId {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
 					Message:    "submission owner not match",

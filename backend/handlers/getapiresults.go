@@ -51,7 +51,7 @@ func getAdminResultsPlaceholder() {}
 //	@Param		subId		query		int				false	"Submission Id"	attribute(optional)
 //	@Success	200			{object}	resultOutput	"Last submission to the problem"
 //	@Failure	400			{object}	string			"Problem ID invalid"
-//	@Failure	401			{object}	string			"User resource missing"
+//	@Failure	401			{object}	string			"Access token missing"
 //	@Failure	404			{object}	string			"No submission"
 //	@Router		/api/results [get]
 func GetResults(
@@ -86,12 +86,12 @@ func GetResults(
 			problemIdRaw := req.URL.Query().Get("problemId")
 			subIdRaw := req.URL.Query().Get("subId")
 
-			resource, ok := req.Context().
-				Value(middlewares.UserResourceType("")).(models.UserResource)
+			claim, ok := req.Context().
+				Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
 			if !ok {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
-					Message:    "user resource missing",
+					Message:    "access token missing",
 				}
 			}
 
@@ -114,7 +114,7 @@ func GetResults(
 					}
 				}
 
-				if submission.CsId != resource.CsId {
+				if submission.CsId != claim.CsId {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusUnauthorized,
 						Message:     "submission author mismatch",
@@ -130,7 +130,7 @@ func GetResults(
 						OriginError: err,
 					}
 				}
-				submission, err = db.GetLastSubmission(ctx, resource.CsId, problemId)
+				submission, err = db.GetLastSubmission(ctx, claim.CsId, problemId)
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusNotFound,

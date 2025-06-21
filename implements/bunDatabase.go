@@ -295,3 +295,26 @@ func (self *BunDatabase) GetUsers(
 	err := self.db.NewSelect().Model(&ret).Scan(ctx)
 	return ret, err
 }
+
+func (self *BunDatabase) GetSession(
+	ctx context.Context,
+	csId string,
+) (models.Session, error) {
+	ret := models.Session{CsId: csId}
+	err := self.db.NewSelect().Model(&ret).WherePK().Scan(ctx)
+	return ret, err
+}
+
+func (self *BunDatabase) UpsertSession(
+	ctx context.Context,
+	session *models.Session,
+) error {
+	_, err := self.db.NewInsert().Model(session).
+		On("CONFLICT (cs_id) DO UPDATE").
+		Set("cs_id = EXCLUDED.cs_id").
+		Set("groups = EXCLUDED.groups").
+		Set("refresh_token = EXCLUDED.refresh_token").
+		Set("is_valid = EXCLUDED.is_valid").
+		Exec(ctx)
+	return err
+}

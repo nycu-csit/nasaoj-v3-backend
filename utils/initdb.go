@@ -16,6 +16,7 @@ func InitDB(ctx context.Context, db *bun.DB) error {
 		(*models.Submission)(nil),
 		(*models.Resource)(nil),
 		(*models.UserResource)(nil),
+		(*models.Session)(nil),
 	)
 	if err != nil {
 		return fmt.Errorf("db reset failed, %s\n", err)

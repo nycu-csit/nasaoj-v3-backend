@@ -14,9 +14,8 @@ import (
 )
 
 type MeOutput struct {
-	IsAdmin  bool                `json:"isAdmin"`
-	JWTClaim models.JWTClaim     `json:"jwtClaim"`
-	Resource models.UserResource `json:"resource"`
+	IsAdmin          bool                    `json:"isAdmin"`
+	AccessTokenClaim models.AccessTokenClaim `json:"accessToken"`
 }
 
 // GetMe
@@ -30,8 +29,8 @@ func GetMe(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/me\n")
 
-		jwtClaim, ok := req.Context().
-			Value(middlewares.JWTKeyType("")).(models.JWTClaim)
+		claim, ok := req.Context().
+			Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
 		if !ok {
 			return middlewares.HTTPError{
 				StatusCode: http.StatusUnauthorized,
@@ -39,19 +38,10 @@ func GetMe(
 			}
 		}
 
-		resource, ok := req.Context().
-			Value(middlewares.UserResourceType("")).(models.UserResource)
-		if !ok {
-			return middlewares.HTTPError{
-				StatusCode: http.StatusUnauthorized,
-				Message:    "user resource missing",
-			}
-		}
-
 		bunrouter.JSON(w, MeOutput{
-			IsAdmin:  slices.Contains(jwtClaim.Groups, viper.GetString("admin-role")),
-			JWTClaim: jwtClaim,
-			Resource: resource,
+			IsAdmin: slices.Contains(
+				claim.Groups, viper.GetString("admin-role")),
+			AccessTokenClaim: claim,
 		})
 		return nil
 	}

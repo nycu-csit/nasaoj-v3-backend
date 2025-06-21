@@ -16,7 +16,7 @@ func CheckAdmin(
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
 			jwtClaim, ok := req.Context().
-				Value(JWTKeyType("")).(models.JWTClaim)
+				Value(AccessTokenType("")).(models.AccessTokenClaim)
 			if !ok {
 				return HTTPError{
 					StatusCode: http.StatusUnauthorized,
