@@ -14,8 +14,8 @@ import (
 
 // PutLogout
 //
-// @Response 302 {} string "302 Found"
-// @Router /auth/logout [put]
+//	@Response	302	{}	string	"302 Found"
+//	@Router		/auth/logout [put]
 func PutLogout(
 	ctx context.Context,
 	db interfaces.Database,

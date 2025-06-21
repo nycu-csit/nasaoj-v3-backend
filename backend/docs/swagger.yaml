@@ -2,12 +2,10 @@ basePath: /
 definitions:
   handlers.MeOutput:
     properties:
+      accessToken:
+        $ref: '#/definitions/models.AccessTokenClaim'
       isAdmin:
         type: boolean
-      jwtClaim:
-        $ref: '#/definitions/models.JWTClaim'
-      resource:
-        $ref: '#/definitions/models.UserResource'
     type: object
   handlers.adminSubmitInput:
     properties:
@@ -132,7 +130,7 @@ definitions:
       time.Time:
         type: string
     type: object
-  models.JWTClaim:
+  models.AccessTokenClaim:
     properties:
       aud:
         description: the `aud` (Audience) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
@@ -142,13 +140,17 @@ definitions:
       csId:
         type: string
       exp:
-        type: integer
+        allOf:
+        - $ref: '#/definitions/jwt.NumericDate'
+        description: the `exp` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
       groups:
         items:
           type: string
         type: array
       iat:
-        type: integer
+        allOf:
+        - $ref: '#/definitions/jwt.NumericDate'
+        description: the `iat` (Issued At) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.6
       iss:
         description: the `iss` (Issuer) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1
         type: string
@@ -159,6 +161,8 @@ definitions:
         allOf:
         - $ref: '#/definitions/jwt.NumericDate'
         description: the `nbf` (Not Before) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.5
+      resource:
+        $ref: '#/definitions/models.UserResource'
       sub:
         description: the `sub` (Subject) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.2
         type: string
@@ -425,7 +429,7 @@ paths:
           schema:
             type: string
         "401":
-          description: User resource missing
+          description: Access token missing
           schema:
             type: string
         "404":
@@ -545,6 +549,13 @@ paths:
   /auth/login:
     get:
       description: OAuth login endpoint
+      responses:
+        "302":
+          description: 302 Found
+          schema:
+            type: ""
+  /auth/logout:
+    put:
       responses:
         "302":
           description: 302 Found
