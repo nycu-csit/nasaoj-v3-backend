@@ -90,27 +90,20 @@ var backendCmd = &cobra.Command{
 			panic(err)
 		}
 
-		// Load problems and testcases
-		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
-		if err != nil {
-			panic(err)
-		}
-		testcases, err := utils.LoadTestcases(viper.GetString("testcases-dir"))
-		if err != nil {
-			panic(err)
-		}
-
 		// Initialize custom interfaces
 		db := implements.NewBunDatabase(bunDB)
 		s3 := implements.NewMinIOObjectStorage(mc)
 		jobQue := implements.NewRedisJobQueue(rdb)
+		problems := implements.NewDBProblemStorage(db)
 
 		// Initialize backend router
 		backend := bunrouter.New()
 
-		backend.GET("/swagger/*any",
-			bunrouter.HTTPHandlerFunc(
-				httpSwagger.Handler()))
+		if viper.GetBool("swagger") {
+			backend.GET("/swagger/*any",
+				bunrouter.HTTPHandlerFunc(
+					httpSwagger.Handler()))
+		}
 
 		authGroup := backend.NewGroup("/auth").
 			Use(middlewares.ErrorHandler).
@@ -127,9 +120,9 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CORSHandler).
 			Use(middlewares.CheckRefreshToken(ctx, db)).
 			Use(middlewares.CheckAccessToken(ctx, db))
-		apiGroup.GET("/problems", handlers.GetProblems(problems))
+		apiGroup.GET("/problems", handlers.GetProblems(db, false))
 		apiGroup.POST("/submit", handlers.PostSubmit(ctx, db, jobQue,
-			s3, problems, testcases, false))
+			s3, problems, false))
 		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
 		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
 		apiGroup.GET("/scores",
@@ -149,7 +142,8 @@ var backendCmd = &cobra.Command{
 		apiAdminGroup.GET("/submissions", handlers.GetSubmissions(ctx, db, true))
 		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
 		apiAdminGroup.POST("/submit",
-			handlers.PostSubmit(ctx, db, jobQue, s3, problems, testcases, true))
+			handlers.PostSubmit(ctx, db, jobQue, s3, problems, true))
+		apiAdminGroup.GET("/problems", handlers.GetProblems(db, true))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()
@@ -158,7 +152,7 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CheckPreSharedKey)
 		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, db, jobQue))
 		scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, db,
-			jobQue, s3, problems, testcases))
+			jobQue, s3, problems))
 
 		go func() {
 			log.Println(http.ListenAndServe(
@@ -179,7 +173,13 @@ func init() {
 	backendCmd.PersistentFlags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
 	backendCmd.PersistentFlags().
-		String("jwt-secret", "poop", "JWT HMAC secret")
+		Int64("access-token-timeout", 300, "Timeout of Access Token JWT")
+	backendCmd.PersistentFlags().
+		String("access-token-secret", "poop", "Access Token JWT HMAC secret")
+	backendCmd.PersistentFlags().
+		Int64("refresh-token-timeout", 3600, "Timeout of Refresh Token JWT")
+	backendCmd.PersistentFlags().
+		String("refresh-token-secret", "poop", "Refresh Token JWT HMAC secret")
 	backendCmd.PersistentFlags().
 		String("preshared-key", "poop", "Pre-shared key for worker to auth")
 	backendCmd.PersistentFlags().
@@ -215,4 +215,6 @@ func init() {
 		String("admin-role", "nasata", "Admin role in OIDC groups")
 	backendCmd.PersistentFlags().
 		String("cors-origin", "", "CORS origin")
+	backendCmd.PersistentFlags().
+		Bool("swagger", false, "Enable swagger")
 }

@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"fmt"
-	"maps"
 	"net/http"
 	"os"
-	"slices"
 
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 type problemOutputStageTestcase struct {
@@ -22,27 +22,57 @@ type problemOutputStage struct {
 }
 
 type problemOutput struct {
+	ProblemId int64  `json:"problemId"`
+	SHA1      string `json:"sha1"`
+
 	Name        string                        `json:"name"`
-	ProblemId   int64                         `json:"problemId"`
 	Description string                        `json:"description"`
 	Stages      map[string]problemOutputStage `json:"stages"`
 	Tag         string                        `json:"tag"`
 }
 
+// GetAdminProblems
+//
+//	@Produce	json
+//	@Success	200	{object}	[]problemOutput
+//	@Failure	500	{object}	string	"Problem loading error"
+//	@Router		/api/admin/problems [get]
+func getAdminProblemsPlaceholder() {}
+
 // GetProblems
 //
-// @Produce	json
-// @Success	200	{object}	[]problemOutput
-// @Failure 500 {object} string "Problem loading error"
-// @Router		/api/problems [get]
-func GetProblems(problems utils.ProblemRepository) func(http.ResponseWriter, bunrouter.Request) error {
+//	@Produce	json
+//	@Success	200	{object}	[]problemOutput
+//	@Failure	500	{object}	string	"Problem loading error"
+//	@Router		/api/problems [get]
+func GetProblems(
+	db interfaces.Database,
+	isAdmin bool,
+) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/problems\n")
+		ctx := req.Context()
 
-		var ret []problemOutput
-		for _, problem := range slices.Collect(maps.Values(problems)) {
+		var problems map[string]models.Problem
+		var err error
+		if isAdmin {
+			problems, err = db.GetAllProblems(ctx)
+		} else {
+			problems, err = db.GetProblems(ctx)
+		}
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "get problems failed",
+				OriginError: err,
+			}
+		}
+
+		ret := []problemOutput{}
+		for sha1, problem := range problems {
 			retProblem := problemOutput{
 				Name:        problem.Name,
+				SHA1:        sha1,
 				ProblemId:   problem.ProblemId,
 				Description: problem.Description,
 				Stages:      make(map[string]problemOutputStage),

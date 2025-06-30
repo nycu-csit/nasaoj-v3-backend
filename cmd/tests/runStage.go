@@ -1,7 +1,6 @@
-package test
+package tests
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -26,15 +25,7 @@ var stageCmd = &cobra.Command{
 			viper.GetString("stage"),
 			viper.GetInt64("problem-id"))
 
-		ctx := context.Background()
-		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
-		if err != nil {
-			return fmt.Errorf("load problems failed, %w", err)
-		}
-		testcases, err := utils.LoadTestcases(viper.GetString("testcases-dir"))
-		if err != nil {
-			return fmt.Errorf("load testcases failed, %w", err)
-		}
+		ctx := cmd.Context()
 
 		problem, ok := problems[viper.GetInt64("problem-id")]
 		if !ok {

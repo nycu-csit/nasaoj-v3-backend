@@ -3,43 +3,37 @@ package utils
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"fmt"
-	"path"
 
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
 func WriteTar(
+	ctx context.Context,
+	problems interfaces.ProblemStorage,
 	tarbuf *bytes.Buffer,
 	contents []models.Content,
-	testcases *models.TestcaseRepository,
 	args map[string]string,
 ) error {
 	tw := tar.NewWriter(tarbuf)
 	for _, content := range contents {
-		for _, fileName := range content.Files {
-			var b []byte
-			if path.Ext(fileName) == ".tmpl" {
-				testcase, ok := testcases.Tmpl[fileName]
-				if !ok {
-					return fmt.Errorf("testcase '%s' not exist", fileName)
-				}
+		for _, file := range content.Files {
 
+			var b []byte
+			if file.IsTemplate {
 				buf := bytes.NewBufferString("")
-				if err := testcase.Execute(buf, args); err != nil {
+				if err := file.Template.Execute(buf, args); err != nil {
 					return fmt.Errorf("template execute failed, %w", err)
 				}
 				b = buf.Bytes()
 			} else {
-				var ok bool
-				b, ok = testcases.Other[fileName]
-				if !ok {
-					return fmt.Errorf("testcase '%s' not exist", fileName)
-				}
+				b = []byte(file.Payload)
 			}
 
 			hdr := &tar.Header{
-				Name: fileName,
+				Name: file.Name,
 				Mode: 0600,
 				Size: int64(len(b)),
 			}

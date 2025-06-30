@@ -1,7 +1,6 @@
-package test
+package tests
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -25,20 +24,7 @@ var problemCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		color.Blue("Start running problem '%d'\n", viper.GetInt64("problem-id"))
 
-		ctx := context.Background()
-		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
-		if err != nil {
-			return fmt.Errorf("load problems failed, %w", err)
-		}
-		testcases, err := utils.LoadTestcases(viper.GetString("testcases-dir"))
-		if err != nil {
-			return fmt.Errorf("load testcases failed, %w", err)
-		}
-
-		problem, ok := problems[viper.GetInt64("problem-id")]
-		if !ok {
-			return fmt.Errorf("no such problem '%d'", viper.GetInt64("problem-id"))
-		}
+		ctx := cmd.Context()
 
 		mockArgs := make(map[string]string)
 		for _, arg := range viper.GetStringSlice("arg") {
@@ -60,6 +46,25 @@ var problemCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
+		problems := implements.NewDBProblemStorage(db)
+
+		err = utils.LoadProblems(ctx, problems,
+			viper.GetString("problems-dir"),
+			viper.GetString("testcases-dir"))
+		if err != nil {
+			return fmt.Errorf("load problems failed, %w", err)
+		}
+
+		for _, problem := range problems {
+			if err = db.InsertProblem(ctx, problem); err != nil {
+				return fmt.Errorf("insert problem failed, %w", err)
+			}
+		}
+
+		problem, err := db.GetProblem(ctx, viper.GetInt64("problem-id"))
+		if err != nil {
+			return fmt.Errorf("problem not found, %w", err)
+		}
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -105,7 +110,7 @@ var problemCmd = &cobra.Command{
 		}
 
 		err = workflows.RunProblem(ctx, jobQue, db, s3,
-			problems, testcases, submission)
+			problems, submission)
 		if err != nil {
 			return fmt.Errorf("run problem failed, %w", err)
 		}
@@ -127,7 +132,7 @@ var problemCmd = &cobra.Command{
 
 			if job.Status == models.StatusSuccess {
 				err = workflows.HandleStageDone(ctx, db, jobQue, s3,
-					problems, testcases, job)
+					problems, job)
 				if err != nil {
 					return fmt.Errorf("handle job done failed, %w", err)
 				}

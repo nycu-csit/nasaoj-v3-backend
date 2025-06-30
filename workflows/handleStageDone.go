@@ -13,9 +13,7 @@ func HandleStageDone(
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
-
-	problems models.ProblemRepository,
-	testcases *models.TestcaseRepository,
+	problems interfaces.ProblemStorage,
 
 	job models.Job,
 ) error {
@@ -33,8 +31,8 @@ func HandleStageDone(
 		return fmt.Errorf("get submission failed, %w", err)
 	}
 
-	problem, ok := problems[submission.ProblemId]
-	if !ok {
+	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	if err != nil {
 		return fmt.Errorf("problem with id '%d' not exist", submission.ProblemId)
 	}
 	stage, ok := problem.Stages[job.StageName]
@@ -54,7 +52,7 @@ func HandleStageDone(
 		}
 
 		if jobdep <= 0 {
-			err = RunStage(ctx, jobQue, db, s3, problems, testcases, submission, next)
+			err = RunStage(ctx, jobQue, db, s3, problems, submission, next)
 			if err != nil {
 				return fmt.Errorf("run stage failed, %w", err)
 			}

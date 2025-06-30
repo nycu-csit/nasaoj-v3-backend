@@ -11,9 +11,9 @@ definitions:
     properties:
       asCsId:
         type: string
-      problemId:
+      problemSHA1:
         description: Submit problem ID
-        type: integer
+        type: string
     type: object
   handlers.problemOutput:
     properties:
@@ -23,6 +23,8 @@ definitions:
         type: string
       problemId:
         type: integer
+      sha1:
+        type: string
       stages:
         additionalProperties:
           $ref: '#/definitions/handlers.problemOutputStage'
@@ -108,9 +110,9 @@ definitions:
     type: object
   handlers.submitInput:
     properties:
-      problemId:
+      problemSHA1:
         description: Submit problem ID
-        type: integer
+        type: string
     type: object
   handlers.submitOutput:
     properties:
@@ -222,6 +224,21 @@ info:
   title: NASAOJ v3
   version: "2.0"
 paths:
+  /api/admin/problems:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.problemOutput'
+            type: array
+        "500":
+          description: Problem loading error
+          schema:
+            type: string
   /api/admin/results:
     get:
       parameters:

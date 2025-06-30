@@ -5,20 +5,21 @@ import (
 	"fmt"
 
 	"github.com/uptrace/bun"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 func init() {
 	Migrations.MustRegister(func(ctx context.Context, db *bun.DB) error {
 		fmt.Print(" [up migration] ")
-		_, err := db.NewAddColumn().
-			Table("job").
-			ColumnExpr("scheat bigint").Exec(ctx)
-		return err
+		if err := utils.InitDB(ctx, db); err != nil {
+			return err
+		}
+		return nil
 	}, func(ctx context.Context, db *bun.DB) error {
 		fmt.Print(" [down migration] ")
-		_, err := db.NewDropColumn().
-			Table("job").
-			Column("scheat").Exec(ctx)
-		return err
+		if err := utils.InitDB(ctx, db); err != nil {
+			return err
+		}
+		return nil
 	})
 }

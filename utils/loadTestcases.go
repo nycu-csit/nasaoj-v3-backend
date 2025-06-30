@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"io/fs"
 	"os"
@@ -11,9 +12,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-func LoadTestcases(dir string) (*models.TestcaseRepository, error) {
-
-	ret := models.NewTestcaseRepository()
+func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
+	ret := make(map[string]models.ContentFile)
 
 	err := filepath.WalkDir(dir,
 		func(cur string, d fs.DirEntry, err error) error {
@@ -33,15 +33,25 @@ func LoadTestcases(dir string) (*models.TestcaseRepository, error) {
 			if err != nil {
 				return fmt.Errorf("parse relative path failed, %w", err)
 			}
+
+			h := sha1.Sum(b)
+			contentFile := models.ContentFile{
+				Name:    name,
+				SHA1:    string(h[:]),
+				Payload: string(b[:]),
+			}
 			if path.Ext(name) == ".tmpl" {
 				tmpl, err := template.New(name).Parse(string(b[:]))
 				if err != nil {
 					return fmt.Errorf("templating failed, %w", err)
 				}
-				ret.Tmpl[name] = tmpl
+				contentFile.IsTemplate = true
+				contentFile.Template = tmpl
 			} else {
-				ret.Other[name] = b
+				contentFile.IsTemplate = false
+				contentFile.Template = nil
 			}
+			ret[name] = contentFile
 
 			fmt.Fprintf(os.Stderr, "Load testcase '%s'\n", name)
 			return nil

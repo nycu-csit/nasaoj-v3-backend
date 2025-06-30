@@ -3,59 +3,30 @@ package models
 import (
 	"text/template"
 
-	"gopkg.in/yaml.v3"
+	"github.com/uptrace/bun"
 )
 
-type TestcaseRepository struct {
-	Tmpl  map[string]*template.Template
-	Other map[string][]byte
+type ContentFile struct {
+	bun.BaseModel `bun:"table:content_file"`
+
+	Name       string `json:"name" bun:"name"`
+	SHA1       string `json:"sha1" bun:"sha1,pk"`
+	Payload    string `json:"-" bun:"payload"`
+	IsTemplate bool   `json:"-" bun:"is_template"`
+
+	Template *template.Template `json:"-" bun:"-"`
 }
 
-func NewTestcaseRepository() *TestcaseRepository {
-	return &TestcaseRepository{
-		Tmpl:  make(map[string]*template.Template),
-		Other: make(map[string][]byte),
-	}
-}
-
-type testcase struct {
-	Content `json:",inline" yaml:",inline"`
-
-	Name   string            `json:"name" yaml:"name"`
-	Args   map[string]string `json:"args" yaml:"args"`
-	SoftTL int64             `json:"softTL" yaml:"softtl"`
-	HardTL int64             `json:"hardTL" yaml:"hardtl"`
+type Content struct {
+	Files   []ContentFile `json:"files"`
+	Scripts []string      `json:"scripts"`
 }
 
 type Testcase struct {
-	testcase `yaml:",inline"`
-}
+	Content `json:",inline"`
 
-type testcaseNode struct {
-	SoftTL yaml.Node `yaml:"softtl"`
-	HardTL yaml.Node `yaml:"hardtl"`
-}
-
-func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
-	var node testcaseNode
-	err := v.Decode(&node)
-	if err != nil {
-		return err
-	}
-
-	var im testcase
-	err = v.Decode(&im)
-	if err != nil {
-		return err
-	}
-	self.testcase = im
-
-	if node.SoftTL.IsZero() {
-		self.SoftTL = 25
-	}
-	if node.HardTL.IsZero() {
-		self.HardTL = 30
-	}
-
-	return nil
+	Name   string            `json:"name"`
+	Args   map[string]string `json:"args"`
+	SoftTL int64             `json:"softTL"`
+	HardTL int64             `json:"hardTL"`
 }

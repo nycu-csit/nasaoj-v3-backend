@@ -1,4 +1,4 @@
-package migrate
+package migrates
 
 import "github.com/spf13/cobra"
 

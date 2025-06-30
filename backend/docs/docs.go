@@ -19,6 +19,30 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/problems": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.problemOutput"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/results": {
             "get": {
                 "parameters": [
@@ -571,9 +595,9 @@ const docTemplate = `{
                 "asCsId": {
                     "type": "string"
                 },
-                "problemId": {
+                "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -588,6 +612,9 @@ const docTemplate = `{
                 },
                 "problemId": {
                     "type": "integer"
+                },
+                "sha1": {
+                    "type": "string"
                 },
                 "stages": {
                     "type": "object",
@@ -720,9 +747,9 @@ const docTemplate = `{
         "handlers.submitInput": {
             "type": "object",
             "properties": {
-                "problemId": {
+                "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },

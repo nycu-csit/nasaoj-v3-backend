@@ -109,4 +109,33 @@ type Database interface {
 		ctx context.Context,
 		csId string,
 	) error
+
+	GetProblem(
+		ctx context.Context,
+		sha1 string,
+	) (models.Problem, error)
+
+	GetProblemById(
+		ctx context.Context,
+		problemId models.ProblemIdType,
+	) (models.Problem, error)
+
+	GetProblems(
+		ctx context.Context,
+	) (map[string]models.Problem, error)
+
+	GetAllProblems(
+		ctx context.Context,
+	) (map[string]models.Problem, error)
+
+	InsertProblem(
+		ctx context.Context,
+		problem models.Problem,
+	) error
+
+	UpdateProblem( // Update state of is_enabled
+		ctx context.Context,
+		sha1 string,
+		enable bool,
+	) error
 }

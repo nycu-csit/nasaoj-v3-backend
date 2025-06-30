@@ -24,7 +24,7 @@ type adminSubmitInput struct {
 
 type submitInput struct {
 	// Submit problem ID
-	ProblemId int64 `json:"problemId"`
+	ProblemSHA1 string `json:"problemSHA1"`
 }
 
 type submitOutput struct {
@@ -63,9 +63,7 @@ func PostSubmit(
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
-
-	problems models.ProblemRepository,
-	testcases *models.TestcaseRepository,
+	problems interfaces.ProblemStorage,
 
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -97,12 +95,11 @@ func PostSubmit(
 				}
 			}
 
-			var ok bool
-			problem, ok = problems[input.ProblemId]
-			if !ok {
+			problem, err = problems.GetProblem(ctx, input.ProblemSHA1)
+			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusBadRequest,
-					Message:    "problem not exist",
+					Message:    "get problem failed",
 				}
 			}
 
@@ -121,15 +118,6 @@ func PostSubmit(
 					StatusCode:  http.StatusBadRequest,
 					Message:     "json unmarshal failed",
 					OriginError: err,
-				}
-			}
-
-			var ok bool
-			problem, ok = problems[input.ProblemId]
-			if !ok {
-				return middlewares.HTTPError{
-					StatusCode: http.StatusBadRequest,
-					Message:    "problem not exist",
 				}
 			}
 
@@ -190,7 +178,7 @@ func PostSubmit(
 		}
 
 		err = workflows.RunProblem(ctx, jobQue, db, s3,
-			problems, testcases, submission)
+			problems, submission)
 		if err != nil {
 			return err
 		}

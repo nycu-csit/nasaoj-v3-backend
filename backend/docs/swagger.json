@@ -11,6 +11,30 @@
     },
     "basePath": "/",
     "paths": {
+        "/api/admin/problems": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.problemOutput"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/results": {
             "get": {
                 "parameters": [
@@ -563,9 +587,9 @@
                 "asCsId": {
                     "type": "string"
                 },
-                "problemId": {
+                "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -580,6 +604,9 @@
                 },
                 "problemId": {
                     "type": "integer"
+                },
+                "sha1": {
+                    "type": "string"
                 },
                 "stages": {
                     "type": "object",
@@ -712,9 +739,9 @@
         "handlers.submitInput": {
             "type": "object",
             "properties": {
-                "problemId": {
+                "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },

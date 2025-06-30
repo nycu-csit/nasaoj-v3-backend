@@ -12,8 +12,8 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type stageScoreWithTime struct {
@@ -28,21 +28,17 @@ var exportScoresCmd = &cobra.Command{
 		ctx := cmd.Context()
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
 			viper.GetString("pg-connection-string"))))
-		db := bun.NewDB(sqldb, pgdialect.New())
+		bunDB := bun.NewDB(sqldb, pgdialect.New())
+		db := implements.NewBunDatabase(bunDB)
 
-		problems, err := utils.LoadProblems(viper.GetString("problems-dir"))
+		problem, err := db.GetProblem(ctx, viper.GetInt64("problem-id"))
 		if err != nil {
-			return fmt.Errorf("read problems failed, %w", err)
-		}
-
-		problem, ok := problems[viper.GetInt64("problem-id")]
-		if !ok {
 			return fmt.Errorf("problem with id '%d' not exist, %w",
 				viper.GetInt64("problem-id"), err)
 		}
 
 		var lastSubs []models.Submission
-		err = db.NewSelect().Model(&lastSubs).
+		err = bunDB.NewSelect().Model(&lastSubs).
 			DistinctOn("csid").
 			Column("csid", "score_score", "score_stages").
 			Where("problemid = ?", viper.GetInt64("problem-id")).
@@ -78,7 +74,7 @@ var exportScoresCmd = &cobra.Command{
 				row = append(row, strconv.FormatInt(table[csId][name].Score, 10))
 
 				var sub models.Submission
-				err := db.NewSelect().Model(&sub).
+				err := bunDB.NewSelect().Model(&sub).
 					Column("csid", "score_stages", "submitat").
 					Where("score_stages->? > '0'::jsonb", name).
 					Order("id ASC").Limit(1).Scan(ctx)
