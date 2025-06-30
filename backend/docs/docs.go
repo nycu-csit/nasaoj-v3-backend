@@ -541,6 +541,7 @@ const docTemplate = `{
         },
         "/auth/logout": {
             "put": {
+                "description": "Logout endpoint",
                 "responses": {
                     "302": {
                         "description": "302 Found",

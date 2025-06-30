@@ -64,7 +64,7 @@ func (self *Session) ToAccessToken(
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: &jwt.NumericDate{time.Now()},
-			ExpiresAt: &jwt.NumericDate{time.Now().Add(
-				time.Duration(viper.GetInt64("ACCESS_TOKEN_TIMEOUT")) * time.Second)},
+			ExpiresAt: &jwt.NumericDate{time.Now().Add(time.Duration(
+				viper.GetInt64("ACCESS_TOKEN_TIMEOUT")) * time.Second)},
 		}}).SignedString([]byte(viper.GetString("ACCESS_TOKEN_SECRET")))
 }
