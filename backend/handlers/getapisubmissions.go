@@ -69,15 +69,15 @@ func GetSubmissions(
 				isCsId = true
 			}
 		} else {
-			resource, ok := req.Context().
-				Value(middlewares.UserResourceType("")).(models.UserResource)
+			claim, ok := req.Context().
+				Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
 			if !ok {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
-					Message:    "user resource missing",
+					Message:    "access token missing",
 				}
 			}
-			csId = resource.CsId
+			csId = claim.CsId
 			isCsId = true
 		}
 

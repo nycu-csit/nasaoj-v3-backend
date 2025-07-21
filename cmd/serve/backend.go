@@ -116,6 +116,7 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler)
 		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
+		authGroup.PUT("/logout", handlers.PutLogout(ctx, db))
 		authGroup.GET("/callback", handlers.GetCallback(ctx, db, oauth2Config,
 			provider.Verifier(&oidc.Config{
 				ClientID: viper.GetString("oauth-client-id"),
@@ -124,7 +125,8 @@ var backendCmd = &cobra.Command{
 		apiGroup := backend.NewGroup("/api").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler).
-			Use(middlewares.CheckJWT(ctx, db))
+			Use(middlewares.CheckRefreshToken(ctx, db)).
+			Use(middlewares.CheckAccessToken(ctx, db))
 		apiGroup.GET("/problems", handlers.GetProblems(problems))
 		apiGroup.POST("/submit", handlers.PostSubmit(ctx, db, jobQue,
 			s3, problems, testcases, false))

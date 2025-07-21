@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
@@ -35,8 +33,6 @@ func GetCallback(
 	config oauth2.Config,
 	verifier *oidc.IDTokenVerifier,
 ) func(http.ResponseWriter, bunrouter.Request) error {
-	var secretKey = []byte(os.Getenv("JWT_SECRET"))
-
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		fmt.Fprintf(os.Stderr, "GET /api/callback\n")
 
@@ -76,23 +72,22 @@ func GetCallback(
 			}
 		}
 
-		jwtClaim := models.JWTClaim{
+		session := models.Session{
 			CsId:   claim.CsId,
 			Groups: claim.Groups,
-			Iat:    time.Now().Unix(),
-			Exp:    time.Now().Add(time.Hour).Unix(),
+
+			IsValid: true,
 		}
-		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaim)
-		jwtString, err := jwtToken.SignedString(secretKey)
+		err = session.RotateRefreshToken()
 		if err != nil {
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "jwt signing failed",
+				StatusCode:  http.StatusUnauthorized,
+				Message:     "rotate refresh token failed",
 				OriginError: err,
 			}
 		}
 
-		exist, err := db.ExistUserResource(ctx, jwtClaim.CsId)
+		exist, err := db.ExistUserResource(ctx, claim.CsId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusUnauthorized,
@@ -101,7 +96,7 @@ func GetCallback(
 			}
 		}
 		if !exist {
-			err := db.InsertNewUserFromResources(ctx, jwtClaim.CsId)
+			err := db.InsertNewUserFromResources(ctx, claim.CsId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -111,9 +106,17 @@ func GetCallback(
 			}
 		}
 
+		if err := db.UpsertSession(ctx, &session); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "upsert session failed",
+				OriginError: err,
+			}
+		}
+
 		http.SetCookie(w, &http.Cookie{
-			Name:     "jwt",
-			Value:    jwtString,
+			Name:     "refresh_token",
+			Value:    session.RefreshToken,
 			Path:     "/",
 			Secure:   false,
 			HttpOnly: true,

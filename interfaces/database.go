@@ -89,4 +89,24 @@ type Database interface {
 		stageName string,
 		delta int64,
 	) error
+
+	GetSession(
+		ctx context.Context,
+		csId string,
+	) (models.Session, error)
+
+	UpsertSession(
+		ctx context.Context,
+		session *models.Session,
+	) error
+
+	UpdateRefreshToken(
+		ctx context.Context,
+		csId string,
+	) (models.Session, error)
+
+	InvalidateSession(
+		ctx context.Context,
+		csId string,
+	) error
 }

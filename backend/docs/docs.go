@@ -340,7 +340,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "User resource missing",
+                        "description": "Access token missing",
                         "schema": {
                             "type": "string"
                         }
@@ -538,20 +538,30 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/auth/logout": {
+            "put": {
+                "description": "Logout endpoint",
+                "responses": {
+                    "302": {
+                        "description": "302 Found",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "handlers.MeOutput": {
             "type": "object",
             "properties": {
+                "accessToken": {
+                    "$ref": "#/definitions/models.AccessTokenClaim"
+                },
                 "isAdmin": {
                     "type": "boolean"
-                },
-                "jwtClaim": {
-                    "$ref": "#/definitions/models.JWTClaim"
-                },
-                "resource": {
-                    "$ref": "#/definitions/models.UserResource"
                 }
             }
         },
@@ -744,7 +754,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.JWTClaim": {
+        "models.AccessTokenClaim": {
             "type": "object",
             "properties": {
                 "aud": {
@@ -758,7 +768,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "exp": {
-                    "type": "integer"
+                    "description": "the ` + "`" + `exp` + "`" + ` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jwt.NumericDate"
+                        }
+                    ]
                 },
                 "groups": {
                     "type": "array",
@@ -767,7 +782,12 @@ const docTemplate = `{
                     }
                 },
                 "iat": {
-                    "type": "integer"
+                    "description": "the ` + "`" + `iat` + "`" + ` (Issued At) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.6",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jwt.NumericDate"
+                        }
+                    ]
                 },
                 "iss": {
                     "description": "the ` + "`" + `iss` + "`" + ` (Issuer) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1",
@@ -784,6 +804,9 @@ const docTemplate = `{
                             "$ref": "#/definitions/jwt.NumericDate"
                         }
                     ]
+                },
+                "resource": {
+                    "$ref": "#/definitions/models.UserResource"
                 },
                 "sub": {
                     "description": "the ` + "`" + `sub` + "`" + ` (Subject) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.2",
