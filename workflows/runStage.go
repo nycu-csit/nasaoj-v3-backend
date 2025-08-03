@@ -24,7 +24,8 @@ func RunStage(
 ) error {
 	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
 	if err != nil {
-		return fmt.Errorf("problem with id '%d' not exist", submission.ProblemId)
+		return fmt.Errorf("problem with sha1 '%s' not exist",
+			submission.ProblemSHA1)
 	}
 	stage, ok := problem.Stages[stageName]
 	if !ok {

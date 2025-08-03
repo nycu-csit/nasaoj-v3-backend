@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/redis/go-redis/v9"
@@ -16,11 +15,12 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bunrouter"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers"
+	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	authHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
+	scheduleHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
-	"golang.org/x/oauth2"
 
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
 )
@@ -41,24 +41,6 @@ var backendCmd = &cobra.Command{
 	Short: "NASAOJ backend server",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
-
-		provider, err := oidc.NewProvider(ctx, "https://oauth.cs.nycu.edu.tw")
-		if err != nil {
-			panic(err)
-		}
-
-		// Configure an OpenID Connect aware OAuth2 client.
-		oauth2Config := oauth2.Config{
-			ClientID:     viper.GetString("oauth-client-id"),
-			ClientSecret: viper.GetString("oauth-client-secret"),
-			RedirectURL:  viper.GetString("oauth-redirect-url"),
-
-			// Discovery returns the OAuth2 endpoints.
-			Endpoint: provider.Endpoint(),
-
-			// "openid" is a required scope for OpenID Connect flows.
-			Scopes: []string{oidc.ScopeOpenID, "csid", "groups"},
-		}
 
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
@@ -108,50 +90,49 @@ var backendCmd = &cobra.Command{
 		authGroup := backend.NewGroup("/auth").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler)
-		authGroup.GET("/login", handlers.GetLogin(oauth2Config))
-		authGroup.PUT("/logout", handlers.PutLogout(ctx, db))
-		authGroup.GET("/callback", handlers.GetCallback(ctx, db, oauth2Config,
-			provider.Verifier(&oidc.Config{
-				ClientID: viper.GetString("oauth-client-id"),
-			})))
+		authGroup.GET("/login", authHandlers.GetLogin(ctx))
+		authGroup.PUT("/logout", authHandlers.PutLogout(db))
+		authGroup.GET("/callback", authHandlers.GetCallback(db))
 
 		apiGroup := backend.NewGroup("/api").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler).
-			Use(middlewares.CheckRefreshToken(ctx, db)).
-			Use(middlewares.CheckAccessToken(ctx, db))
-		apiGroup.GET("/problems", handlers.GetProblems(db, false))
-		apiGroup.POST("/submit", handlers.PostSubmit(ctx, db, jobQue,
+			Use(middlewares.CheckRefreshToken(db)).
+			Use(middlewares.CheckAccessToken(db))
+		apiGroup.GET("/problems", apiHandlers.GetProblems(db, false))
+		apiGroup.POST("/submit", apiHandlers.PostSubmit(db, jobQue,
 			s3, problems, false))
-		apiGroup.GET("/stdout", handlers.GetOutput(ctx, db, mc, "stdout", false))
-		apiGroup.GET("/results", handlers.GetResults(ctx, db, false))
+		apiGroup.GET("/stdout", apiHandlers.GetOutput(db, mc, "stdout", false))
+		apiGroup.GET("/results", apiHandlers.GetResults(db, false))
 		apiGroup.GET("/scores",
-			handlers.GetScores(ctx, db, false))
-		apiGroup.GET("/me", handlers.GetMe(ctx))
-		apiGroup.GET("/submissions", handlers.GetSubmissions(ctx, db, false))
+			apiHandlers.GetScores(db, false))
+		apiGroup.GET("/me", apiHandlers.GetMe)
+		apiGroup.GET("/submissions", apiHandlers.GetSubmissions(db, false))
 
 		apiAdminGroup := apiGroup.NewGroup("/admin").
-			Use(middlewares.CheckAdmin(ctx))
+			Use(middlewares.CheckAdmin)
 		apiAdminGroup.GET("/stdout",
-			handlers.GetOutput(ctx, db, mc, "stdout", true))
+			apiHandlers.GetOutput(db, mc, "stdout", true))
 		apiAdminGroup.GET("/stderr",
-			handlers.GetOutput(ctx, db, mc, "stderr", true))
+			apiHandlers.GetOutput(db, mc, "stderr", true))
 		apiAdminGroup.GET("/scores",
-			handlers.GetScores(ctx, db, true))
-		apiAdminGroup.GET("/users", handlers.GetUsers(ctx, db))
-		apiAdminGroup.GET("/submissions", handlers.GetSubmissions(ctx, db, true))
-		apiAdminGroup.GET("/results", handlers.GetResults(ctx, db, true))
+			apiHandlers.GetScores(db, true))
+		apiAdminGroup.GET("/users", apiHandlers.GetUsers(db))
+		apiAdminGroup.GET("/submissions", apiHandlers.GetSubmissions(db, true))
+		apiAdminGroup.GET("/results", apiHandlers.GetResults(db, true))
 		apiAdminGroup.POST("/submit",
-			handlers.PostSubmit(ctx, db, jobQue, s3, problems, true))
-		apiAdminGroup.GET("/problems", handlers.GetProblems(db, true))
+			apiHandlers.PostSubmit(db, jobQue, s3, problems, true))
+		apiAdminGroup.GET("/problems", apiHandlers.GetProblems(db, true))
+		apiAdminGroup.PUT("/problems", apiHandlers.PutProblems(problems))
+		apiAdminGroup.PUT("/problem-state", apiHandlers.PutProblemState(problems))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()
 		scheduleGroup := scheduler.NewGroup("/schedule").
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CheckPreSharedKey)
-		scheduleGroup.GET("/job", handlers.GetScheduleJob(ctx, db, jobQue))
-		scheduleGroup.PUT("/result", handlers.PutScheduleResult(ctx, db,
+		scheduleGroup.GET("/job", scheduleHandlers.GetScheduleJob(db, jobQue))
+		scheduleGroup.PUT("/result", scheduleHandlers.PutScheduleResult(db,
 			jobQue, s3, problems))
 
 		go func() {
@@ -164,57 +145,81 @@ var backendCmd = &cobra.Command{
 }
 
 func init() {
-	backendCmd.PersistentFlags().
+	// HTTP Server
+	backendCmd.Flags().
 		String("backend-port", "8080", "Port for backend to listen on")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("scheduler-port", "8081", "Port for scheduler to listen on")
-	backendCmd.PersistentFlags().
-		String("problems-dir", "./problems", "Directory to read problems")
-	backendCmd.PersistentFlags().
-		String("testcases-dir", "./testcases", "Directory to read testcases")
-	backendCmd.PersistentFlags().
+
+	// JWT Cookies
+	backendCmd.Flags().
 		Int64("access-token-timeout", 300, "Timeout of Access Token JWT")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("access-token-secret", "poop", "Access Token JWT HMAC secret")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		Int64("refresh-token-timeout", 3600, "Timeout of Refresh Token JWT")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("refresh-token-secret", "poop", "Refresh Token JWT HMAC secret")
-	backendCmd.PersistentFlags().
-		String("preshared-key", "poop", "Pre-shared key for worker to auth")
-	backendCmd.PersistentFlags().
-		String("oauth-client-id", "", "OAuth client id")
-	backendCmd.PersistentFlags().
-		String("oauth-client-secret", "", "OAuth client secret")
-	backendCmd.PersistentFlags().
-		String("oauth-redirect-url", "http://localhost:8080/auth/callback",
+
+	// OAuth2 / OIDC
+	backendCmd.Flags().
+		String("web-oauth-provider",
+			"https://oauth.cs.nycu.edu.tw", "OAuth provider")
+	backendCmd.Flags().
+		String("web-oauth-client-id", "", "OAuth client id")
+	backendCmd.Flags().
+		String("web-oauth-client-secret", "", "OAuth client secret")
+	backendCmd.Flags().
+		String("web-oauth-redirect-url", "http://localhost:8080/auth/callback",
 			"OAuth redirect url")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
+		String("cli-oauth-provider",
+			"https://oauth.cs.nycu.edu.tw", "OAuth provider")
+	backendCmd.Flags().
+		String("cli-oauth-client-id", "", "OAuth client id")
+	backendCmd.Flags().
+		String("cli-oauth-client-secret", "", "OAuth client secret")
+	backendCmd.Flags().
+		String("cli-oauth-redirect-url", "http://localhost:8389/auth/callback",
+			"OAuth redirect url")
+
+	// Scheduler
+	backendCmd.Flags().
+		String("preshared-key", "poop", "Pre-shared key for worker to auth")
+
+	// Postgresql
+	backendCmd.Flags().
 		String("pg-connection-string",
 			"postgres://poop:poop@pg:5432/poop?sslmode=disable",
 			"Postgres connection string")
-	backendCmd.PersistentFlags().
+
+	// Redis
+	backendCmd.Flags().
 		String("redis-host", "localhost:6379", "Redis host[:port]")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("redis-user", "nasa", "Redis user")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("redis-pass", "", "Redis password")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		Int("redis-db", 0, "Redis db")
-	backendCmd.PersistentFlags().
+
+	// MinIO
+	backendCmd.Flags().
 		String("minio-host", "localhost:9000", "MinIO host[:port]")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("minio-bucket", "nasaoj", "MinIO bucket")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("minio-accesskey", "poop", "MinIO accesskey")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("minio-secretkey", "poop", "MinIO secretkey")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		Bool("minio-usessl", false, "MinIO usessl")
-	backendCmd.PersistentFlags().
+
+	// Others
+	backendCmd.Flags().
 		String("admin-role", "nasata", "Admin role in OIDC groups")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		String("cors-origin", "", "CORS origin")
-	backendCmd.PersistentFlags().
+	backendCmd.Flags().
 		Bool("swagger", false, "Enable swagger")
 }

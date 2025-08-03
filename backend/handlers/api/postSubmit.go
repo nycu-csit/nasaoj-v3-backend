@@ -1,7 +1,6 @@
-package handlers
+package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,6 +28,7 @@ type submitInput struct {
 
 type submitOutput struct {
 	Id          int64  `json:"id"`
+	ProblemSHA1 string `json:"problemSHA1"`
 	ProblemId   int64  `json:"problemId"`
 	ProblemName string `json:"problemName"`
 
@@ -59,7 +59,6 @@ func putAdminSubmitPlaceholder() {}
 //
 //	@Router		/api/submit [post]
 func PostSubmit(
-	ctx context.Context,
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
@@ -68,6 +67,8 @@ func PostSubmit(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
+
 		if isAdmin {
 			fmt.Fprintf(os.Stderr, "POST /api/admin/submit\n")
 		} else {
@@ -83,6 +84,7 @@ func PostSubmit(
 			}
 		}
 
+		var problemSHA1 string
 		var problem models.Problem
 		var resource models.UserResource
 		if isAdmin {
@@ -95,11 +97,13 @@ func PostSubmit(
 				}
 			}
 
-			problem, err = problems.GetProblem(ctx, input.ProblemSHA1)
+			problemSHA1 = input.ProblemSHA1
+			problem, err = problems.GetProblem(ctx, problemSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
-					StatusCode: http.StatusBadRequest,
-					Message:    "get problem failed",
+					StatusCode:  http.StatusBadRequest,
+					Message:     "get problem failed",
+					OriginError: err,
 				}
 			}
 
@@ -117,6 +121,16 @@ func PostSubmit(
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
 					Message:     "json unmarshal failed",
+					OriginError: err,
+				}
+			}
+
+			problemSHA1 = input.ProblemSHA1
+			problem, err = problems.GetProblem(ctx, problemSHA1)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "get problem failed",
 					OriginError: err,
 				}
 			}
@@ -155,6 +169,7 @@ func PostSubmit(
 		}
 
 		submission := models.Submission{
+			ProblemSHA1: problemSHA1,
 			ProblemName: problem.Name,
 			ProblemId:   problem.ProblemId,
 
@@ -172,20 +187,20 @@ func PostSubmit(
 			submission.Args[key] = val
 		}
 
-		err = db.InsertSubmissionAndJobs(ctx, &submission, problem)
-		if err != nil {
+		if err = db.InsertSubmissionAndJobs(ctx, &submission, problem); err != nil {
 			return err
 		}
 
-		err = workflows.RunProblem(ctx, jobQue, db, s3,
-			problems, submission)
-		if err != nil {
+		if err = workflows.RunProblem(
+			ctx, jobQue, db, s3, problems, submission,
+		); err != nil {
 			return err
 		}
 
 		w.WriteHeader(http.StatusOK)
 		bunrouter.JSON(w, submitOutput{
 			Id:          submission.Id,
+			ProblemSHA1: problemSHA1,
 			ProblemId:   submission.ProblemId,
 			ProblemName: submission.ProblemName,
 

@@ -27,15 +27,6 @@ var stageCmd = &cobra.Command{
 
 		ctx := cmd.Context()
 
-		problem, ok := problems[viper.GetInt64("problem-id")]
-		if !ok {
-			return fmt.Errorf("no such problem '%d'", viper.GetInt64("problem-id"))
-		}
-		_, ok = problem.Stages[viper.GetString("stage")]
-		if !ok {
-			return fmt.Errorf("no such stage '%s'", viper.GetString("stage"))
-		}
-
 		mockArgs := make(map[string]string)
 		for _, arg := range viper.GetStringSlice("arg") {
 			strs := strings.Split(arg, "=")
@@ -56,6 +47,16 @@ var stageCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
+		problems := implements.NewDBProblemStorage(db)
+
+		err = utils.LoadProblems(ctx, problems,
+			viper.GetString("problems-dir"),
+			viper.GetString("testcases-dir"))
+		if err != nil {
+			return fmt.Errorf("loca problems failed, %w", err)
+		}
+
+		problem, err := problems.GetProblem(ctx, viper.GetString("problem-sha1"))
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -64,7 +65,7 @@ var stageCmd = &cobra.Command{
 		go workflows.WorkerThread(ctx, jobIn, jobOut)
 		go workflows.OutputThread(ctx, jobOut, jobDone)
 
-		err = workflows.RunStage(ctx, jobQue, db, s3, problems, testcases,
+		err = workflows.RunStage(ctx, jobQue, db, s3, problems,
 			models.Submission{
 				Id:        114514,
 				ProblemId: problem.ProblemId,
@@ -114,7 +115,7 @@ func init() {
 		String("running-dir", "/tmp/nasaoj-worker", "Directory to run worker")
 
 	stageCmd.Flags().
-		Int64("problem-id", 1, "Problem Id to test")
+		String("problem-sha1", "", "Problem SHA1 to test")
 	stageCmd.MarkFlagRequired("problem-id")
 	stageCmd.Flags().
 		String("stage", "", "The stage to test")

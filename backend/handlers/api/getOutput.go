@@ -1,7 +1,6 @@
-package handlers
+package api
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -48,7 +47,6 @@ func getAdminStdoutPlaceholder() {}
 //	@Failure	404			{string}	string
 //	@Router		/api/stdout [get]
 func GetOutput(
-	ctx context.Context,
 	db interfaces.Database,
 	mc *minio.Client,
 	target string,
@@ -56,6 +54,7 @@ func GetOutput(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "GET /api/output\n")
 
 		subId, err := strconv.ParseInt(req.URL.Query().Get("subId"), 10, 64)

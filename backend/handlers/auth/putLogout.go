@@ -1,7 +1,6 @@
-package handlers
+package auth
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -18,10 +17,10 @@ import (
 //	@Response		302	{}	string	"302 Found"
 //	@Router			/auth/logout [put]
 func PutLogout(
-	ctx context.Context,
 	db interfaces.Database,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "PUT /api/logout\n")
 
 		refreshTokenClaim, ok := req.Context().

@@ -1,7 +1,6 @@
-package handlers
+package schedule
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,13 +16,13 @@ import (
 )
 
 func PutScheduleResult(
-	ctx context.Context,
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "PUT /schedule/result\n")
 
 		body, err := io.ReadAll(req.Body)

@@ -15,11 +15,12 @@ import (
 type RefreshTokenType string
 
 func CheckRefreshToken(
-	ctx context.Context,
 	db interfaces.Database,
 ) func(bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
+			ctx := req.Context()
+
 			refreshTokenCookie, err := req.Cookie("refresh_token")
 			if err != nil {
 				return HTTPError{
@@ -70,9 +71,8 @@ func CheckRefreshToken(
 				})
 			}
 
-			retctx := req.Context()
-			retctx = context.WithValue(retctx, RefreshTokenType(""), claim)
-			return next(w, req.WithContext(retctx))
+			ctx = context.WithValue(ctx, RefreshTokenType(""), claim)
+			return next(w, req.WithContext(ctx))
 		}
 	}
 }

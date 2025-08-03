@@ -21,6 +21,8 @@ type Problem struct {
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
 	Timeout     int64             `json:"timeout"`
+
+	IsEnabled bool `json:"-"`
 }
 
 type ProblemMarshaled struct {
@@ -52,5 +54,9 @@ func (self Problem) Marshal() (ProblemMarshaled, error) {
 func (self ProblemMarshaled) Unmarshal() (Problem, error) {
 	var ret Problem
 	err := json.Unmarshal([]byte(self.Payload), &ret)
-	return ret, err
+	if err != nil {
+		return ret, err
+	}
+	ret.IsEnabled = self.IsEnabled
+	return ret, nil
 }

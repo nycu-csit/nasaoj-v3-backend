@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"os"
@@ -37,7 +38,7 @@ func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
 			h := sha1.Sum(b)
 			contentFile := models.ContentFile{
 				Name:    name,
-				SHA1:    string(h[:]),
+				SHA1:    hex.EncodeToString(h[:]),
 				Payload: string(b[:]),
 			}
 			if path.Ext(name) == ".tmpl" {

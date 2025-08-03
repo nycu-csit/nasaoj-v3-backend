@@ -1,7 +1,6 @@
-package handlers
+package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,6 +14,7 @@ import (
 
 type submissionsOutputSubmission struct {
 	Id          int64  `json:"id"`
+	ProblemSHA1 string `json:"problemSHA1"`
 	ProblemId   int64  `json:"problemId"`
 	ProblemName string `json:"problemName"`
 
@@ -52,12 +52,13 @@ func getAdminSubmissionsPlaceHolder() {}
 //	@Failure	401			{object}	string				"didn't login"
 //	@Router		/api/submissions [get]
 func GetSubmissions(
-	ctx context.Context,
 	db interfaces.Database,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "GET /api/submissions\n")
+
 		queryValues := req.URL.Query()
 		var err error
 
@@ -128,6 +129,7 @@ func GetSubmissions(
 		for _, sub := range subs {
 			output := submissionsOutputSubmission{
 				Id:          sub.Id,
+				ProblemSHA1: sub.ProblemSHA1,
 				ProblemId:   sub.ProblemId,
 				ProblemName: sub.ProblemName,
 

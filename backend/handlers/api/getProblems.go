@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"fmt"
@@ -29,6 +29,7 @@ type problemOutput struct {
 	Description string                        `json:"description"`
 	Stages      map[string]problemOutputStage `json:"stages"`
 	Tag         string                        `json:"tag"`
+	IsEnabled   bool                          `json:"isEnabled"`
 }
 
 // GetAdminProblems
@@ -50,7 +51,11 @@ func GetProblems(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		fmt.Fprintf(os.Stderr, "GET /api/problems\n")
+		if isAdmin {
+			fmt.Fprintf(os.Stderr, "GET /api/admin/problems\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "GET /api/problems\n")
+		}
 		ctx := req.Context()
 
 		var problems map[string]models.Problem
@@ -77,6 +82,7 @@ func GetProblems(
 				Description: problem.Description,
 				Stages:      make(map[string]problemOutputStage),
 				Tag:         problem.Tag,
+				IsEnabled:   problem.IsEnabled,
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{

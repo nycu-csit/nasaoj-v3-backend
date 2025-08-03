@@ -1,7 +1,6 @@
-package handlers
+package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -55,11 +54,11 @@ func getAdminResultsPlaceholder() {}
 //	@Failure	404			{object}	string			"No submission"
 //	@Router		/api/results [get]
 func GetResults(
-	ctx context.Context,
 	db interfaces.Database,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "GET /api/results\n")
 
 		var submission models.Submission

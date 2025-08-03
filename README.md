@@ -2,14 +2,10 @@
 
 ## How to run
 
-1. Run `docker compose up`
-2. Run `go build && go run .` in `./backend`
-3. Run `go build && go run .` in `./worker`
+### Service
 
-## Workflow
+Run `docker compose up`.
 
-### Prep
-- Load problems and testcases
+### CLI
 
-### Submit
-1. User initiate submission
+Run `go build`.

@@ -21,8 +21,8 @@ func RunProblem(
 ) error {
 	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
 	if err != nil {
-		return fmt.Errorf("problem with id '%d' not exist, %w",
-			submission.ProblemId, err)
+		return fmt.Errorf("problem with sha1 '%s' not exist, %w",
+			submission.ProblemSHA1, err)
 	}
 
 	fmt.Fprintf(os.Stderr, "run problem '%s'\n", problem.Name)

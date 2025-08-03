@@ -2,6 +2,7 @@ package implements
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -37,7 +38,7 @@ func (self *BunDatabase) GetLastSubmission(
 	var ret models.Submission
 	err := self.db.NewSelect().Model(&ret).
 		Where("csid = ?", csId).
-		Where("problemid = ?", problemId).
+		Where("problem_id = ?", problemId).
 		Order("id DESC").Limit(1).Scan(ctx)
 	if err != nil {
 		return ret, fmt.Errorf("select submission failed, %w", err)
@@ -168,7 +169,7 @@ func (self *BunDatabase) GetScoresWithStages(
 	var submissions []models.Submission
 	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
 		Column("csid", "score_score", "score_stages").
-		Where("problemid = ?", problemId).
+		Where("problem_id = ?", problemId).
 		OrderExpr("csid, id DESC").
 		Scan(ctx)
 	if err != nil {
@@ -194,7 +195,7 @@ func (self *BunDatabase) GetScores(
 	var submissions []models.Submission
 	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
 		Column("csid", "score_score").
-		Where("problemid = ?", problemId).
+		Where("problem_id = ?", problemId).
 		OrderExpr("csid, id DESC").
 		Scan(ctx)
 	if err != nil {
@@ -280,7 +281,7 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 		query = query.Offset(pageNum * pageSize)
 	}
 	if isProblemId {
-		query = query.Where("problemid = ?", problemId)
+		query = query.Where("problem_id = ?", problemId)
 	}
 
 	var ret []models.Submission
@@ -380,7 +381,7 @@ func (self *BunDatabase) GetProblem(
 ) (models.Problem, error) {
 	var problemMarshaled models.ProblemMarshaled
 	err := self.db.NewSelect().Model(&problemMarshaled).
-		Where("problem_sha1 = ?", sha1).
+		Where("sha1 = ?", sha1).
 		Scan(ctx)
 	if err != nil {
 		return models.Problem{}, err
@@ -445,20 +446,27 @@ func (self *BunDatabase) UpdateProblem(
 	enable bool,
 ) error {
 	if enable {
-		problemQuery := self.db.NewSelect().
-			Model((*models.ProblemMarshaled)(nil)).
-			Where("sha1 = ?", sha1)
-		sameProblemIdQuery := self.db.NewSelect().
-			With("problem_query", problemQuery).
-			ColumnExpr("sha1, CASE WHEN sha1 = ? THEN true ELSE false END AS is_target", sha1).
-			Model((*models.ProblemMarshaled)(nil)).
-			Where("problem_id IN (SELECT problem_id FROM problem_query)")
-		_, err := self.db.NewUpdate().
-			With("same_problem_id_query", sameProblemIdQuery).
-			Model((*models.ProblemMarshaled)(nil)).
-			Set("is_enabled = same_problem_id_query.is_target").
-			Exec(ctx)
-		return err
+		// TODO: fix this
+		return self.db.RunInTx(ctx, &sql.TxOptions{},
+			func(ctx context.Context, tx bun.Tx) error {
+				var problem models.ProblemMarshaled
+				err := tx.NewSelect().
+					Model(&problem).
+					Where("sha1 = ?", sha1).
+					Scan(ctx)
+				if err != nil {
+					return fmt.Errorf("problem select failed, %w", err)
+				}
+				_, err = tx.NewUpdate().
+					Model((*models.ProblemMarshaled)(nil)).
+					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
+					Where("problem_id = ?", problem.ProblemId).
+					Exec(ctx)
+				if err != nil {
+					return fmt.Errorf("problem update failed, %w", err)
+				}
+				return nil
+			})
 	} else {
 		_, err := self.db.NewUpdate().
 			Model((*models.ProblemMarshaled)(nil)).

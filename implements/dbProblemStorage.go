@@ -29,3 +29,17 @@ func (self *DBProblemStorage) InsertProblem(
 ) error {
 	return self.db.InsertProblem(ctx, problem)
 }
+
+func (self *DBProblemStorage) GetAllProblems(
+	ctx context.Context,
+) (map[string]models.Problem, error) {
+	return self.db.GetAllProblems(ctx)
+}
+
+func (self *DBProblemStorage) PutProblemState(
+	ctx context.Context,
+	sha1 string,
+	isEnabled bool,
+) error {
+	return self.db.UpdateProblem(ctx, sha1, isEnabled)
+}

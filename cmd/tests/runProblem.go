@@ -20,9 +20,9 @@ import (
 
 var problemCmd = &cobra.Command{
 	Use:   "problem",
-	Short: "Run a problem on local",
+	Short: "Run a problem on local environment",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		color.Blue("Start running problem '%d'\n", viper.GetInt64("problem-id"))
+		color.Blue("Start running problem '%d'\n", viper.GetInt64("problem-sha1"))
 
 		ctx := cmd.Context()
 
@@ -55,13 +55,7 @@ var problemCmd = &cobra.Command{
 			return fmt.Errorf("load problems failed, %w", err)
 		}
 
-		for _, problem := range problems {
-			if err = db.InsertProblem(ctx, problem); err != nil {
-				return fmt.Errorf("insert problem failed, %w", err)
-			}
-		}
-
-		problem, err := db.GetProblem(ctx, viper.GetInt64("problem-id"))
+		problem, err := problems.GetProblem(ctx, viper.GetString("problem-sha1"))
 		if err != nil {
 			return fmt.Errorf("problem not found, %w", err)
 		}
@@ -159,8 +153,8 @@ func init() {
 		String("running-dir", "/tmp/nasaoj-worker", "Directory to run worker")
 
 	problemCmd.Flags().
-		Int64("problem-id", 1, "Problem Id to test")
-	problemCmd.MarkFlagRequired("problem-id")
+		String("problem-sha1", "", "Problem Id to test")
+	problemCmd.MarkFlagRequired("problem-sha1")
 	problemCmd.Flags().
 		Int64("buffer-size", 100, "Channel buffer size")
 	problemCmd.Flags().

@@ -29,7 +29,7 @@ type problemNode struct {
 	Tag yaml.Node `yaml:"tag"`
 }
 
-func (self *Problem) UnmarslhalYAML(v *yaml.Node) error {
+func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
 	var node problemNode
 	err := v.Decode(&node)
 	if err != nil {
@@ -44,7 +44,7 @@ func (self *Problem) UnmarslhalYAML(v *yaml.Node) error {
 	self.problem = im
 
 	if node.Tag.IsZero() {
-		self.Tag = "default"
+		self.problem.Tag = "default"
 	}
 
 	return nil

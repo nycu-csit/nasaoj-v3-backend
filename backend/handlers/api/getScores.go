@@ -1,7 +1,6 @@
-package handlers
+package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -27,11 +26,11 @@ func getAdminScoresPlaceholder() {}
 //	@Failure	400			{object}	string				"Invalid problem id"
 //	@Router		/api/scores [get]
 func GetScores(
-	ctx context.Context,
 	db interfaces.Database,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "GET /api/scores\n")
 
 		problemId, err := strconv.ParseInt(

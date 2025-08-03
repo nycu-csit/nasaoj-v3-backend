@@ -1,7 +1,6 @@
-package handlers
+package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,10 +16,10 @@ import (
 //	@Failure	401	{object}	string	"not admin or not login"
 //	@Router		/api/admin/users [get]
 func GetUsers(
-	ctx context.Context,
 	db interfaces.Database,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "GET /api/admin/users\n")
 
 		users, err := db.GetUsers(ctx)

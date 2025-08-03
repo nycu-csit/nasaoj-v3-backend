@@ -1,7 +1,6 @@
-package handlers
+package schedule
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,11 +14,11 @@ import (
 )
 
 func GetScheduleJob(
-	ctx context.Context,
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		tags := req.URL.Query().Get("tags")
 		fmt.Fprintf(os.Stderr, "GET /schedule/job?tags=%s\n", tags)
 

@@ -5,9 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/imports"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/migrates"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/serve"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/tests"
 )
 
 var (
@@ -29,8 +30,7 @@ func init() {
 	cobra.EnableTraverseRunHooks = true
 
 	RootCmd.AddCommand(serve.RootCmd)
-	// RootCmd.AddCommand(tests.RootCmd)
-	// RootCmd.AddCommand(utils.RootCmd)
+	RootCmd.AddCommand(tests.RootCmd)
 	RootCmd.AddCommand(migrates.RootCmd)
-	RootCmd.AddCommand(imports.RootCmd)
+	RootCmd.AddCommand(admin.RootCmd)
 }

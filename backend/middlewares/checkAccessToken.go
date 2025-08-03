@@ -67,11 +67,12 @@ func refreshAccessToken(
 }
 
 func CheckAccessToken(
-	ctx context.Context,
 	db interfaces.Database,
 ) func(bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
+			ctx := req.Context()
+
 			var accessTokenString string
 			accessTokenCookie, err := req.Cookie("access_token")
 			if err != nil {
@@ -100,9 +101,8 @@ func CheckAccessToken(
 				}
 			}
 
-			retctx := req.Context()
-			retctx = context.WithValue(retctx, AccessTokenType(""), claim)
-			return next(w, req.WithContext(retctx))
+			ctx = context.WithValue(ctx, AccessTokenType(""), claim)
+			return next(w, req.WithContext(ctx))
 		}
 	}
 }

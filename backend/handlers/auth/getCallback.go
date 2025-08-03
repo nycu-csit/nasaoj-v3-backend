@@ -1,12 +1,12 @@
-package handlers
+package auth
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
@@ -25,18 +25,30 @@ type Claim struct {
 
 // GetCallback
 //
-//	@Response	302	{}	string "302 Found"
-//	@Router		/auth/callback [get]
+//	@Param			source	query	string false "Login source"	attribute(optional)
+//	@Description	Oauth callback endpoint
+//	@Response		302	{}	string	"302 Found"
+//	@Router			/auth/callback [get]
 func GetCallback(
-	ctx context.Context,
 	db interfaces.Database,
-	config oauth2.Config,
-	verifier *oidc.IDTokenVerifier,
 ) func(http.ResponseWriter, bunrouter.Request) error {
+	webVerifier := webProvider.Verifier(&oidc.Config{
+		ClientID: viper.GetString("web-oauth-client-id")})
+	cliVerifier := cliProvider.Verifier(&oidc.Config{
+		ClientID: viper.GetString("cli-oauth-client-id")})
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "GET /api/callback\n")
 
-		oauth2token, err := config.Exchange(ctx, req.URL.Query().Get("code"))
+		var err error
+		var oauth2Token *oauth2.Token
+		if req.URL.Query().Get("source") == "cli" {
+			oauth2Token, err = cliOAuth2Config.Exchange(
+				ctx, req.URL.Query().Get("code"))
+		} else {
+			oauth2Token, err = webOAuth2Config.Exchange(
+				ctx, req.URL.Query().Get("code"))
+		}
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusUnauthorized,
@@ -45,7 +57,7 @@ func GetCallback(
 			}
 		}
 
-		rawIDToken, ok := oauth2token.Extra("id_token").(string)
+		rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 		if !ok {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusUnauthorized,
@@ -54,7 +66,12 @@ func GetCallback(
 			}
 		}
 
-		idToken, err := verifier.Verify(ctx, rawIDToken)
+		var idToken *oidc.IDToken
+		if req.URL.Query().Get("source") == "cli" {
+			idToken, err = cliVerifier.Verify(ctx, rawIDToken)
+		} else {
+			idToken, err = webVerifier.Verify(ctx, rawIDToken)
+		}
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusUnauthorized,
