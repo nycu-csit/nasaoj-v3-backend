@@ -15,15 +15,14 @@ func RunProblem(
 	jobQue interfaces.JobQueue,
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
-
-	problems models.ProblemRepository,
-	testcases *models.TestcaseRepository,
+	problems interfaces.ProblemStorage,
 
 	submission models.Submission,
 ) error {
-	problem, ok := problems[submission.ProblemId]
-	if !ok {
-		return fmt.Errorf("problem with id '%d' not exist", submission.ProblemId)
+	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	if err != nil {
+		return fmt.Errorf("problem with sha1 '%s' not exist, %w",
+			submission.ProblemSHA1, err)
 	}
 
 	fmt.Fprintf(os.Stderr, "run problem '%s'\n", problem.Name)
@@ -45,8 +44,7 @@ func RunProblem(
 	// Run stages without dependency
 	for stageName := range problem.Stages {
 		if _, exist := stageDeps[stageName]; !exist {
-			err := RunStage(ctx, jobQue, db, s3,
-				problems, testcases, submission, stageName)
+			err := RunStage(ctx, jobQue, db, s3, problems, submission, stageName)
 			if err != nil {
 				return err
 			}

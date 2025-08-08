@@ -12,6 +12,7 @@ func InitDB(ctx context.Context, db *bun.DB) error {
 	var err error
 
 	err = db.ResetModel(ctx,
+		(*models.ProblemMarshaled)(nil),
 		(*models.Job)(nil),
 		(*models.Submission)(nil),
 		(*models.Resource)(nil),

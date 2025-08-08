@@ -52,7 +52,7 @@ stages:
 				t.Fatalf("unmarshal failed, %+v", err)
 			}
 
-			err = CheckDeps(map[int64]models.Problem{1: problem})
+			err = CheckDeps(problem)
 			t.Logf("Type: %T", err)
 			if (err != nil) != test.ExpectedFail {
 				t.Fatalf("expect no error, got %v", err)

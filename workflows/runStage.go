@@ -17,16 +17,15 @@ func RunStage(
 	jobQue interfaces.JobQueue,
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
-
-	problems models.ProblemRepository,
-	testcases *models.TestcaseRepository,
+	problems interfaces.ProblemStorage,
 
 	submission models.Submission,
 	stageName string,
 ) error {
-	problem, ok := problems[submission.ProblemId]
-	if !ok {
-		return fmt.Errorf("problem with id '%d' not exist", submission.ProblemId)
+	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	if err != nil {
+		return fmt.Errorf("problem with sha1 '%s' not exist",
+			submission.ProblemSHA1)
 	}
 	stage, ok := problem.Stages[stageName]
 	if !ok {
@@ -78,7 +77,7 @@ func RunStage(
 		)
 
 		var tarbuf bytes.Buffer
-		if err = utils.WriteTar(&tarbuf, contents, testcases, args); err != nil {
+		if err = utils.WriteTar(ctx, problems, &tarbuf, contents, args); err != nil {
 			return fmt.Errorf("write to tar failed, %w", err)
 		}
 

@@ -19,6 +19,95 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/problem-state": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "problem state",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PutProblemStateInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/problems": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.problemOutput"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "problem",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/models.Problem"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/results": {
             "get": {
                 "parameters": [
@@ -34,7 +123,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Submission",
                         "schema": {
-                            "$ref": "#/definitions/handlers.resultOutput"
+                            "$ref": "#/definitions/api.resultOutput"
                         }
                     },
                     "400": {
@@ -194,7 +283,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Submissions",
                         "schema": {
-                            "$ref": "#/definitions/handlers.submissionsOutput"
+                            "$ref": "#/definitions/api.submissionsOutput"
                         }
                     },
                     "400": {
@@ -224,7 +313,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.adminSubmitInput"
+                            "$ref": "#/definitions/api.adminSubmitInput"
                         }
                     }
                 ],
@@ -232,7 +321,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.submitOutput"
+                            "$ref": "#/definitions/api.submitOutput"
                         }
                     },
                     "400": {
@@ -274,7 +363,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.MeOutput"
+                            "$ref": "#/definitions/api.MeOutput"
                         }
                     },
                     "401": {
@@ -297,7 +386,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/handlers.problemOutput"
+                                "$ref": "#/definitions/api.problemOutput"
                             }
                         }
                     },
@@ -330,7 +419,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Last submission to the problem",
                         "schema": {
-                            "$ref": "#/definitions/handlers.resultOutput"
+                            "$ref": "#/definitions/api.resultOutput"
                         }
                     },
                     "400": {
@@ -452,7 +541,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Submissions",
                         "schema": {
-                            "$ref": "#/definitions/handlers.submissionsOutput"
+                            "$ref": "#/definitions/api.submissionsOutput"
                         }
                     },
                     "400": {
@@ -482,7 +571,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.submitInput"
+                            "$ref": "#/definitions/api.submitInput"
                         }
                     }
                 ],
@@ -490,7 +579,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.submitOutput"
+                            "$ref": "#/definitions/api.submitOutput"
                         }
                     },
                     "400": {
@@ -516,6 +605,15 @@ const docTemplate = `{
         },
         "/auth/callback": {
             "get": {
+                "description": "Oauth callback endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Login source",
+                        "name": "source",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "302": {
                         "description": "302 Found",
@@ -529,6 +627,14 @@ const docTemplate = `{
         "/auth/login": {
             "get": {
                 "description": "OAuth login endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Login source",
+                        "name": "source",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "302": {
                         "description": "302 Found",
@@ -554,7 +660,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handlers.MeOutput": {
+        "api.MeOutput": {
             "type": "object",
             "properties": {
                 "accessToken": {
@@ -565,23 +671,37 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.adminSubmitInput": {
+        "api.PutProblemStateInput": {
+            "type": "object",
+            "properties": {
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "problemSHA1": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.adminSubmitInput": {
             "type": "object",
             "properties": {
                 "asCsId": {
                     "type": "string"
                 },
-                "problemId": {
+                "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
-        "handlers.problemOutput": {
+        "api.problemOutput": {
             "type": "object",
             "properties": {
                 "description": {
                     "type": "string"
+                },
+                "isEnabled": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -589,10 +709,13 @@ const docTemplate = `{
                 "problemId": {
                     "type": "integer"
                 },
+                "sha1": {
+                    "type": "string"
+                },
                 "stages": {
                     "type": "object",
                     "additionalProperties": {
-                        "$ref": "#/definitions/handlers.problemOutputStage"
+                        "$ref": "#/definitions/api.problemOutputStage"
                     }
                 },
                 "tag": {
@@ -600,7 +723,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.problemOutputStage": {
+        "api.problemOutputStage": {
             "type": "object",
             "properties": {
                 "before": {
@@ -615,12 +738,12 @@ const docTemplate = `{
                 "testcases": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/handlers.problemOutputStageTestcase"
+                        "$ref": "#/definitions/api.problemOutputStageTestcase"
                     }
                 }
             }
         },
-        "handlers.problemOutputStageTestcase": {
+        "api.problemOutputStageTestcase": {
             "type": "object",
             "properties": {
                 "name": {
@@ -628,7 +751,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.resultOutput": {
+        "api.resultOutput": {
             "type": "object",
             "properties": {
                 "csId": {
@@ -640,7 +763,7 @@ const docTemplate = `{
                 "jobs": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/handlers.resultOutputJob"
+                        "$ref": "#/definitions/api.resultOutputJob"
                     }
                 },
                 "problemId": {
@@ -657,7 +780,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.resultOutputJob": {
+        "api.resultOutputJob": {
             "type": "object",
             "properties": {
                 "execAt": {
@@ -677,7 +800,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.submissionsOutput": {
+        "api.submissionsOutput": {
             "type": "object",
             "properties": {
                 "pageSize": {
@@ -686,7 +809,7 @@ const docTemplate = `{
                 "submissions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/handlers.submissionsOutputSubmission"
+                        "$ref": "#/definitions/api.submissionsOutputSubmission"
                     }
                 },
                 "totalRowCnt": {
@@ -694,7 +817,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.submissionsOutputSubmission": {
+        "api.submissionsOutputSubmission": {
             "type": "object",
             "properties": {
                 "csId": {
@@ -707,6 +830,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "problemName": {
+                    "type": "string"
+                },
+                "problemSHA1": {
                     "type": "string"
                 },
                 "score": {
@@ -717,16 +843,16 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.submitInput": {
+        "api.submitInput": {
             "type": "object",
             "properties": {
-                "problemId": {
+                "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
-        "handlers.submitOutput": {
+        "api.submitOutput": {
             "type": "object",
             "properties": {
                 "csId": {
@@ -739,6 +865,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "problemName": {
+                    "type": "string"
+                },
+                "problemSHA1": {
                     "type": "string"
                 },
                 "submitAt": {
@@ -814,6 +943,34 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Content": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ContentFile"
+                    }
+                },
+                "scripts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "models.ContentFile": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "sha1": {
+                    "type": "string"
+                }
+            }
+        },
         "models.JobStatus": {
             "type": "integer",
             "enum": [
@@ -836,6 +993,108 @@ const docTemplate = `{
                 "StatusTimeout",
                 "StatusMissing"
             ]
+        },
+        "models.Problem": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "postScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "preScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.Stage"
+                    }
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "timeout": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Stage": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "before": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "postScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "preScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "testcases": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Testcase"
+                    }
+                }
+            }
+        },
+        "models.Testcase": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ContentFile"
+                    }
+                },
+                "hardTL": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "scripts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "softTL": {
+                    "type": "integer"
+                }
+            }
         },
         "models.UserResource": {
             "type": "object",

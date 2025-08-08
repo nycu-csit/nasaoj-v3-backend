@@ -2,6 +2,7 @@ package implements
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -37,7 +38,7 @@ func (self *BunDatabase) GetLastSubmission(
 	var ret models.Submission
 	err := self.db.NewSelect().Model(&ret).
 		Where("csid = ?", csId).
-		Where("problemid = ?", problemId).
+		Where("problem_id = ?", problemId).
 		Order("id DESC").Limit(1).Scan(ctx)
 	if err != nil {
 		return ret, fmt.Errorf("select submission failed, %w", err)
@@ -168,7 +169,7 @@ func (self *BunDatabase) GetScoresWithStages(
 	var submissions []models.Submission
 	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
 		Column("csid", "score_score", "score_stages").
-		Where("problemid = ?", problemId).
+		Where("problem_id = ?", problemId).
 		OrderExpr("csid, id DESC").
 		Scan(ctx)
 	if err != nil {
@@ -194,7 +195,7 @@ func (self *BunDatabase) GetScores(
 	var submissions []models.Submission
 	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
 		Column("csid", "score_score").
-		Where("problemid = ?", problemId).
+		Where("problem_id = ?", problemId).
 		OrderExpr("csid, id DESC").
 		Scan(ctx)
 	if err != nil {
@@ -280,7 +281,7 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 		query = query.Offset(pageNum * pageSize)
 	}
 	if isProblemId {
-		query = query.Where("problemid = ?", problemId)
+		query = query.Where("problem_id = ?", problemId)
 	}
 
 	var ret []models.Submission
@@ -349,4 +350,129 @@ func (self *BunDatabase) InvalidateSession(
 		Set("is_valid = ?", false).
 		Exec(ctx)
 	return err
+}
+
+func (self *BunDatabase) GetProblems(
+	ctx context.Context,
+) (map[string]models.Problem, error) {
+	ret := make(map[string]models.Problem)
+	var problemsMarshaled []models.ProblemMarshaled
+	err := self.db.NewSelect().Model(&problemsMarshaled).
+		OrderExpr("problem_id, sha1").
+		DistinctOn("problem_id").
+		Where("is_enabled = ?", true).
+		Scan(ctx)
+	if err != nil {
+		return ret, err
+	}
+
+	for _, problem := range problemsMarshaled {
+		ret[problem.SHA1], err = problem.Unmarshal()
+		if err != nil {
+			return ret, err
+		}
+	}
+	return ret, nil
+}
+
+func (self *BunDatabase) GetProblem(
+	ctx context.Context,
+	sha1 string,
+) (models.Problem, error) {
+	var problemMarshaled models.ProblemMarshaled
+	err := self.db.NewSelect().Model(&problemMarshaled).
+		Where("sha1 = ?", sha1).
+		Scan(ctx)
+	if err != nil {
+		return models.Problem{}, err
+	}
+
+	return problemMarshaled.Unmarshal()
+}
+
+func (self *BunDatabase) GetProblemById(
+	ctx context.Context,
+	problemId models.ProblemIdType,
+) (models.Problem, error) {
+	var problemMarshaled models.ProblemMarshaled
+	err := self.db.NewSelect().Model(&problemMarshaled).
+		Where("problem_id = ?", problemId).
+		Where("is_enabled = ?", true).
+		Scan(ctx)
+	if err != nil {
+		return models.Problem{}, err
+	}
+
+	return problemMarshaled.Unmarshal()
+}
+
+func (self *BunDatabase) GetAllProblems(
+	ctx context.Context,
+) (map[string]models.Problem, error) {
+	ret := make(map[string]models.Problem)
+	var problemsMarshaled []models.ProblemMarshaled
+	err := self.db.NewSelect().Model(&problemsMarshaled).
+		Scan(ctx)
+	if err != nil {
+		return ret, err
+	}
+
+	for _, problem := range problemsMarshaled {
+		ret[problem.SHA1], err = problem.Unmarshal()
+		if err != nil {
+			return ret, err
+		}
+	}
+	return ret, nil
+}
+
+func (self *BunDatabase) InsertProblem(
+	ctx context.Context,
+	problem models.Problem,
+) error {
+	problemMarshaled, err := problem.Marshal()
+	if err != nil {
+		return err
+	}
+	_, err = self.db.NewInsert().Model(&problemMarshaled).
+		On("CONFLICT (sha1) DO NOTHING").
+		Exec(ctx)
+	return err
+}
+
+func (self *BunDatabase) UpdateProblem(
+	ctx context.Context,
+	sha1 string,
+	enable bool,
+) error {
+	if enable {
+		// TODO: fix this
+		return self.db.RunInTx(ctx, &sql.TxOptions{},
+			func(ctx context.Context, tx bun.Tx) error {
+				var problem models.ProblemMarshaled
+				err := tx.NewSelect().
+					Model(&problem).
+					Where("sha1 = ?", sha1).
+					Scan(ctx)
+				if err != nil {
+					return fmt.Errorf("problem select failed, %w", err)
+				}
+				_, err = tx.NewUpdate().
+					Model((*models.ProblemMarshaled)(nil)).
+					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
+					Where("problem_id = ?", problem.ProblemId).
+					Exec(ctx)
+				if err != nil {
+					return fmt.Errorf("problem update failed, %w", err)
+				}
+				return nil
+			})
+	} else {
+		_, err := self.db.NewUpdate().
+			Model((*models.ProblemMarshaled)(nil)).
+			Where("sha1 = ?", sha1).
+			Set("is_enabled = ?", false).
+			Exec(ctx)
+		return err
+	}
 }

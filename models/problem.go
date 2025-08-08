@@ -1,49 +1,62 @@
 package models
 
-import "gopkg.in/yaml.v3"
+import (
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
 
-type ProblemRepository = map[ProblemIdType]Problem
+	"github.com/uptrace/bun"
+)
 
 type ProblemIdType = int64
 type TagType = string
-type problem struct {
-	Name        string            `json:"name" yaml:"name"`
-	ProblemId   ProblemIdType     `json:"problemId" yaml:"problemId"`
-	Description string            `json:"description" yaml:"description"`
-	Stages      map[string]Stage  `json:"stages" yaml:"stages"`
-	Args        map[string]string `json:"args" yaml:"args"`
-	Tag         TagType           `json:"tag" yaml:"tag"`
-	PreScript   Content           `json:"preScript" yaml:"preScript"`
-	PostScript  Content           `json:"postScript" yaml:"postScript"`
-
-	Timeout int64 `json:"-" yaml:"-"`
-}
-
 type Problem struct {
-	problem `yaml:",inline"`
+	ProblemId ProblemIdType `json:"problemId"`
+
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Stages      map[string]Stage  `json:"stages"`
+	Args        map[string]string `json:"args"`
+	Tag         TagType           `json:"tag"`
+	PreScript   Content           `json:"preScript"`
+	PostScript  Content           `json:"postScript"`
+	Timeout     int64             `json:"timeout"`
+
+	IsEnabled bool `json:"-"`
 }
 
-type problemNode struct {
-	Tag yaml.Node `yaml:"tag"`
+type ProblemMarshaled struct {
+	bun.BaseModel `bun:"table:problem"`
+
+	SHA1    string `bun:"sha1,pk"`
+	Payload string `bun:"payload"`
+
+	ProblemId ProblemIdType `bun:"problem_id"`
+	IsEnabled bool          `bun:"is_enabled"`
 }
 
-func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
-	var node problemNode
-	err := v.Decode(&node)
+func (self Problem) Marshal() (ProblemMarshaled, error) {
+	ret := ProblemMarshaled{
+		ProblemId: self.ProblemId,
+		IsEnabled: false,
+	}
+
+	b, err := json.Marshal(self)
 	if err != nil {
-		return err
+		return ret, err
 	}
+	ret.Payload = string(b[:])
+	h := sha1.Sum(b)
+	ret.SHA1 = hex.EncodeToString(h[:])
+	return ret, nil
+}
 
-	var im problem
-	err = v.Decode(&im)
+func (self ProblemMarshaled) Unmarshal() (Problem, error) {
+	var ret Problem
+	err := json.Unmarshal([]byte(self.Payload), &ret)
 	if err != nil {
-		return err
+		return ret, err
 	}
-	self.problem = im
-
-	if node.Tag.IsZero() {
-		self.Tag = "default"
-	}
-
-	return nil
+	ret.IsEnabled = self.IsEnabled
+	return ret, nil
 }
