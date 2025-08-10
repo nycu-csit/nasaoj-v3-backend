@@ -15,7 +15,6 @@ func InitDB(ctx context.Context, db *bun.DB) error {
 		(*models.ProblemMarshaled)(nil),
 		(*models.Job)(nil),
 		(*models.Submission)(nil),
-		(*models.Resource)(nil),
 		(*models.UserResource)(nil),
 		(*models.Session)(nil),
 	)

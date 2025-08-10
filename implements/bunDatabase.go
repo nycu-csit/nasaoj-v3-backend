@@ -220,8 +220,7 @@ func (self *BunDatabase) InsertUserResources(
 	for _, user := range userResources {
 		_, err := self.db.NewInsert().Model(&user).
 			On("CONFLICT (csid) DO UPDATE").
-			Set("id = EXCLUDED.id").
-			Set("roomid = EXCLUDED.roomid").
+			Set("args = EXCLUDED.args").
 			Exec(ctx)
 		if err != nil {
 			return fmt.Errorf("insert user resource '%+v' failed, %w", user, err)
@@ -240,27 +239,16 @@ func (self *BunDatabase) ExistUserResource(
 		Exists(ctx)
 }
 
-func (self *BunDatabase) InsertNewUserFromResources(
+func (self *BunDatabase) UpsertUser(
 	ctx context.Context,
-	csId string,
+	user models.UserResource,
 ) error {
-	var resource models.Resource
-	err := self.db.NewDelete().Model((*models.Resource)(nil)).
-		Where("id IN (?)",
-			self.db.NewSelect().Model((*models.Resource)(nil)).
-				Column("id").Limit(1)).
-		Returning("*").Scan(ctx, &resource)
-	if err != nil {
-		return fmt.Errorf("no user resource left, %w", err)
-	}
-
-	// Transform into UserResource
-	user := resource.User(csId)
-	_, err = self.db.NewInsert().Model(&user).Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("insert user failed, %w", err)
-	}
-	return nil
+	err := self.db.NewInsert().
+		Model(&user).
+		On("CONFLICT (args) DO UPDATE").
+		Set("args = EXCLUDED.args").
+		Scan(ctx)
+	return err
 }
 
 func (self *BunDatabase) GetSubmissionsAndCount(

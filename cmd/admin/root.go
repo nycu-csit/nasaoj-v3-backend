@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 
 	"github.com/go-resty/resty/v2"
@@ -57,7 +58,7 @@ func getLogin(
 			}
 		}
 		for _, cookie := range resp.Cookies() {
-			fmt.Printf("[INFO] apply cookie '%s'\n", cookie.Name)
+			fmt.Fprintf(os.Stderr, "[INFO] apply cookie '%s'\n", cookie.Name)
 			http.SetCookie(w, cookie)
 		}
 
@@ -108,7 +109,7 @@ func getCallback(
 					OriginError: err,
 				}
 			}
-			fmt.Printf("[INFO] apply cookie '%s'\n", cookie.Name)
+			fmt.Fprintf(os.Stderr, "[INFO] apply cookie '%s'\n", cookie.Name)
 			client.SetCookie(cookie)
 		}
 

@@ -11,6 +11,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 	"golang.org/x/oauth2"
 )
 
@@ -113,11 +114,19 @@ func GetCallback(
 			}
 		}
 		if !exist {
-			err := db.InsertNewUserFromResources(ctx, claim.CsId)
+			// User not exist, register new user
+			if !viper.GetBool("allow-user-register") {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "user register is not allowed",
+				}
+			}
+
+			err := workflows.RegisterUser(ctx, db, claim.CsId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
-					Message:     "user create failed",
+					Message:     "user register failed",
 					OriginError: err,
 				}
 			}

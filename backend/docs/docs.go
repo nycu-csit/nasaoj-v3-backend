@@ -336,6 +336,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/user": {
+            "get": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User CsId to by queried",
+                        "name": "csId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "not admin or not login",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/users": {
             "get": {
                 "responses": {
@@ -350,6 +380,39 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "not admin or not login",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "User resources",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.UserResource"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -1099,13 +1162,13 @@ const docTemplate = `{
         "models.UserResource": {
             "type": "object",
             "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "csId": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "roomId": {
                     "type": "string"
                 }
             }

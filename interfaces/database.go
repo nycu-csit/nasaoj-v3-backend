@@ -67,9 +67,9 @@ type Database interface {
 		problem models.Problem,
 	) error
 
-	InsertNewUserFromResources(
+	UpsertUser(
 		ctx context.Context,
-		csId string,
+		user models.UserResource,
 	) error
 
 	// Update Operation
