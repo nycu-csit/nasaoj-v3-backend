@@ -31,7 +31,6 @@ func GetUsers(
 			}
 		}
 
-		bunrouter.JSON(w, users)
-		return nil
+		return bunrouter.JSON(w, users)
 	}
 }

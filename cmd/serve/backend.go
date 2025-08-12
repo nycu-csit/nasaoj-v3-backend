@@ -117,6 +117,7 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetOutput(db, mc, "stderr", true))
 		apiAdminGroup.GET("/scores",
 			apiHandlers.GetScores(db, true))
+		apiAdminGroup.GET("/user", apiHandlers.GetUser(db))
 		apiAdminGroup.GET("/users", apiHandlers.GetUsers(db))
 		apiAdminGroup.GET("/submissions", apiHandlers.GetSubmissions(db, true))
 		apiAdminGroup.GET("/results", apiHandlers.GetResults(db, true))
@@ -125,6 +126,7 @@ var backendCmd = &cobra.Command{
 		apiAdminGroup.GET("/problems", apiHandlers.GetProblems(db, true))
 		apiAdminGroup.PUT("/problems", apiHandlers.PutProblems(problems))
 		apiAdminGroup.PUT("/problem-state", apiHandlers.PutProblemState(problems))
+		apiAdminGroup.PUT("/users", apiHandlers.PutUsers(db))
 
 		// Initialize scheduler router
 		scheduler := bunrouter.New()
@@ -218,6 +220,9 @@ func init() {
 	// Others
 	backendCmd.Flags().
 		String("admin-role", "nasata", "Admin role in OIDC groups")
+	backendCmd.Flags().
+		Bool("allow-user-register", false,
+			"Allow user to register new UserResource")
 	backendCmd.Flags().
 		String("cors-origin", "", "CORS origin")
 	backendCmd.Flags().
