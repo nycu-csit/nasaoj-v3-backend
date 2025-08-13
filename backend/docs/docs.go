@@ -336,6 +336,30 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/tools": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.problemOutput"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Tool loading error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/user": {
             "get": {
                 "parameters": [
@@ -659,6 +683,30 @@ const docTemplate = `{
                     },
                     "429": {
                         "description": "Too Many Requests",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tools": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.problemOutput"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Tool loading error",
                         "schema": {
                             "type": "string"
                         }
@@ -1068,6 +1116,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "isTool": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"

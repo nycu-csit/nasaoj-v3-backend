@@ -228,6 +228,8 @@ definitions:
         type: object
       description:
         type: string
+      isTool:
+        type: boolean
       name:
         type: string
       postScript:
@@ -525,6 +527,21 @@ paths:
           description: Unauthorized
         "429":
           description: Too Many Requests
+  /api/admin/tools:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.problemOutput'
+            type: array
+        "500":
+          description: Tool loading error
+          schema:
+            type: string
   /api/admin/user:
     get:
       parameters:
@@ -733,6 +750,21 @@ paths:
             type: string
         "429":
           description: Too Many Requests
+          schema:
+            type: string
+  /api/tools:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.problemOutput'
+            type: array
+        "500":
+          description: Tool loading error
           schema:
             type: string
   /auth/callback:

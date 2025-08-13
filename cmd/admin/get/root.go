@@ -9,5 +9,6 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(problemsCmd)
+	RootCmd.AddCommand(toolsCmd)
 	RootCmd.AddCommand(userCmd)
 }

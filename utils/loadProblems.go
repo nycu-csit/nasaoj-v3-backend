@@ -38,7 +38,6 @@ func LoadProblems(
 			if err = yaml.Unmarshal(b, &inputProblem); err != nil {
 				return fmt.Errorf("problem unmarshal failed, %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "%+v\n", inputProblem)
 
 			problem, err := inputProblem.ToModelProblem(contentFiles)
 			if err != nil {

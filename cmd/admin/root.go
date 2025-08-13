@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/deletes"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/disable"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/enable"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/exports"
@@ -180,4 +181,5 @@ func init() {
 	RootCmd.AddCommand(enable.RootCmd)
 	RootCmd.AddCommand(disable.RootCmd)
 	RootCmd.AddCommand(get.RootCmd)
+	RootCmd.AddCommand(deletes.RootCmd)
 }

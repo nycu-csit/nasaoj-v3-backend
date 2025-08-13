@@ -138,4 +138,33 @@ type Database interface {
 		sha1 string,
 		enable bool,
 	) error
+
+	GetTool(
+		ctx context.Context,
+		sha1 string,
+	) (models.Tool, error)
+
+	GetToolById(
+		ctx context.Context,
+		problemId models.ProblemIdType,
+	) (models.Tool, error)
+
+	GetTools(
+		ctx context.Context,
+	) (map[string]models.Tool, error)
+
+	GetAllTools(
+		ctx context.Context,
+	) (map[string]models.Tool, error)
+
+	InsertTool(
+		ctx context.Context,
+		tool models.Tool,
+	) error
+
+	UpdateTool(
+		ctx context.Context,
+		sha1 string,
+		enable bool,
+	) error
 }

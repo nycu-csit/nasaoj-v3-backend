@@ -99,7 +99,8 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CORSHandler).
 			Use(middlewares.CheckRefreshToken(db)).
 			Use(middlewares.CheckAccessToken(db))
-		apiGroup.GET("/problems", apiHandlers.GetProblems(db, false))
+		apiGroup.GET("/problems", apiHandlers.GetProblems(db, false, false))
+		apiGroup.GET("/tools", apiHandlers.GetProblems(db, true, false))
 		apiGroup.POST("/submit", apiHandlers.PostSubmit(db, jobQue,
 			s3, problems, false))
 		apiGroup.GET("/stdout", apiHandlers.GetOutput(db, mc, "stdout", false))
@@ -123,7 +124,8 @@ var backendCmd = &cobra.Command{
 		apiAdminGroup.GET("/results", apiHandlers.GetResults(db, true))
 		apiAdminGroup.POST("/submit",
 			apiHandlers.PostSubmit(db, jobQue, s3, problems, true))
-		apiAdminGroup.GET("/problems", apiHandlers.GetProblems(db, true))
+		apiAdminGroup.GET("/problems", apiHandlers.GetProblems(db, false, true))
+		apiAdminGroup.GET("/tools", apiHandlers.GetProblems(db, true, true))
 		apiAdminGroup.PUT("/problems", apiHandlers.PutProblems(problems))
 		apiAdminGroup.PUT("/problem-state", apiHandlers.PutProblemState(problems))
 		apiAdminGroup.PUT("/users", apiHandlers.PutUsers(db))
