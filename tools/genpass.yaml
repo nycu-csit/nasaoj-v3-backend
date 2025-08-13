@@ -1,0 +1,11 @@
+---
+name: Generate password
+problemId: 87
+description: Generate random string using openssl
+isTool: true
+stages:
+  output:
+    testcases:
+      - name: generate
+        scripts:
+          - openssl rand -base64 24

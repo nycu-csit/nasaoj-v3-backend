@@ -32,6 +32,22 @@ type problemOutput struct {
 	IsEnabled   bool                          `json:"isEnabled"`
 }
 
+// GetAdminTools
+//
+//	@Produce	json
+//	@Success	200	{object}	[]problemOutput
+//	@Failure	500	{object}	string	"Tool loading error"
+//	@Router		/api/admin/tools [get]
+func getAdminToolsPlaceholder() {}
+
+// GetTools
+//
+//	@Produce	json
+//	@Success	200	{object}	[]problemOutput
+//	@Failure	500	{object}	string	"Tool loading error"
+//	@Router		/api/tools [get]
+func getToolsPlaceholder() {}
+
 // GetAdminProblems
 //
 //	@Produce	json
@@ -48,22 +64,39 @@ func getAdminProblemsPlaceholder() {}
 //	@Router		/api/problems [get]
 func GetProblems(
 	db interfaces.Database,
+	isTool bool,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		if isAdmin {
-			fmt.Fprintf(os.Stderr, "GET /api/admin/problems\n")
+			if isTool {
+				fmt.Fprintf(os.Stderr, "GET /api/admin/tools\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "GET /api/admin/problems\n")
+			}
 		} else {
-			fmt.Fprintf(os.Stderr, "GET /api/problems\n")
+			if isTool {
+				fmt.Fprintf(os.Stderr, "GET /api/tools\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "GET /api/problems\n")
+			}
 		}
 		ctx := req.Context()
 
 		var problems map[string]models.Problem
 		var err error
 		if isAdmin {
-			problems, err = db.GetAllProblems(ctx)
+			if isTool {
+				problems, err = db.GetAllTools(ctx)
+			} else {
+				problems, err = db.GetAllProblems(ctx)
+			}
 		} else {
-			problems, err = db.GetProblems(ctx)
+			if isTool {
+				problems, err = db.GetTools(ctx)
+			} else {
+				problems, err = db.GetProblems(ctx)
+			}
 		}
 		if err != nil {
 			return middlewares.HTTPError{

@@ -23,6 +23,13 @@ func (self *DBProblemStorage) GetProblem(
 	return self.db.GetProblem(ctx, sha1)
 }
 
+func (self *DBProblemStorage) GetTool(
+	ctx context.Context,
+	sha1 string,
+) (models.Tool, error) {
+	return self.db.GetTool(ctx, sha1)
+}
+
 func (self *DBProblemStorage) InsertProblem(
 	ctx context.Context,
 	problem models.Problem,
@@ -34,6 +41,12 @@ func (self *DBProblemStorage) GetAllProblems(
 	ctx context.Context,
 ) (map[string]models.Problem, error) {
 	return self.db.GetAllProblems(ctx)
+}
+
+func (self *DBProblemStorage) GetAllTools(
+	ctx context.Context,
+) (map[string]models.Tool, error) {
+	return self.db.GetAllTools(ctx)
 }
 
 func (self *DBProblemStorage) PutProblemState(

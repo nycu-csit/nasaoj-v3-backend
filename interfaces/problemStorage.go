@@ -12,6 +12,11 @@ type ProblemStorage interface {
 		sha1 string,
 	) (models.Problem, error)
 
+	GetTool(
+		ctx context.Context,
+		sha1 string,
+	) (models.Tool, error)
+
 	InsertProblem(
 		ctx context.Context,
 		problem models.Problem,
@@ -20,6 +25,10 @@ type ProblemStorage interface {
 	GetAllProblems(
 		ctx context.Context,
 	) (map[string]models.Problem, error)
+
+	GetAllTools(
+		ctx context.Context,
+	) (map[string]models.Tool, error)
 
 	PutProblemState(
 		ctx context.Context,

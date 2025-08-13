@@ -340,14 +340,17 @@ func (self *BunDatabase) InvalidateSession(
 	return err
 }
 
-func (self *BunDatabase) GetProblems(
+func (self *BunDatabase) getProblems(
 	ctx context.Context,
+	isTool bool,
 ) (map[string]models.Problem, error) {
 	ret := make(map[string]models.Problem)
 	var problemsMarshaled []models.ProblemMarshaled
-	err := self.db.NewSelect().Model(&problemsMarshaled).
+	err := self.db.NewSelect().
+		Model(&problemsMarshaled).
 		OrderExpr("problem_id, sha1").
 		DistinctOn("problem_id").
+		Where("is_tool = ?", isTool).
 		Where("is_enabled = ?", true).
 		Scan(ctx)
 	if err != nil {
@@ -363,13 +366,60 @@ func (self *BunDatabase) GetProblems(
 	return ret, nil
 }
 
-func (self *BunDatabase) GetProblem(
+func (self *BunDatabase) GetProblems(
+	ctx context.Context,
+) (map[string]models.Problem, error) {
+	return self.getProblems(ctx, false)
+}
+
+func (self *BunDatabase) GetTools(
+	ctx context.Context,
+) (map[string]models.Tool, error) {
+	return self.getProblems(ctx, true)
+}
+
+func (self *BunDatabase) getProblem(
 	ctx context.Context,
 	sha1 string,
+	isTool bool,
 ) (models.Problem, error) {
 	var problemMarshaled models.ProblemMarshaled
 	err := self.db.NewSelect().Model(&problemMarshaled).
 		Where("sha1 = ?", sha1).
+		Where("is_tool = ?", isTool).
+		Scan(ctx)
+	if err != nil {
+		return models.Problem{}, err
+	}
+
+	return problemMarshaled.Unmarshal()
+}
+
+func (self *BunDatabase) GetProblem(
+	ctx context.Context,
+	sha1 string,
+) (models.Problem, error) {
+	return self.getProblem(ctx, sha1, false)
+}
+
+func (self *BunDatabase) GetTool(
+	ctx context.Context,
+	sha1 string,
+) (models.Problem, error) {
+	return self.getProblem(ctx, sha1, true)
+}
+
+// get problem without check whether it is a tool
+func (self *BunDatabase) getProblemById(
+	ctx context.Context,
+	problemId models.ProblemIdType,
+	isTool bool,
+) (models.Problem, error) {
+	var problemMarshaled models.ProblemMarshaled
+	err := self.db.NewSelect().Model(&problemMarshaled).
+		Where("problem_id = ?", problemId).
+		Where("is_tool = ?", isTool).
+		Where("is_enabled = ?", true).
 		Scan(ctx)
 	if err != nil {
 		return models.Problem{}, err
@@ -382,24 +432,25 @@ func (self *BunDatabase) GetProblemById(
 	ctx context.Context,
 	problemId models.ProblemIdType,
 ) (models.Problem, error) {
-	var problemMarshaled models.ProblemMarshaled
-	err := self.db.NewSelect().Model(&problemMarshaled).
-		Where("problem_id = ?", problemId).
-		Where("is_enabled = ?", true).
-		Scan(ctx)
-	if err != nil {
-		return models.Problem{}, err
-	}
-
-	return problemMarshaled.Unmarshal()
+	return self.getProblemById(ctx, problemId, false)
 }
 
-func (self *BunDatabase) GetAllProblems(
+func (self *BunDatabase) GetToolById(
 	ctx context.Context,
+	problemId models.ProblemIdType,
+) (models.Problem, error) {
+	return self.getProblemById(ctx, problemId, true)
+}
+
+func (self *BunDatabase) getAllProblems(
+	ctx context.Context,
+	isTool bool,
 ) (map[string]models.Problem, error) {
 	ret := make(map[string]models.Problem)
 	var problemsMarshaled []models.ProblemMarshaled
-	err := self.db.NewSelect().Model(&problemsMarshaled).
+	err := self.db.NewSelect().
+		Model(&problemsMarshaled).
+		Where("is_tool = ?", isTool).
 		Scan(ctx)
 	if err != nil {
 		return ret, err
@@ -412,6 +463,18 @@ func (self *BunDatabase) GetAllProblems(
 		}
 	}
 	return ret, nil
+}
+
+func (self *BunDatabase) GetAllProblems(
+	ctx context.Context,
+) (map[string]models.Problem, error) {
+	return self.getAllProblems(ctx, false)
+}
+
+func (self *BunDatabase) GetAllTools(
+	ctx context.Context,
+) (map[string]models.Tool, error) {
+	return self.getAllProblems(ctx, true)
 }
 
 func (self *BunDatabase) InsertProblem(
@@ -428,13 +491,19 @@ func (self *BunDatabase) InsertProblem(
 	return err
 }
 
+func (self *BunDatabase) InsertTool(
+	ctx context.Context,
+	tool models.Tool,
+) error {
+	return self.InsertProblem(ctx, tool)
+}
+
 func (self *BunDatabase) UpdateProblem(
 	ctx context.Context,
 	sha1 string,
 	enable bool,
 ) error {
 	if enable {
-		// TODO: fix this
 		return self.db.RunInTx(ctx, &sql.TxOptions{},
 			func(ctx context.Context, tx bun.Tx) error {
 				var problem models.ProblemMarshaled
@@ -463,4 +532,12 @@ func (self *BunDatabase) UpdateProblem(
 			Exec(ctx)
 		return err
 	}
+}
+
+func (self *BunDatabase) UpdateTool(
+	ctx context.Context,
+	sha1 string,
+	enable bool,
+) error {
+	return self.UpdateProblem(ctx, sha1, enable)
 }
