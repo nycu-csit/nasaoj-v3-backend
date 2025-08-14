@@ -8,4 +8,5 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.AddCommand(tokenCmd)
 }

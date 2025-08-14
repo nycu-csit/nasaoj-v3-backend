@@ -10,6 +10,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
 type resultOutputJob struct {
@@ -85,8 +86,8 @@ func GetResults(
 			problemIdRaw := req.URL.Query().Get("problemId")
 			subIdRaw := req.URL.Query().Get("subId")
 
-			claim, ok := req.Context().
-				Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
+			privs, ok := req.Context().
+				Value(types.Privileges("")).(models.Privileges)
 			if !ok {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
@@ -113,7 +114,7 @@ func GetResults(
 					}
 				}
 
-				if submission.CsId != claim.CsId {
+				if submission.CsId != privs.OwnerCsId {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusUnauthorized,
 						Message:     "submission author mismatch",
@@ -129,7 +130,7 @@ func GetResults(
 						OriginError: err,
 					}
 				}
-				submission, err = db.GetLastSubmission(ctx, claim.CsId, problemId)
+				submission, err = db.GetLastSubmission(ctx, privs.OwnerCsId, problemId)
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusNotFound,

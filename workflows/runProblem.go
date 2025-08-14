@@ -16,6 +16,7 @@ func RunProblem(
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
 ) error {
@@ -44,7 +45,7 @@ func RunProblem(
 	// Run stages without dependency
 	for stageName := range problem.Stages {
 		if _, exist := stageDeps[stageName]; !exist {
-			err := RunStage(ctx, jobQue, db, s3, problems, submission, stageName)
+			err := RunStage(ctx, jobQue, db, s3, problems, tokens, submission, stageName)
 			if err != nil {
 				return err
 			}

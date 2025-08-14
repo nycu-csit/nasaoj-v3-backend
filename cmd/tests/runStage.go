@@ -48,6 +48,7 @@ var stageCmd = &cobra.Command{
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
 		problems := implements.NewDBProblemStorage(db)
+		tokens := implements.NewMapTokenStorage()
 
 		err = utils.LoadProblems(ctx, problems,
 			viper.GetString("problems-dir"),
@@ -65,7 +66,7 @@ var stageCmd = &cobra.Command{
 		go workflows.WorkerThread(ctx, jobIn, jobOut)
 		go workflows.OutputThread(ctx, jobOut, jobDone)
 
-		err = workflows.RunStage(ctx, jobQue, db, s3, problems,
+		err = workflows.RunStage(ctx, jobQue, db, s3, problems, tokens,
 			models.Submission{
 				Id:        114514,
 				ProblemId: problem.ProblemId,

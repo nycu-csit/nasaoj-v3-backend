@@ -7,6 +7,16 @@ definitions:
       isAdmin:
         type: boolean
     type: object
+  api.PostTokenInput:
+    properties:
+      tokenType:
+        type: string
+    type: object
+  api.PostTokenOutput:
+    properties:
+      token:
+        type: string
+    type: object
   api.PutProblemStateInput:
     properties:
       isEnabled:
@@ -176,6 +186,8 @@ definitions:
         allOf:
         - $ref: '#/definitions/jwt.NumericDate'
         description: the `nbf` (Not Before) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.5
+      privs:
+        $ref: '#/definitions/models.Privileges'
       resource:
         $ref: '#/definitions/models.UserResource'
       sub:
@@ -220,6 +232,17 @@ definitions:
     - StatusSkip
     - StatusTimeout
     - StatusMissing
+  models.Privileges:
+    properties:
+      canAPIRead:
+        type: integer
+      canAPIWrite:
+        type: integer
+      canScheduleAPI:
+        type: integer
+      ownerCsId:
+        type: string
+    type: object
   models.Problem:
     properties:
       args:
@@ -527,6 +550,50 @@ paths:
           description: Unauthorized
         "429":
           description: Too Many Requests
+  /api/admin/token:
+    delete:
+      parameters:
+      - description: Token
+        in: query
+        name: token
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: token type
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PostTokenInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PostTokenOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
   /api/admin/tools:
     get:
       produces:
@@ -801,10 +868,4 @@ paths:
           description: 302 Found
           schema:
             type: ""
-securityDefinitions:
-  ApiKeyAuth:
-    description: jwt=value, get it at /auth/login
-    in: header
-    name: Cookie
-    type: apiKey
 swagger: "2.0"

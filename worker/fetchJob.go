@@ -28,8 +28,7 @@ func FetchJob(
 		retCh <- err
 		return
 	}
-	req.Header.Add("Authorization",
-		fmt.Sprintf("Bearer %s", viper.GetString("preshared-key")))
+	req.Header.Add("Authorization", "Bearer "+viper.GetString("access-token"))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "http GET request failed\n")

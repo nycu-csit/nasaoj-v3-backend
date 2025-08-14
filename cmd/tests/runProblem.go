@@ -47,6 +47,7 @@ var problemCmd = &cobra.Command{
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
 		problems := implements.NewDBProblemStorage(db)
+		tokens := implements.NewMapTokenStorage()
 
 		err = utils.LoadProblems(ctx, problems,
 			viper.GetString("problems-dir"),
@@ -103,8 +104,8 @@ var problemCmd = &cobra.Command{
 			return fmt.Errorf("insert submission failed, %w", err)
 		}
 
-		err = workflows.RunProblem(ctx, jobQue, db, s3,
-			problems, submission)
+		err = workflows.RunProblem(
+			ctx, jobQue, db, s3, problems, tokens, submission)
 		if err != nil {
 			return fmt.Errorf("run problem failed, %w", err)
 		}
@@ -125,8 +126,8 @@ var problemCmd = &cobra.Command{
 			}
 
 			if job.Status == models.StatusSuccess {
-				err = workflows.HandleStageDone(ctx, db, jobQue, s3,
-					problems, job)
+				err = workflows.HandleStageDone(
+					ctx, db, jobQue, s3, problems, tokens, job)
 				if err != nil {
 					return fmt.Errorf("handle job done failed, %w", err)
 				}

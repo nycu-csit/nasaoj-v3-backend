@@ -18,6 +18,7 @@ func RunStage(
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
 	stageName string,
@@ -50,8 +51,13 @@ func RunStage(
 			}
 		}
 
-		deadline := time.Now().
-			Add(time.Duration(testcase.HardTL) * time.Second).Unix()
+		duration := time.Duration(testcase.HardTL) * time.Second
+		deadline := time.Now().Add(duration).Unix()
+		jobToken, err := tokens.GenerateToken(
+			ctx, models.NewUserPrivs(submission.CsId), duration)
+		if err != nil {
+			return fmt.Errorf("token generate failed, %w", err)
+		}
 		job := models.Job{
 			SubId:     submission.Id,
 			StageName: stageName,
@@ -64,8 +70,7 @@ func RunStage(
 			SoftTL:   testcase.SoftTL,
 		}
 
-		err := db.UpdateJob(ctx, &job)
-		if err != nil {
+		if err := db.UpdateJob(ctx, &job); err != nil {
 			return fmt.Errorf("update job status failed, %w", err)
 		}
 
@@ -74,6 +79,9 @@ func RunStage(
 			problem.Args,
 			stage.Args,
 			testcase.Args,
+			map[string]string{
+				"job-token": jobToken,
+			},
 		)
 
 		var tarbuf bytes.Buffer

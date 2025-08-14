@@ -9,6 +9,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
 // PutLogout
@@ -24,7 +25,7 @@ func PutLogout(
 		fmt.Fprintf(os.Stderr, "PUT /api/logout\n")
 
 		refreshTokenClaim, ok := req.Context().
-			Value(middlewares.RefreshTokenType("")).(models.RefreshTokenClaim)
+			Value(types.RefreshToken("")).(models.RefreshTokenClaim)
 		if !ok {
 			return middlewares.HTTPError{
 				StatusCode: http.StatusBadRequest,

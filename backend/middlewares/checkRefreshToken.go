@@ -10,9 +10,8 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
-
-type RefreshTokenType string
 
 func CheckRefreshToken(
 	db interfaces.Database,
@@ -71,7 +70,7 @@ func CheckRefreshToken(
 				})
 			}
 
-			ctx = context.WithValue(ctx, RefreshTokenType(""), claim)
+			ctx = context.WithValue(ctx, types.RefreshToken(""), claim)
 			return next(w, req.WithContext(ctx))
 		}
 	}

@@ -14,6 +14,7 @@ func HandleStageDone(
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	tokens interfaces.TokenStorage,
 
 	job models.Job,
 ) error {
@@ -53,7 +54,7 @@ func HandleStageDone(
 		}
 
 		if jobdep <= 0 {
-			err = RunStage(ctx, jobQue, db, s3, problems, submission, next)
+			err = RunStage(ctx, jobQue, db, s3, problems, tokens, submission, next)
 			if err != nil {
 				return fmt.Errorf("run stage failed, %w", err)
 			}

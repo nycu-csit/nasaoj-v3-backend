@@ -1,6 +1,7 @@
 package models
 
 import (
+	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -31,6 +32,7 @@ type AccessTokenClaimFields struct {
 	CsId     string       `json:"csId"`
 	Groups   []string     `json:"groups"`
 	Resource UserResource `json:"resource"`
+	Privs    Privileges   `json:"privs"`
 }
 
 type AccessTokenClaim struct {
@@ -56,11 +58,19 @@ func (self *Session) RotateRefreshToken() error {
 func (self *Session) ToAccessToken(
 	resource UserResource,
 ) (string, error) {
+	var privs Privileges
+	if slices.Contains(self.Groups, viper.GetString("admin-role")) {
+		privs = NewAdminPrivs(self.CsId)
+	} else {
+		privs = NewUserPrivs(self.CsId)
+	}
+
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, AccessTokenClaim{
 		AccessTokenClaimFields: AccessTokenClaimFields{
 			CsId:     self.CsId,
 			Groups:   self.Groups,
 			Resource: resource,
+			Privs:    privs,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: &jwt.NumericDate{time.Now()},

@@ -336,6 +336,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/token": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "token type",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PostTokenInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.PostTokenOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/tools": {
             "get": {
                 "produces": [
@@ -782,6 +851,22 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PostTokenInput": {
+            "type": "object",
+            "properties": {
+                "tokenType": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PostTokenOutput": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "api.PutProblemStateInput": {
             "type": "object",
             "properties": {
@@ -1045,6 +1130,9 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "privs": {
+                    "$ref": "#/definitions/models.Privileges"
+                },
                 "resource": {
                     "$ref": "#/definitions/models.UserResource"
                 },
@@ -1104,6 +1192,23 @@ const docTemplate = `{
                 "StatusTimeout",
                 "StatusMissing"
             ]
+        },
+        "models.Privileges": {
+            "type": "object",
+            "properties": {
+                "canAPIRead": {
+                    "type": "integer"
+                },
+                "canAPIWrite": {
+                    "type": "integer"
+                },
+                "canScheduleAPI": {
+                    "type": "integer"
+                },
+                "ownerCsId": {
+                    "type": "string"
+                }
+            }
         },
         "models.Problem": {
             "type": "object",
@@ -1251,14 +1356,6 @@ const docTemplate = `{
                     }
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "ApiKeyAuth": {
-            "description": "jwt=value, get it at /auth/login",
-            "type": "apiKey",
-            "name": "Cookie",
-            "in": "header"
         }
     }
 }`

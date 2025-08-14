@@ -13,6 +13,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
 // GetAdminStderr
@@ -78,8 +79,8 @@ func GetOutput(
 		}
 
 		if !isAdmin {
-			claim, ok := req.Context().
-				Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
+			privs, ok := req.Context().
+				Value(types.Privileges("")).(models.Privileges)
 			if !ok {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
@@ -87,7 +88,7 @@ func GetOutput(
 				}
 			}
 
-			if submission.CsId != claim.CsId {
+			if submission.CsId != privs.OwnerCsId {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
 					Message:    "submission owner not match",

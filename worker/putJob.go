@@ -38,7 +38,7 @@ func PutJob(
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization",
-		fmt.Sprintf("Bearer %s", viper.GetString("preshared-key")))
+		"Bearer "+viper.GetString("access-token"))
 
 	for i := 0; i < 3; i++ {
 		res, err := http.DefaultClient.Do(req)

@@ -13,6 +13,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
 
@@ -63,6 +64,7 @@ func PostSubmit(
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	tokens interfaces.TokenStorage,
 
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -136,7 +138,7 @@ func PostSubmit(
 			}
 
 			claim, ok := req.Context().Value(
-				middlewares.AccessTokenType("")).(models.AccessTokenClaim)
+				types.AccessToken("")).(models.AccessTokenClaim)
 			if !ok {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
@@ -192,7 +194,7 @@ func PostSubmit(
 		}
 
 		if err = workflows.RunProblem(
-			ctx, jobQue, db, s3, problems, submission,
+			ctx, jobQue, db, s3, problems, tokens, submission,
 		); err != nil {
 			return err
 		}
