@@ -6,6 +6,7 @@ preScript:
   files:
     - poop.sh.tmpl
   scripts:
+    - echo hello
     - bash poop.sh.tmpl
 stages:
   stage1:

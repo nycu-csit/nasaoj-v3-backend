@@ -56,8 +56,8 @@ func PutProblems(
 					OriginError: err,
 				}
 			}
-			fmt.Fprintf(os.Stderr, "Insert problem '%s' with sha1 '%s'",
-				problem.Name, sha1)
+			// fmt.Fprintf(os.Stderr, "[INFO] Insert problem '%s' with sha1 '%s'\n",
+			// 	problem.Name, sha1)
 			if err := problems.InsertProblem(ctx, problem); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,

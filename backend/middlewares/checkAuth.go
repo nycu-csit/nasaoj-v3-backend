@@ -34,6 +34,7 @@ func CheckAuth(
 					OriginError: err,
 				}
 			}
+			// fmt.Fprintf(os.Stderr, "[INFO] access token accept, %v\n", privs)
 			ctx = context.WithValue(ctx, types.Privileges(""), privs)
 			return next(w, req.WithContext(ctx))
 		}

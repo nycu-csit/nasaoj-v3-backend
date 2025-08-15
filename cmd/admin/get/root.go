@@ -11,4 +11,5 @@ func init() {
 	RootCmd.AddCommand(problemsCmd)
 	RootCmd.AddCommand(toolsCmd)
 	RootCmd.AddCommand(userCmd)
+	RootCmd.AddCommand(tokensCmd)
 }

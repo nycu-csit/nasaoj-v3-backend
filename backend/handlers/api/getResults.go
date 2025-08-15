@@ -25,6 +25,7 @@ type resultOutputJob struct {
 
 type resultOutput struct {
 	Id          int64  `json:"id"`
+	ProblemSHA1 string `json:"problemSHA1"`
 	ProblemId   int64  `json:"problemId"`
 	ProblemName string `json:"problemName"`
 
@@ -148,6 +149,7 @@ func GetResults(
 
 		ret := resultOutput{
 			Id:          submission.Id,
+			ProblemSHA1: submission.ProblemSHA1,
 			ProblemId:   submission.ProblemId,
 			ProblemName: submission.ProblemName,
 

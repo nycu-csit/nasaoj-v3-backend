@@ -22,8 +22,9 @@ type problemOutputStage struct {
 }
 
 type problemOutput struct {
-	ProblemId int64  `json:"problemId"`
-	SHA1      string `json:"sha1"`
+	ProblemId  int64  `json:"problemId"`
+	SHA1       string `json:"sha1"`
+	ImportedAt int64  `json:"importedAt"`
 
 	Name        string                        `json:"name"`
 	Description string                        `json:"description"`
@@ -63,7 +64,7 @@ func getAdminProblemsPlaceholder() {}
 //	@Failure	500	{object}	string	"Problem loading error"
 //	@Router		/api/problems [get]
 func GetProblems(
-	db interfaces.Database,
+	problems interfaces.ProblemStorage,
 	isTool bool,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -83,19 +84,19 @@ func GetProblems(
 		}
 		ctx := req.Context()
 
-		var problems map[string]models.Problem
+		var resProblems map[string]models.Problem
 		var err error
 		if isAdmin {
 			if isTool {
-				problems, err = db.GetAllTools(ctx)
+				resProblems, err = problems.GetAllTools(ctx)
 			} else {
-				problems, err = db.GetAllProblems(ctx)
+				resProblems, err = problems.GetAllProblems(ctx)
 			}
 		} else {
 			if isTool {
-				problems, err = db.GetTools(ctx)
+				resProblems, err = problems.GetTools(ctx)
 			} else {
-				problems, err = db.GetProblems(ctx)
+				resProblems, err = problems.GetProblems(ctx)
 			}
 		}
 		if err != nil {
@@ -107,10 +108,11 @@ func GetProblems(
 		}
 
 		ret := []problemOutput{}
-		for sha1, problem := range problems {
+		for sha1, problem := range resProblems {
 			retProblem := problemOutput{
 				Name:        problem.Name,
 				SHA1:        sha1,
+				ImportedAt:  problem.ImportedAt,
 				ProblemId:   problem.ProblemId,
 				Description: problem.Description,
 				Stages:      make(map[string]problemOutputStage),
@@ -134,8 +136,6 @@ func GetProblems(
 			ret = append(ret, retProblem)
 		}
 
-		w.WriteHeader(http.StatusOK)
-		bunrouter.JSON(w, ret)
-		return nil
+		return bunrouter.JSON(w, ret)
 	}
 }

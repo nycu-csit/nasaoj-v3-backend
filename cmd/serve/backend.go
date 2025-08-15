@@ -102,10 +102,14 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIRead: models.ScopeSelf,
 			}))
+		apiReadGroup.GET("/problem",
+			apiHandlers.GetProblem(problems, false))
 		apiReadGroup.GET("/problems",
-			apiHandlers.GetProblems(db, false, false))
+			apiHandlers.GetProblems(problems, false, false))
+		apiReadGroup.GET("/tool",
+			apiHandlers.GetProblem(problems, true))
 		apiReadGroup.GET("/tools",
-			apiHandlers.GetProblems(db, true, false))
+			apiHandlers.GetProblems(problems, true, false))
 		apiReadGroup.GET("/stdout",
 			apiHandlers.GetOutput(db, mc, "stdout", false))
 		apiReadGroup.GET("/results",
@@ -144,9 +148,11 @@ var backendCmd = &cobra.Command{
 		apiAdminReadGroup.GET("/results",
 			apiHandlers.GetResults(db, true))
 		apiAdminReadGroup.GET("/problems",
-			apiHandlers.GetProblems(db, false, true))
+			apiHandlers.GetProblems(problems, false, true))
 		apiAdminReadGroup.GET("/tools",
-			apiHandlers.GetProblems(db, true, true))
+			apiHandlers.GetProblems(problems, true, true))
+		apiAdminReadGroup.GET("/tokens",
+			apiHandlers.GetTokens(tokens))
 
 		apiAdminWriteGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -166,6 +172,7 @@ var backendCmd = &cobra.Command{
 			apiHandlers.DeleteToken(tokens))
 
 		scheduleGroup := backend.NewGroup("/schedule").
+			Use(middlewares.CheckAuth(db, tokens)).
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanScheduleAPI: models.ScopeAll,
 			}))

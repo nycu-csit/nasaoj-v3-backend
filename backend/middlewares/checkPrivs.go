@@ -16,6 +16,7 @@ func CheckPrivs(
 ) func(bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
+			// fmt.Fprintf(os.Stderr, "[INFO] Context: %v\n", req.Context())
 			privs, ok := req.Context().
 				Value(types.Privileges("")).(models.Privileges)
 			if !ok {

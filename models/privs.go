@@ -17,6 +17,11 @@ type Privileges struct {
 	CanScheduleAPI int `json:"canScheduleAPI"`
 }
 
+type Token struct {
+	SHA256 string     `json:"sha256"`
+	Privs  Privileges `json:"privs"`
+}
+
 func NewWorkerPrivs() Privileges {
 	return Privileges{
 		CanScheduleAPI: ScopeAll,

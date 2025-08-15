@@ -2,6 +2,8 @@ package implements
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
@@ -20,11 +22,27 @@ func NewMapTokenStorage() *MapTokenStorage {
 	}
 }
 
+func (self *MapTokenStorage) GetTokens(
+	_ context.Context,
+) ([]models.Token, error) {
+	ret := []models.Token{}
+	for sha, privs := range self.data {
+		ret = append(ret, models.Token{
+			SHA256: sha,
+			Privs:  privs,
+		})
+	}
+	return ret, nil
+}
+
 func (self *MapTokenStorage) GetPrivs(
 	_ context.Context,
 	token string,
 ) (models.Privileges, error) {
-	ret, ok := self.data[token]
+	h := sha256.Sum256([]byte(token))
+	key := hex.EncodeToString(h[:])
+
+	ret, ok := self.data[key]
 	if !ok {
 		return models.Privileges{},
 			fmt.Errorf("token '%s' not exist", token)
@@ -51,14 +69,17 @@ func (self *MapTokenStorage) GenerateTokenWithoutExpire(
 		return "", fmt.Errorf("string generate failed, %w", err)
 	}
 
-	self.data[token] = privs
+	h := sha256.Sum256([]byte(token))
+	key := hex.EncodeToString(h[:])
+
+	self.data[key] = privs
 	return token, nil
 }
 
 func (self *MapTokenStorage) DisableToken(
 	_ context.Context,
-	token string,
+	key string,
 ) error {
-	delete(self.data, token)
+	delete(self.data, key)
 	return nil
 }

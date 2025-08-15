@@ -485,6 +485,7 @@ func (self *BunDatabase) InsertProblem(
 	if err != nil {
 		return err
 	}
+
 	_, err = self.db.NewInsert().Model(&problemMarshaled).
 		On("CONFLICT (sha1) DO NOTHING").
 		Exec(ctx)

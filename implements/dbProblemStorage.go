@@ -37,6 +37,18 @@ func (self *DBProblemStorage) InsertProblem(
 	return self.db.InsertProblem(ctx, problem)
 }
 
+func (self *DBProblemStorage) GetProblems(
+	ctx context.Context,
+) (map[string]models.Problem, error) {
+	return self.db.GetProblems(ctx)
+}
+
+func (self *DBProblemStorage) GetTools(
+	ctx context.Context,
+) (map[string]models.Tool, error) {
+	return self.db.GetTools(ctx)
+}
+
 func (self *DBProblemStorage) GetAllProblems(
 	ctx context.Context,
 ) (map[string]models.Problem, error) {

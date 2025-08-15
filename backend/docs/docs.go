@@ -405,6 +405,30 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/tokens": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Token"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/tools": {
             "get": {
                 "produces": [
@@ -524,6 +548,36 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "missing credential",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/problem": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "problem sha1",
+                        "name": "problemSHA1",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.problemOutput"
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading failed",
                         "schema": {
                             "type": "string"
                         }
@@ -759,6 +813,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/tool": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "problem sha1",
+                        "name": "problemSHA1",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.problemOutput"
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/tools": {
             "get": {
                 "produces": [
@@ -896,6 +980,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "importedAt": {
+                    "type": "integer"
+                },
                 "isEnabled": {
                     "type": "boolean"
                 },
@@ -966,6 +1053,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "problemName": {
+                    "type": "string"
+                },
+                "problemSHA1": {
                     "type": "string"
                 },
                 "score": {
@@ -1222,6 +1312,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "importedAt": {
+                    "type": "integer"
+                },
                 "isTool": {
                     "type": "boolean"
                 },
@@ -1312,6 +1405,17 @@ const docTemplate = `{
                 },
                 "softTL": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.Token": {
+            "type": "object",
+            "properties": {
+                "privs": {
+                    "$ref": "#/definitions/models.Privileges"
+                },
+                "sha256": {
+                    "type": "string"
                 }
             }
         },

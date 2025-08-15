@@ -36,6 +36,8 @@ definitions:
     properties:
       description:
         type: string
+      importedAt:
+        type: integer
       isEnabled:
         type: boolean
       name:
@@ -82,6 +84,8 @@ definitions:
       problemId:
         type: integer
       problemName:
+        type: string
+      problemSHA1:
         type: string
       score:
         type: integer
@@ -251,6 +255,8 @@ definitions:
         type: object
       description:
         type: string
+      importedAt:
+        type: integer
       isTool:
         type: boolean
       name:
@@ -311,6 +317,13 @@ definitions:
         type: array
       softTL:
         type: integer
+    type: object
+  models.Token:
+    properties:
+      privs:
+        $ref: '#/definitions/models.Privileges'
+      sha256:
+        type: string
     type: object
   models.UserResource:
     properties:
@@ -594,6 +607,21 @@ paths:
           description: Unauthorized
           schema:
             type: string
+  /api/admin/tokens:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Token'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
   /api/admin/tools:
     get:
       produces:
@@ -671,6 +699,25 @@ paths:
             $ref: '#/definitions/api.MeOutput'
         "401":
           description: missing credential
+          schema:
+            type: string
+  /api/problem:
+    get:
+      parameters:
+      - description: problem sha1
+        in: query
+        name: problemSHA1
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.problemOutput'
+        "500":
+          description: Problem loading failed
           schema:
             type: string
   /api/problems:
@@ -817,6 +864,25 @@ paths:
             type: string
         "429":
           description: Too Many Requests
+          schema:
+            type: string
+  /api/tool:
+    get:
+      parameters:
+      - description: problem sha1
+        in: query
+        name: problemSHA1
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.problemOutput'
+        "500":
+          description: Problem loading failed
           schema:
             type: string
   /api/tools:

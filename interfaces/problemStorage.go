@@ -22,6 +22,14 @@ type ProblemStorage interface {
 		problem models.Problem,
 	) error
 
+	GetProblems(
+		ctx context.Context,
+	) (map[string]models.Problem, error)
+
+	GetTools(
+		ctx context.Context,
+	) (map[string]models.Tool, error)
+
 	GetAllProblems(
 		ctx context.Context,
 	) (map[string]models.Problem, error)

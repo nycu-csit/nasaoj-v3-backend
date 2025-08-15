@@ -179,6 +179,8 @@ var RootCmd = &cobra.Command{
 			)
 		}
 
+		fmt.Fprintf(os.Stderr, "===== PreRun End =====\n")
+
 		ctx = context.WithValue(ctx, types.RestyClient(""), client)
 		cmd.SetContext(ctx)
 		return nil
