@@ -128,7 +128,7 @@ func PostSubmit(
 			}
 
 			problemSHA1 = input.ProblemSHA1
-			problem, err = problems.GetProblem(ctx, problemSHA1)
+			problem, err = problems.GetProblemOrTool(ctx, problemSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -146,6 +146,13 @@ func PostSubmit(
 				}
 			}
 			resource = claim.Resource
+		}
+
+		if !problem.IsEnabled {
+			return middlewares.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				Message:    "problem not enabled",
+			}
 		}
 
 		// Check last submission

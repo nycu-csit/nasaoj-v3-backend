@@ -17,6 +17,17 @@ definitions:
       token:
         type: string
     type: object
+  api.PutContentFilesInput:
+    properties:
+      isTemplate:
+        type: boolean
+      name:
+        type: string
+      payload:
+        type: string
+      sha1:
+        type: string
+    type: object
   api.PutProblemStateInput:
     properties:
       isEnabled:
@@ -244,6 +255,8 @@ definitions:
         type: integer
       canScheduleAPI:
         type: integer
+      canUserArgsWrite:
+        type: integer
       ownerCsId:
         type: string
     type: object
@@ -360,6 +373,28 @@ info:
   title: NASAOJ v3
   version: "2.0"
 paths:
+  /api/admin/content-files:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: content files
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/api.PutContentFilesInput'
+          type: array
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
   /api/admin/problem-state:
     put:
       consumes:
@@ -898,6 +933,28 @@ paths:
             type: array
         "500":
           description: Tool loading error
+          schema:
+            type: string
+  /api/user:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User resource
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
           schema:
             type: string
   /auth/callback:

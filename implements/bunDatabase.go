@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"text/template"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -384,7 +385,8 @@ func (self *BunDatabase) getProblem(
 	isTool bool,
 ) (models.Problem, error) {
 	var problemMarshaled models.ProblemMarshaled
-	err := self.db.NewSelect().Model(&problemMarshaled).
+	err := self.db.NewSelect().
+		Model(&problemMarshaled).
 		Where("sha1 = ?", sha1).
 		Where("is_tool = ?", isTool).
 		Scan(ctx)
@@ -407,6 +409,22 @@ func (self *BunDatabase) GetTool(
 	sha1 string,
 ) (models.Problem, error) {
 	return self.getProblem(ctx, sha1, true)
+}
+
+func (self *BunDatabase) GetProblemOrTool(
+	ctx context.Context,
+	sha1 string,
+) (models.Problem, error) {
+	var problemMarshaled models.ProblemMarshaled
+	err := self.db.NewSelect().
+		Model(&problemMarshaled).
+		Where("sha1 = ?", sha1).
+		Scan(ctx)
+	if err != nil {
+		return models.Problem{}, err
+	}
+
+	return problemMarshaled.Unmarshal()
 }
 
 // get problem without check whether it is a tool
@@ -440,6 +458,22 @@ func (self *BunDatabase) GetToolById(
 	problemId models.ProblemIdType,
 ) (models.Problem, error) {
 	return self.getProblemById(ctx, problemId, true)
+}
+
+func (self *BunDatabase) GetProblemOrToolById(
+	ctx context.Context,
+	problemId models.ProblemIdType,
+) (models.Problem, error) {
+	var problemMarshaled models.ProblemMarshaled
+	err := self.db.NewSelect().Model(&problemMarshaled).
+		Where("problem_id = ?", problemId).
+		Where("is_enabled = ?", true).
+		Scan(ctx)
+	if err != nil {
+		return models.Problem{}, err
+	}
+
+	return problemMarshaled.Unmarshal()
 }
 
 func (self *BunDatabase) getAllProblems(
@@ -486,10 +520,79 @@ func (self *BunDatabase) InsertProblem(
 		return err
 	}
 
-	_, err = self.db.NewInsert().Model(&problemMarshaled).
+	_, err = self.db.NewInsert().
+		Model(&problemMarshaled).
 		On("CONFLICT (sha1) DO NOTHING").
 		Exec(ctx)
 	return err
+}
+
+func (self *BunDatabase) InsertContentFiles(
+	ctx context.Context,
+	contentFiles []models.ContentFile,
+) error {
+	if contentFiles == nil {
+		return nil
+	}
+	_, err := self.db.NewInsert().
+		Model(&contentFiles).
+		On("CONFLICT (sha1) DO NOTHING").
+		Exec(ctx)
+	return err
+}
+
+func (self *BunDatabase) GetContentFiles(
+	ctx context.Context,
+	sha1s []string,
+) ([]models.ContentFile, error) {
+	var res []models.ContentFile
+	err := self.db.NewSelect().
+		Model(&res).
+		Where("sha1 IN (?)", bun.In(sha1s)).
+		Scan(ctx)
+	if err != nil {
+		return []models.ContentFile{},
+			fmt.Errorf("content files select failed, %w", err)
+	}
+
+	var ret []models.ContentFile
+	for _, contentFile := range res {
+		if contentFile.IsTemplate {
+			contentFile.Template, err = template.New(contentFile.Name).
+				Parse(contentFile.Payload)
+			if err != nil {
+				return []models.ContentFile{},
+					fmt.Errorf("templating failed, %w", err)
+			}
+		}
+		ret = append(ret, contentFile)
+	}
+	return ret, nil
+}
+
+func (self *BunDatabase) GetAllContentFiles(
+	ctx context.Context,
+) ([]models.ContentFile, error) {
+	var ret []models.ContentFile
+	err := self.db.NewSelect().
+		Model(&ret).
+		Scan(ctx)
+	if err != nil {
+		return []models.ContentFile{},
+			fmt.Errorf("content files select failed, %w", err)
+	}
+
+	for i, contentFile := range ret {
+		if contentFile.IsTemplate {
+			ret[i].Template, err = template.New(contentFile.Name).
+				Parse(contentFile.Payload)
+			if err != nil {
+				return []models.ContentFile{},
+					fmt.Errorf("templating failed, %w", err)
+			}
+		}
+	}
+	return ret, nil
 }
 
 func (self *BunDatabase) InsertTool(
@@ -541,4 +644,67 @@ func (self *BunDatabase) UpdateTool(
 	enable bool,
 ) error {
 	return self.UpdateProblem(ctx, sha1, enable)
+}
+
+func (self *BunDatabase) HydrateContentFiles(
+	ctx context.Context,
+	contentFiles *[]models.ContentFile,
+) error {
+	var sha1s []string
+	for _, file := range *contentFiles {
+		sha1s = append(sha1s, file.SHA1)
+	}
+
+	res, err := self.GetContentFiles(ctx, sha1s)
+	if err != nil {
+		return fmt.Errorf("get content files failed, %w", err)
+	}
+	// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", res)
+	*contentFiles = res
+	return nil
+}
+
+func (self *BunDatabase) HydrateProblem(
+	ctx context.Context,
+	problem *models.Problem,
+) error {
+	if err := self.HydrateContentFiles(
+		ctx, &problem.PreScript.Files); err != nil {
+		return fmt.Errorf("hydrate problem prescript failed, %w", err)
+	}
+	if err := self.HydrateContentFiles(
+		ctx, &problem.PostScript.Files); err != nil {
+		return fmt.Errorf("hydrate problem postscript failed, %w", err)
+	}
+
+	for stageName, stage := range problem.Stages {
+		if err := self.HydrateContentFiles(
+			ctx, &stage.PreScript.Files); err != nil {
+			return fmt.Errorf("hydrate stage prescript failed, %w", err)
+		}
+		if err := self.HydrateContentFiles(
+			ctx, &stage.PostScript.Files); err != nil {
+			return fmt.Errorf("hydrate stage postscript failed, %w", err)
+		}
+
+		for i := range stage.Testcases {
+			if err := self.HydrateContentFiles(ctx,
+				&stage.Testcases[i].Content.Files); err != nil {
+				return fmt.Errorf("hydrate content files failed, %w", err)
+			}
+		}
+		problem.Stages[stageName] = stage
+	}
+	return nil
+}
+
+func (self *BunDatabase) EnableAllProblem(
+	ctx context.Context,
+) error {
+	_, err := self.db.NewUpdate().
+		Model((*models.ProblemMarshaled)(nil)).
+		Set("is_enabled = ?", true).
+		Where("is_enabled = ?", false).
+		Exec(ctx)
+	return err
 }

@@ -15,4 +15,6 @@ func init() {
 		String("problems-dir", "./problems", "Directory to read problems")
 	RootCmd.PersistentFlags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
+	RootCmd.PersistentFlags().
+		String("tools-dir", "./tools", "Directory to read tools")
 }

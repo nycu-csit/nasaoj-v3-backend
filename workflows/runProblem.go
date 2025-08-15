@@ -20,7 +20,7 @@ func RunProblem(
 
 	submission models.Submission,
 ) error {
-	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
 	if err != nil {
 		return fmt.Errorf("problem with sha1 '%s' not exist, %w",
 			submission.ProblemSHA1, err)

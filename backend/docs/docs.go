@@ -19,6 +19,41 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/content-files": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "content files",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutContentFilesInput"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/problem-state": {
             "put": {
                 "consumes": [
@@ -867,6 +902,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/user": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "User resource",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/callback": {
             "get": {
                 "description": "Oauth callback endpoint",
@@ -947,6 +1017,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PutContentFilesInput": {
+            "type": "object",
+            "properties": {
+                "isTemplate": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "payload": {
+                    "type": "string"
+                },
+                "sha1": {
                     "type": "string"
                 }
             }
@@ -1293,6 +1380,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "canScheduleAPI": {
+                    "type": "integer"
+                },
+                "canUserArgsWrite": {
                     "type": "integer"
                 },
                 "ownerCsId": {

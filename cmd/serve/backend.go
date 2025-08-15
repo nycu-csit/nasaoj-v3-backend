@@ -128,6 +128,13 @@ var backendCmd = &cobra.Command{
 		apiWriteGroup.POST("/submit",
 			apiHandlers.PostSubmit(db, jobQue, s3, problems, tokens, false))
 
+		apiUserArgsGroup := apiGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanUserArgsWrite: models.ScopeSelf,
+			}))
+		apiUserArgsGroup.PUT("/user",
+			apiHandlers.PutUser(db))
+
 		apiAdminGroup := apiGroup.NewGroup("/admin")
 		apiAdminReadGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -160,6 +167,8 @@ var backendCmd = &cobra.Command{
 			}))
 		apiAdminWriteGroup.PUT("/problems",
 			apiHandlers.PutProblems(problems))
+		apiAdminWriteGroup.PUT("/content-files",
+			apiHandlers.PutContentFiles(problems))
 		apiAdminWriteGroup.PUT("/problem-state",
 			apiHandlers.PutProblemState(problems))
 		apiAdminWriteGroup.PUT("/users",

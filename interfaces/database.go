@@ -120,6 +120,21 @@ type Database interface {
 		problemId models.ProblemIdType,
 	) (models.Problem, error)
 
+	GetProblemOrToolById(
+		ctx context.Context,
+		problemId models.ProblemIdType,
+	) (models.Problem, error)
+
+	GetProblemOrTool(
+		ctx context.Context,
+		sha1 string,
+	) (models.Problem, error)
+
+	HydrateProblem(
+		ctx context.Context,
+		problm *models.Problem,
+	) error
+
 	GetProblems(
 		ctx context.Context,
 	) (map[string]models.Problem, error)
@@ -133,10 +148,30 @@ type Database interface {
 		problem models.Problem,
 	) error
 
-	UpdateProblem( // Update state of is_enabled
+	InsertContentFiles(
+		ctx context.Context,
+		contentFiles []models.ContentFile,
+	) error
+
+	GetContentFiles(
+		ctx context.Context,
+		sha1s []string,
+	) ([]models.ContentFile, error)
+
+	GetAllContentFiles(
+		ctx context.Context,
+	) ([]models.ContentFile, error)
+
+	// Update state of is_enabled
+	UpdateProblem(
 		ctx context.Context,
 		sha1 string,
 		enable bool,
+	) error
+
+	// For testing purpose
+	EnableAllProblem(
+		ctx context.Context,
 	) error
 
 	GetTool(

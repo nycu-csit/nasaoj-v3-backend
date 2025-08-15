@@ -12,9 +12,10 @@ var (
 type Privileges struct {
 	OwnerCsId string `json:"ownerCsId"`
 
-	CanAPIRead     int `json:"canAPIRead"`
-	CanAPIWrite    int `json:"canAPIWrite"`
-	CanScheduleAPI int `json:"canScheduleAPI"`
+	CanAPIRead       int `json:"canAPIRead"`
+	CanAPIWrite      int `json:"canAPIWrite"`
+	CanUserArgsWrite int `json:"canUserArgsWrite"`
+	CanScheduleAPI   int `json:"canScheduleAPI"`
 }
 
 type Token struct {
@@ -25,6 +26,13 @@ type Token struct {
 func NewWorkerPrivs() Privileges {
 	return Privileges{
 		CanScheduleAPI: ScopeAll,
+	}
+}
+
+func NewJobPrivs(owner string) Privileges {
+	return Privileges{
+		OwnerCsId:        owner,
+		CanUserArgsWrite: ScopeSelf,
 	}
 }
 

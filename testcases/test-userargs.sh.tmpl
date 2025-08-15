@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+set -o errexit
+
+randomString="$(openssl rand -base64 24)"
+echo "random string: $randomString"
+
+curl http://backend:8080/api/user -X PUT \
+  --fail --no-progress-meter \
+  -H 'Authorization: Bearer {{ .jobToken }}' \
+  --json "{\"poop\": \"$randomString\"}"

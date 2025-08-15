@@ -32,7 +32,7 @@ func HandleStageDone(
 		return fmt.Errorf("get submission failed, %w", err)
 	}
 
-	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
 	if err != nil {
 		return fmt.Errorf("problem with sha1 '%s' not exist",
 			submission.ProblemSHA1)

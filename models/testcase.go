@@ -9,8 +9,8 @@ import (
 type ContentFile struct {
 	bun.BaseModel `bun:"table:content_file"`
 
-	Name       string `json:"name" bun:"name"`
 	SHA1       string `json:"sha1" bun:"sha1,pk"`
+	Name       string `json:"name" bun:"name"`
 	Payload    string `json:"-" bun:"payload"`
 	IsTemplate bool   `json:"-" bun:"is_template"`
 

@@ -56,7 +56,7 @@ func (self *MapTokenStorage) GenerateToken(
 	_ time.Duration,
 ) (string, error) {
 	fmt.Fprintf(os.Stderr,
-		"[WARN] tokens with expiration are not supported in this mode")
+		"[WARN] tokens with expiration are not supported in this mode\n")
 	return self.GenerateTokenWithoutExpire(ctx, privs)
 }
 

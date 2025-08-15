@@ -28,6 +28,7 @@ func WriteTar(
 					return fmt.Errorf("template execute failed, %w", err)
 				}
 				b = buf.Bytes()
+				// fmt.Fprintf(os.Stderr, "[DEBUG] %s\n", string(b[:]))
 			} else {
 				b = []byte(file.Payload)
 			}

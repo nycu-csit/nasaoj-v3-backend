@@ -16,7 +16,7 @@ var migrator *migrate.Migrator
 
 var RootCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "NASAOJ - Migration related commands",
+	Short: "Migration related commands",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
 			viper.GetString("pg-connection-string"))))

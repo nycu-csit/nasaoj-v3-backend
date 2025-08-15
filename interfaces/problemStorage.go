@@ -17,6 +17,16 @@ type ProblemStorage interface {
 		sha1 string,
 	) (models.Tool, error)
 
+	GetProblemOrTool(
+		ctx context.Context,
+		sha1 string,
+	) (models.Problem, error)
+
+	GetProblemOrToolById(
+		ctx context.Context,
+		problemId models.ProblemIdType,
+	) (models.Problem, error)
+
 	InsertProblem(
 		ctx context.Context,
 		problem models.Problem,
@@ -42,5 +52,24 @@ type ProblemStorage interface {
 		ctx context.Context,
 		sha1 string,
 		isEnabled bool,
+	) error
+
+	InsertContentFiles(
+		ctx context.Context,
+		contentfiles []models.ContentFile,
+	) error
+
+	GetContentFiles(
+		ctx context.Context,
+		sha1s []string,
+	) ([]models.ContentFile, error)
+
+	GetAllContentFiles(
+		ctx context.Context,
+	) ([]models.ContentFile, error)
+
+	HydrateProblem(
+		ctx context.Context,
+		problem *models.Problem,
 	) error
 }
