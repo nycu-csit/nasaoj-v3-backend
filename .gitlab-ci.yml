@@ -2,6 +2,7 @@
 stages:
   - build
   - test
+  - package
   - deploy
 
 build:
@@ -19,6 +20,7 @@ build:
   artifacts:
     paths:
       - judge
+    expire_in: 1 week
 
 go-test:
   stage: test
@@ -53,10 +55,8 @@ variables:
 .kaniko:
   rules:
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
-  stage: deploy
+  stage: package
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/utils/kaniko
-  dependencies:
-    - build
   before_script:
     - mkdir -p /kaniko/.docker
     - |
@@ -109,9 +109,6 @@ package:backend:
     - if: $CI_COMMIT_REF_NAME == $BRANCH
   stage: deploy
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/kubectl/3.21:main
-  dependencies:
-    - package:worker
-    - package:backend
   script:
     - >-
       kubectl rollout restart deployment backend
