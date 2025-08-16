@@ -16,10 +16,11 @@ func RunProblem(
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
 ) error {
-	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
 	if err != nil {
 		return fmt.Errorf("problem with sha1 '%s' not exist, %w",
 			submission.ProblemSHA1, err)
@@ -44,7 +45,7 @@ func RunProblem(
 	// Run stages without dependency
 	for stageName := range problem.Stages {
 		if _, exist := stageDeps[stageName]; !exist {
-			err := RunStage(ctx, jobQue, db, s3, problems, submission, stageName)
+			err := RunStage(ctx, jobQue, db, s3, problems, tokens, submission, stageName)
 			if err != nil {
 				return err
 			}

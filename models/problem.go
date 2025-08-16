@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"time"
 
 	"github.com/uptrace/bun"
 )
@@ -22,8 +23,9 @@ type Problem struct {
 	PostScript  Content           `json:"postScript"`
 	Timeout     int64             `json:"timeout"`
 
-	IsTool    bool `json:"isTool"`
-	IsEnabled bool `json:"-"`
+	ImportedAt int64 `json:"importedAt"`
+	IsTool     bool  `json:"isTool"`
+	IsEnabled  bool  `json:"-"`
 }
 
 type Tool = Problem
@@ -31,19 +33,20 @@ type Tool = Problem
 type ProblemMarshaled struct {
 	bun.BaseModel `bun:"table:problem"`
 
-	SHA1    string `bun:"sha1,pk"`
-	Payload string `bun:"payload"`
-
-	ProblemId ProblemIdType `bun:"problem_id"`
-	IsTool    bool          `bun:"is_tool"`
-	IsEnabled bool          `bun:"is_enabled"`
+	SHA1       string        `bun:"sha1,pk"`
+	Payload    string        `bun:"payload"`
+	ProblemId  ProblemIdType `bun:"problem_id"`
+	ImportedAt int64         `bun:"imported_at"`
+	IsTool     bool          `bun:"is_tool"`
+	IsEnabled  bool          `bun:"is_enabled"`
 }
 
 func (self Problem) Marshal() (ProblemMarshaled, error) {
 	ret := ProblemMarshaled{
-		ProblemId: self.ProblemId,
-		IsTool:    self.IsTool,
-		IsEnabled: false,
+		ProblemId:  self.ProblemId,
+		ImportedAt: time.Now().Unix(),
+		IsTool:     self.IsTool,
+		IsEnabled:  false,
 	}
 
 	b, err := json.Marshal(self)

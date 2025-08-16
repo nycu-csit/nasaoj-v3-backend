@@ -2,7 +2,12 @@
 
 SWAG ?= ~/go/bin/swag
 
-all: swagger
+TARGET := $(shell find . -type f -name '*.go')
+
+all: judge
+
+judge: swagger $(TARGET)
+	go build
 
 swagger:
 	$(SWAG) fmt

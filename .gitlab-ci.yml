@@ -71,7 +71,7 @@ swag-test:
   before_script:
     - go install github.com/swaggo/swag/cmd/swag@v1.16.4
   script:
-    - SWAG=/go/bin/swag make
+    - SWAG=/go/bin/swag make swagger
     - |
       if ! git diff --exit-code; then
         echo "ERROR: /go/bin/swag command introduced uncommitted changes!"

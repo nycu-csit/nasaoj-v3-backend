@@ -37,6 +37,52 @@ func (self *DBProblemStorage) InsertProblem(
 	return self.db.InsertProblem(ctx, problem)
 }
 
+func (self *DBProblemStorage) InsertContentFiles(
+	ctx context.Context,
+	contentFiles []models.ContentFile,
+) error {
+	return self.db.InsertContentFiles(ctx, contentFiles)
+}
+
+func (self *DBProblemStorage) GetContentFiles(
+	ctx context.Context,
+	sha1s []string,
+) ([]models.ContentFile, error) {
+	return self.db.GetContentFiles(ctx, sha1s)
+}
+
+func (self *DBProblemStorage) GetAllContentFiles(
+	ctx context.Context,
+) ([]models.ContentFile, error) {
+	return self.db.GetAllContentFiles(ctx)
+}
+
+func (self *DBProblemStorage) GetProblems(
+	ctx context.Context,
+) (map[string]models.Problem, error) {
+	return self.db.GetProblems(ctx)
+}
+
+func (self *DBProblemStorage) GetTools(
+	ctx context.Context,
+) (map[string]models.Tool, error) {
+	return self.db.GetTools(ctx)
+}
+
+func (self *DBProblemStorage) GetProblemOrTool(
+	ctx context.Context,
+	sha1 string,
+) (models.Problem, error) {
+	return self.db.GetProblemOrTool(ctx, sha1)
+}
+
+func (self *DBProblemStorage) GetProblemOrToolById(
+	ctx context.Context,
+	problemId models.ProblemIdType,
+) (models.Problem, error) {
+	return self.db.GetProblemOrToolById(ctx, problemId)
+}
+
 func (self *DBProblemStorage) GetAllProblems(
 	ctx context.Context,
 ) (map[string]models.Problem, error) {
@@ -55,4 +101,11 @@ func (self *DBProblemStorage) PutProblemState(
 	isEnabled bool,
 ) error {
 	return self.db.UpdateProblem(ctx, sha1, isEnabled)
+}
+
+func (self *DBProblemStorage) HydrateProblem(
+	ctx context.Context,
+	problem *models.Problem,
+) error {
+	return self.db.HydrateProblem(ctx, problem)
 }

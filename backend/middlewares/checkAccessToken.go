@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -9,9 +10,8 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
-
-type AccessTokenType string
 
 func refreshAccessToken(
 	ctx context.Context,
@@ -20,39 +20,24 @@ func refreshAccessToken(
 	req bunrouter.Request,
 ) (string, error) {
 	refreshTokenClaim, ok := req.Context().
-		Value(RefreshTokenType("")).(models.RefreshTokenClaim)
+		Value(types.RefreshToken("")).(models.RefreshTokenClaim)
 	if !ok {
-		return "", HTTPError{
-			StatusCode: http.StatusUnauthorized,
-			Message:    "refresh token not exist",
-		}
+		return "", fmt.Errorf("refresh token not exist")
 	}
 
 	session, err := db.GetSession(ctx, refreshTokenClaim.CsId)
 	if err != nil {
-		return "", HTTPError{
-			StatusCode:  http.StatusUnauthorized,
-			Message:     "session not exist",
-			OriginError: err,
-		}
+		return "", fmt.Errorf("session not exist, %w", err)
 	}
 
 	user, err := db.GetUserResource(ctx, refreshTokenClaim.CsId)
 	if err != nil {
-		return "", HTTPError{
-			StatusCode:  http.StatusUnauthorized,
-			Message:     "user not exist",
-			OriginError: err,
-		}
+		return "", fmt.Errorf("user not exist, %w", err)
 	}
 
 	ret, err := session.ToAccessToken(user)
 	if err != nil {
-		return "", HTTPError{
-			StatusCode:  http.StatusUnauthorized,
-			Message:     "access token generate failed",
-			OriginError: err,
-		}
+		return "", fmt.Errorf("access token generate failed, %w", err)
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -77,6 +62,13 @@ func CheckAccessToken(
 			accessTokenCookie, err := req.Cookie("access_token")
 			if err != nil {
 				accessTokenString, err = refreshAccessToken(ctx, db, w, req)
+				if err != nil {
+					return HTTPError{
+						StatusCode:  http.StatusUnauthorized,
+						Message:     "access token refresh failed",
+						OriginError: err,
+					}
+				}
 			} else {
 				accessTokenString = accessTokenCookie.Value
 			}
@@ -88,6 +80,13 @@ func CheckAccessToken(
 				})
 			if err != nil || !token.Valid {
 				accessTokenString, err = refreshAccessToken(ctx, db, w, req)
+				if err != nil {
+					return HTTPError{
+						StatusCode:  http.StatusUnauthorized,
+						Message:     "access token refresh failed",
+						OriginError: err,
+					}
+				}
 				token, err := jwt.ParseWithClaims(accessTokenString, &claim,
 					func(*jwt.Token) (interface{}, error) {
 						return []byte(viper.GetString("ACCESS_TOKEN_SECRET")), nil
@@ -101,7 +100,10 @@ func CheckAccessToken(
 				}
 			}
 
-			ctx = context.WithValue(ctx, AccessTokenType(""), claim)
+			// fmt.Fprintf(os.Stderr, "[INFO] AccessTokenClaim: %v\n", claim)
+			// fmt.Fprintf(os.Stderr, "[INFO] Context: %v\n", ctx)
+			ctx = context.WithValue(ctx, types.AccessToken(""), claim)
+			ctx = context.WithValue(ctx, types.Privileges(""), claim.Privs)
 			return next(w, req.WithContext(ctx))
 		}
 	}

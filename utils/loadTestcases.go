@@ -25,6 +25,7 @@ func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
 			if d.IsDir() {
 				return nil
 			}
+
 			b, err := os.ReadFile(cur)
 			if err != nil {
 				return fmt.Errorf("file '%s' read failed, %w", cur, err)
@@ -34,6 +35,7 @@ func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
 			if err != nil {
 				return fmt.Errorf("parse relative path failed, %w", err)
 			}
+			fmt.Fprintf(os.Stderr, "[INFO] Found '%s'\n", name)
 
 			h := sha1.Sum(b)
 			contentFile := models.ContentFile{
@@ -54,7 +56,7 @@ func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
 			}
 			ret[name] = contentFile
 
-			fmt.Fprintf(os.Stderr, "Load testcase '%s'\n", name)
+			fmt.Fprintf(os.Stderr, "[INFO] Load testcase '%s'\n", name)
 			return nil
 		})
 	if err != nil {

@@ -48,15 +48,35 @@ var stageCmd = &cobra.Command{
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
 		problems := implements.NewDBProblemStorage(db)
+		tokens := implements.NewMapTokenStorage()
 
 		err = utils.LoadProblems(ctx, problems,
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
-			return fmt.Errorf("loca problems failed, %w", err)
+			return fmt.Errorf("load problems failed, %w", err)
 		}
 
-		problem, err := problems.GetProblem(ctx, viper.GetString("problem-sha1"))
+		err = utils.LoadProblems(ctx, problems,
+			viper.GetString("tools-dir"),
+			viper.GetString("testcases-dir"))
+		if err != nil {
+			return fmt.Errorf("load tools failed, %w", err)
+		}
+
+		if err := db.EnableAllProblem(ctx); err != nil {
+			return fmt.Errorf("enable problems failed, %w", err)
+		}
+
+		problem, err := problems.GetProblemOrToolById(
+			ctx, viper.GetInt64("problem-id"))
+		if err != nil {
+			return fmt.Errorf("problem not found, %w", err)
+		}
+		problemMarshaled, err := problem.Marshal()
+		if err != nil {
+			return fmt.Errorf("problem marshal failed, %w", err)
+		}
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -65,11 +85,12 @@ var stageCmd = &cobra.Command{
 		go workflows.WorkerThread(ctx, jobIn, jobOut)
 		go workflows.OutputThread(ctx, jobOut, jobDone)
 
-		err = workflows.RunStage(ctx, jobQue, db, s3, problems,
+		err = workflows.RunStage(ctx, jobQue, db, s3, problems, tokens,
 			models.Submission{
-				Id:        114514,
-				ProblemId: problem.ProblemId,
-				Args:      mockArgs,
+				Id:          114514,
+				ProblemId:   problem.ProblemId,
+				ProblemSHA1: problemMarshaled.SHA1,
+				Args:        mockArgs,
 			},
 			viper.GetString("stage"),
 		)
@@ -115,7 +136,7 @@ func init() {
 		String("running-dir", "/tmp/nasaoj-worker", "Directory to run worker")
 
 	stageCmd.Flags().
-		String("problem-sha1", "", "Problem SHA1 to test")
+		Int64("problem-id", 1, "Problem SHA1 to test")
 	stageCmd.MarkFlagRequired("problem-id")
 	stageCmd.Flags().
 		String("stage", "", "The stage to test")

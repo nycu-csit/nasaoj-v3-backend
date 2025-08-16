@@ -19,6 +19,41 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/content-files": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "content files",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutContentFilesInput"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/problem-state": {
             "put": {
                 "consumes": [
@@ -336,6 +371,99 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/token": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "token type",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PostTokenInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.PostTokenOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/tokens": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Token"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/tools": {
             "get": {
                 "produces": [
@@ -455,6 +583,36 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "missing credential",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/problem": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "problem sha1",
+                        "name": "problemSHA1",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.problemOutput"
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading failed",
                         "schema": {
                             "type": "string"
                         }
@@ -690,6 +848,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/tool": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "problem sha1",
+                        "name": "problemSHA1",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.problemOutput"
+                        }
+                    },
+                    "500": {
+                        "description": "Problem loading failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/tools": {
             "get": {
                 "produces": [
@@ -707,6 +895,41 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Tool loading error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "User resource",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -782,6 +1005,39 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PostTokenInput": {
+            "type": "object",
+            "properties": {
+                "tokenType": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PostTokenOutput": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PutContentFilesInput": {
+            "type": "object",
+            "properties": {
+                "isTemplate": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "payload": {
+                    "type": "string"
+                },
+                "sha1": {
+                    "type": "string"
+                }
+            }
+        },
         "api.PutProblemStateInput": {
             "type": "object",
             "properties": {
@@ -810,6 +1066,9 @@ const docTemplate = `{
             "properties": {
                 "description": {
                     "type": "string"
+                },
+                "importedAt": {
+                    "type": "integer"
                 },
                 "isEnabled": {
                     "type": "boolean"
@@ -881,6 +1140,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "problemName": {
+                    "type": "string"
+                },
+                "problemSHA1": {
                     "type": "string"
                 },
                 "score": {
@@ -1045,6 +1307,9 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "privs": {
+                    "$ref": "#/definitions/models.Privileges"
+                },
                 "resource": {
                     "$ref": "#/definitions/models.UserResource"
                 },
@@ -1105,6 +1370,26 @@ const docTemplate = `{
                 "StatusMissing"
             ]
         },
+        "models.Privileges": {
+            "type": "object",
+            "properties": {
+                "canAPIRead": {
+                    "type": "integer"
+                },
+                "canAPIWrite": {
+                    "type": "integer"
+                },
+                "canScheduleAPI": {
+                    "type": "integer"
+                },
+                "canUserArgsWrite": {
+                    "type": "integer"
+                },
+                "ownerCsId": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Problem": {
             "type": "object",
             "properties": {
@@ -1116,6 +1401,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "importedAt": {
+                    "type": "integer"
                 },
                 "isTool": {
                     "type": "boolean"
@@ -1210,6 +1498,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Token": {
+            "type": "object",
+            "properties": {
+                "privs": {
+                    "$ref": "#/definitions/models.Privileges"
+                },
+                "sha256": {
+                    "type": "string"
+                }
+            }
+        },
         "models.UserResource": {
             "type": "object",
             "properties": {
@@ -1251,14 +1550,6 @@ const docTemplate = `{
                     }
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "ApiKeyAuth": {
-            "description": "jwt=value, get it at /auth/login",
-            "type": "apiKey",
-            "name": "Cookie",
-            "in": "header"
         }
     }
 }`

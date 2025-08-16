@@ -1,5 +1,8 @@
 package types
 
 type (
-	RestyClient interface{}
+	RestyClient  string
+	AccessToken  string
+	RefreshToken string
+	Privileges   string
 )

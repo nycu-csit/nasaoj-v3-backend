@@ -10,6 +10,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
 type submissionsOutputSubmission struct {
@@ -70,15 +71,15 @@ func GetSubmissions(
 				isCsId = true
 			}
 		} else {
-			claim, ok := req.Context().
-				Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
+			privs, ok := req.Context().
+				Value(types.Privileges("")).(models.Privileges)
 			if !ok {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusUnauthorized,
-					Message:    "access token missing",
+					Message:    "privs missing",
 				}
 			}
-			csId = claim.CsId
+			csId = privs.OwnerCsId
 			isCsId = true
 		}
 

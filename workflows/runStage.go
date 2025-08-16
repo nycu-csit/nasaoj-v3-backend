@@ -18,15 +18,21 @@ func RunStage(
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
 	stageName string,
 ) error {
-	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
 	if err != nil {
 		return fmt.Errorf("problem with sha1 '%s' not exist",
 			submission.ProblemSHA1)
 	}
+	if err := problems.HydrateProblem(ctx, &problem); err != nil {
+		return fmt.Errorf("hydrate problem failed, %w", err)
+	}
+	// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", problem)
+
 	stage, ok := problem.Stages[stageName]
 	if !ok {
 		return fmt.Errorf("stage '%s' not exist", stageName)
@@ -50,8 +56,13 @@ func RunStage(
 			}
 		}
 
-		deadline := time.Now().
-			Add(time.Duration(testcase.HardTL) * time.Second).Unix()
+		duration := time.Duration(testcase.HardTL) * time.Second
+		deadline := time.Now().Add(duration).Unix()
+		jobToken, err := tokens.GenerateToken(
+			ctx, models.NewJobPrivs(submission.CsId), duration)
+		if err != nil {
+			return fmt.Errorf("token generate failed, %w", err)
+		}
 		job := models.Job{
 			SubId:     submission.Id,
 			StageName: stageName,
@@ -64,8 +75,7 @@ func RunStage(
 			SoftTL:   testcase.SoftTL,
 		}
 
-		err := db.UpdateJob(ctx, &job)
-		if err != nil {
+		if err := db.UpdateJob(ctx, &job); err != nil {
 			return fmt.Errorf("update job status failed, %w", err)
 		}
 
@@ -74,7 +84,12 @@ func RunStage(
 			problem.Args,
 			stage.Args,
 			testcase.Args,
+			map[string]string{
+				"jobToken": jobToken,
+			},
 		)
+		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", args)
+		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", contents)
 
 		var tarbuf bytes.Buffer
 		if err = utils.WriteTar(ctx, problems, &tarbuf, contents, args); err != nil {

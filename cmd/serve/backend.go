@@ -20,6 +20,7 @@ import (
 	scheduleHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
@@ -29,13 +30,8 @@ import (
 //	@version		2.0
 //	@termsOfService	http://swagger.io/terms/
 
-//	@license.name	WTFPL
-//	@BasePath		/
-
-// @Securitydefinitions.apikey	ApiKeyAuth
-// @In							header
-// @Name						Cookie
-// @Description				jwt=value, get it at /auth/login
+// @license.name	WTFPL
+// @BasePath		/
 var backendCmd = &cobra.Command{
 	Use:   "backend",
 	Short: "NASAOJ backend server",
@@ -76,10 +72,14 @@ var backendCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		s3 := implements.NewMinIOObjectStorage(mc)
 		jobQue := implements.NewRedisJobQueue(rdb)
+		tokens := implements.NewRedisTokenStorage(rdb)
 		problems := implements.NewDBProblemStorage(db)
 
 		// Initialize backend router
-		backend := bunrouter.New()
+		router := bunrouter.New()
+		backend := router.NewGroup("").
+			Use(middlewares.ErrorHandler).
+			Use(middlewares.CORSHandler)
 
 		if viper.GetBool("swagger") {
 			backend.GET("/swagger/*any",
@@ -87,73 +87,118 @@ var backendCmd = &cobra.Command{
 					httpSwagger.Handler()))
 		}
 
-		authGroup := backend.NewGroup("/auth").
-			Use(middlewares.ErrorHandler).
-			Use(middlewares.CORSHandler)
-		authGroup.GET("/login", authHandlers.GetLogin(ctx))
-		authGroup.PUT("/logout", authHandlers.PutLogout(db))
-		authGroup.GET("/callback", authHandlers.GetCallback(db))
+		authGroup := backend.NewGroup("/auth")
+		authGroup.GET("/login",
+			authHandlers.GetLogin(ctx))
+		authGroup.PUT("/logout",
+			authHandlers.PutLogout(db))
+		authGroup.GET("/callback",
+			authHandlers.GetCallback(db))
 
 		apiGroup := backend.NewGroup("/api").
-			Use(middlewares.ErrorHandler).
-			Use(middlewares.CORSHandler).
-			Use(middlewares.CheckRefreshToken(db)).
-			Use(middlewares.CheckAccessToken(db))
-		apiGroup.GET("/problems", apiHandlers.GetProblems(db, false, false))
-		apiGroup.GET("/tools", apiHandlers.GetProblems(db, true, false))
-		apiGroup.POST("/submit", apiHandlers.PostSubmit(db, jobQue,
-			s3, problems, false))
-		apiGroup.GET("/stdout", apiHandlers.GetOutput(db, mc, "stdout", false))
-		apiGroup.GET("/results", apiHandlers.GetResults(db, false))
-		apiGroup.GET("/scores",
+			Use(middlewares.CheckAuth(db, tokens))
+
+		apiReadGroup := apiGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIRead: models.ScopeSelf,
+			}))
+		apiReadGroup.GET("/problem",
+			apiHandlers.GetProblem(problems, false))
+		apiReadGroup.GET("/problems",
+			apiHandlers.GetProblems(problems, false, false))
+		apiReadGroup.GET("/tool",
+			apiHandlers.GetProblem(problems, true))
+		apiReadGroup.GET("/tools",
+			apiHandlers.GetProblems(problems, true, false))
+		apiReadGroup.GET("/stdout",
+			apiHandlers.GetOutput(db, mc, "stdout", false))
+		apiReadGroup.GET("/results",
+			apiHandlers.GetResults(db, false))
+		apiReadGroup.GET("/scores",
 			apiHandlers.GetScores(db, false))
-		apiGroup.GET("/me", apiHandlers.GetMe)
-		apiGroup.GET("/submissions", apiHandlers.GetSubmissions(db, false))
+		apiReadGroup.GET("/me",
+			apiHandlers.GetMe)
+		apiReadGroup.GET("/submissions",
+			apiHandlers.GetSubmissions(db, false))
 
-		apiAdminGroup := apiGroup.NewGroup("/admin").
-			Use(middlewares.CheckAdmin)
-		apiAdminGroup.GET("/stdout",
+		apiWriteGroup := apiGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIWrite: models.ScopeSelf,
+			}))
+		apiWriteGroup.POST("/submit",
+			apiHandlers.PostSubmit(db, jobQue, s3, problems, tokens, false))
+
+		apiUserArgsGroup := apiGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanUserArgsWrite: models.ScopeSelf,
+			}))
+		apiUserArgsGroup.PUT("/user",
+			apiHandlers.PutUser(db))
+
+		apiAdminGroup := apiGroup.NewGroup("/admin")
+		apiAdminReadGroup := apiAdminGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIRead: models.ScopeAll,
+			}))
+		apiAdminReadGroup.GET("/stdout",
 			apiHandlers.GetOutput(db, mc, "stdout", true))
-		apiAdminGroup.GET("/stderr",
+		apiAdminReadGroup.GET("/stderr",
 			apiHandlers.GetOutput(db, mc, "stderr", true))
-		apiAdminGroup.GET("/scores",
+		apiAdminReadGroup.GET("/scores",
 			apiHandlers.GetScores(db, true))
-		apiAdminGroup.GET("/user", apiHandlers.GetUser(db))
-		apiAdminGroup.GET("/users", apiHandlers.GetUsers(db))
-		apiAdminGroup.GET("/submissions", apiHandlers.GetSubmissions(db, true))
-		apiAdminGroup.GET("/results", apiHandlers.GetResults(db, true))
-		apiAdminGroup.POST("/submit",
-			apiHandlers.PostSubmit(db, jobQue, s3, problems, true))
-		apiAdminGroup.GET("/problems", apiHandlers.GetProblems(db, false, true))
-		apiAdminGroup.GET("/tools", apiHandlers.GetProblems(db, true, true))
-		apiAdminGroup.PUT("/problems", apiHandlers.PutProblems(problems))
-		apiAdminGroup.PUT("/problem-state", apiHandlers.PutProblemState(problems))
-		apiAdminGroup.PUT("/users", apiHandlers.PutUsers(db))
+		apiAdminReadGroup.GET("/user",
+			apiHandlers.GetUser(db))
+		apiAdminReadGroup.GET("/users",
+			apiHandlers.GetUsers(db))
+		apiAdminReadGroup.GET("/submissions",
+			apiHandlers.GetSubmissions(db, true))
+		apiAdminReadGroup.GET("/results",
+			apiHandlers.GetResults(db, true))
+		apiAdminReadGroup.GET("/problems",
+			apiHandlers.GetProblems(problems, false, true))
+		apiAdminReadGroup.GET("/tools",
+			apiHandlers.GetProblems(problems, true, true))
+		apiAdminReadGroup.GET("/tokens",
+			apiHandlers.GetTokens(tokens))
 
-		// Initialize scheduler router
-		scheduler := bunrouter.New()
-		scheduleGroup := scheduler.NewGroup("/schedule").
-			Use(middlewares.ErrorHandler).
-			Use(middlewares.CheckPreSharedKey)
-		scheduleGroup.GET("/job", scheduleHandlers.GetScheduleJob(db, jobQue))
-		scheduleGroup.PUT("/result", scheduleHandlers.PutScheduleResult(db,
-			jobQue, s3, problems))
+		apiAdminWriteGroup := apiAdminGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIWrite: models.ScopeAll,
+			}))
+		apiAdminWriteGroup.PUT("/problems",
+			apiHandlers.PutProblems(problems))
+		apiAdminWriteGroup.PUT("/content-files",
+			apiHandlers.PutContentFiles(problems))
+		apiAdminWriteGroup.PUT("/problem-state",
+			apiHandlers.PutProblemState(problems))
+		apiAdminWriteGroup.PUT("/users",
+			apiHandlers.PutUsers(db))
+		apiAdminWriteGroup.POST("/token",
+			apiHandlers.PostToken(tokens))
+		apiAdminWriteGroup.POST("/submit",
+			apiHandlers.PostSubmit(db, jobQue, s3, problems, tokens, true))
+		apiAdminWriteGroup.DELETE("/token",
+			apiHandlers.DeleteToken(tokens))
 
-		go func() {
-			log.Println(http.ListenAndServe(
-				":"+viper.GetString("scheduler-port"), scheduler))
-		}()
+		scheduleGroup := backend.NewGroup("/schedule").
+			Use(middlewares.CheckAuth(db, tokens)).
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanScheduleAPI: models.ScopeAll,
+			}))
+		scheduleGroup.GET("/job",
+			scheduleHandlers.GetScheduleJob(db, jobQue))
+		scheduleGroup.PUT("/result",
+			scheduleHandlers.PutScheduleResult(db, jobQue, s3, problems, tokens))
+
 		log.Println(http.ListenAndServe(
-			":"+viper.GetString("backend-port"), backend))
+			":"+viper.GetString("port"), router))
 	},
 }
 
 func init() {
 	// HTTP Server
 	backendCmd.Flags().
-		String("backend-port", "8080", "Port for backend to listen on")
-	backendCmd.Flags().
-		String("scheduler-port", "8081", "Port for scheduler to listen on")
+		String("port", "8080", "Port to listen on")
 
 	// JWT Cookies
 	backendCmd.Flags().
@@ -186,10 +231,6 @@ func init() {
 	backendCmd.Flags().
 		String("cli-oauth-redirect-url", "http://localhost:8389/auth/callback",
 			"OAuth redirect url")
-
-	// Scheduler
-	backendCmd.Flags().
-		String("preshared-key", "poop", "Pre-shared key for worker to auth")
 
 	// Postgresql
 	backendCmd.Flags().

@@ -17,6 +17,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/disable"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/enable"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/exports"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/gen"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/get"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/imports"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
@@ -126,6 +127,37 @@ func getCallback(
 	}
 }
 
+func oidcHandler(ctx context.Context, client *resty.Client) error {
+	router := bunrouter.New()
+	authGroup := router.NewGroup("/auth").
+		Use(middlewares.ErrorHandler)
+	authGroup.GET("/login", getLogin(client))
+	authGroup.GET("/callback", getCallback(ctx, client))
+
+	httpServer = &http.Server{
+		Addr:    ":" + viper.GetString("oauth2-port"),
+		Handler: http.Handler(router),
+	}
+
+	url, err := url.JoinPath(
+		fmt.Sprintf("http://localhost:%s", viper.GetString("oauth2-port")),
+		"/auth/login")
+	if err != nil {
+		return fmt.Errorf("url construction failed")
+	}
+
+	go func() {
+		fmt.Printf("URL: %s\n", url)
+		cmd := exec.Command("xdg-open", url)
+		cmd.Start()
+	}()
+
+	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+		fmt.Printf("http server failed, %v\n", err)
+	}
+	return nil
+}
+
 var RootCmd = &cobra.Command{
 	Use:   "admin",
 	Short: "Admin CLI utilities",
@@ -134,33 +166,20 @@ var RootCmd = &cobra.Command{
 		client := resty.New()
 		client.SetRedirectPolicy(resty.NoRedirectPolicy())
 
-		router := bunrouter.New()
-		authGroup := router.NewGroup("/auth").
-			Use(middlewares.ErrorHandler)
-		authGroup.GET("/login", getLogin(client))
-		authGroup.GET("/callback", getCallback(ctx, client))
-
-		httpServer = &http.Server{
-			Addr:    ":" + viper.GetString("oauth2-port"),
-			Handler: http.Handler(router),
+		if viper.GetString("access-token") == "" {
+			// Use OIDC
+			err := oidcHandler(ctx, client)
+			if err != nil {
+				return fmt.Errorf("oidc failed, %w", err)
+			}
+		} else {
+			client.SetHeader(
+				"Authorization",
+				"Bearer "+viper.GetString("access-token"),
+			)
 		}
 
-		url, err := url.JoinPath(
-			fmt.Sprintf("http://localhost:%s", viper.GetString("oauth2-port")),
-			"/auth/login")
-		if err != nil {
-			return fmt.Errorf("url construction failed")
-		}
-
-		go func() {
-			fmt.Printf("URL: %s\n", url)
-			cmd := exec.Command("xdg-open", url)
-			cmd.Start()
-		}()
-
-		if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			fmt.Printf("http server failed, %v\n", err)
-		}
+		fmt.Fprintf(os.Stderr, "===== PreRun End =====\n")
 
 		ctx = context.WithValue(ctx, types.RestyClient(""), client)
 		cmd.SetContext(ctx)
@@ -175,6 +194,9 @@ func init() {
 			"The endpoint of the backend server")
 	RootCmd.PersistentFlags().
 		String("oauth2-port", "8389", "The port that oauth2 server listens to")
+	RootCmd.PersistentFlags().
+		StringP("access-token", "a",
+			"", "The access token to use instead of oidc")
 
 	RootCmd.AddCommand(imports.RootCmd)
 	RootCmd.AddCommand(exports.RootCmd)
@@ -182,4 +204,5 @@ func init() {
 	RootCmd.AddCommand(disable.RootCmd)
 	RootCmd.AddCommand(get.RootCmd)
 	RootCmd.AddCommand(deletes.RootCmd)
+	RootCmd.AddCommand(gen.RootCmd)
 }

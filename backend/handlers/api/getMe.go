@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
 type MeOutput struct {
@@ -25,8 +26,10 @@ type MeOutput struct {
 func GetMe(w http.ResponseWriter, req bunrouter.Request) error {
 	fmt.Fprintf(os.Stderr, "GET /api/me\n")
 
+	// fmt.Fprintf(os.Stderr, "[INFO] Context: %v\n", req.Context())
+	// fmt.Fprintf(os.Stderr, "[INFO] Claim: %v\n", req.Context().Value(types.AccessToken("")))
 	claim, ok := req.Context().
-		Value(middlewares.AccessTokenType("")).(models.AccessTokenClaim)
+		Value(types.AccessToken("")).(models.AccessTokenClaim)
 	if !ok {
 		return middlewares.HTTPError{
 			StatusCode: http.StatusUnauthorized,

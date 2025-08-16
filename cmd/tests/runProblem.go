@@ -47,6 +47,7 @@ var problemCmd = &cobra.Command{
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
 		problems := implements.NewDBProblemStorage(db)
+		tokens := implements.NewMapTokenStorage()
 
 		err = utils.LoadProblems(ctx, problems,
 			viper.GetString("problems-dir"),
@@ -55,10 +56,27 @@ var problemCmd = &cobra.Command{
 			return fmt.Errorf("load problems failed, %w", err)
 		}
 
-		problem, err := problems.GetProblem(ctx, viper.GetString("problem-sha1"))
+		err = utils.LoadProblems(ctx, problems,
+			viper.GetString("tools-dir"),
+			viper.GetString("testcases-dir"))
+		if err != nil {
+			return fmt.Errorf("load tools failed, %w", err)
+		}
+
+		if err := db.EnableAllProblem(ctx); err != nil {
+			return fmt.Errorf("enable problems failed, %w", err)
+		}
+
+		problem, err := problems.GetProblemOrToolById(
+			ctx, viper.GetInt64("problem-id"))
 		if err != nil {
 			return fmt.Errorf("problem not found, %w", err)
 		}
+		problemMarshaled, err := problem.Marshal()
+		if err != nil {
+			return fmt.Errorf("problem marshal failed, %w", err)
+		}
+		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", problem)
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -88,6 +106,7 @@ var problemCmd = &cobra.Command{
 		submission := models.Submission{
 			ProblemName: problem.Name,
 			ProblemId:   problem.ProblemId,
+			ProblemSHA1: problemMarshaled.SHA1,
 
 			CsId:     "114514",
 			SubmitAt: time.Now().Unix(),
@@ -103,8 +122,8 @@ var problemCmd = &cobra.Command{
 			return fmt.Errorf("insert submission failed, %w", err)
 		}
 
-		err = workflows.RunProblem(ctx, jobQue, db, s3,
-			problems, submission)
+		err = workflows.RunProblem(
+			ctx, jobQue, db, s3, problems, tokens, submission)
 		if err != nil {
 			return fmt.Errorf("run problem failed, %w", err)
 		}
@@ -125,8 +144,8 @@ var problemCmd = &cobra.Command{
 			}
 
 			if job.Status == models.StatusSuccess {
-				err = workflows.HandleStageDone(ctx, db, jobQue, s3,
-					problems, job)
+				err = workflows.HandleStageDone(
+					ctx, db, jobQue, s3, problems, tokens, job)
 				if err != nil {
 					return fmt.Errorf("handle job done failed, %w", err)
 				}
@@ -153,8 +172,8 @@ func init() {
 		String("running-dir", "/tmp/nasaoj-worker", "Directory to run worker")
 
 	problemCmd.Flags().
-		String("problem-sha1", "", "Problem Id to test")
-	problemCmd.MarkFlagRequired("problem-sha1")
+		Int64("problem-id", 1, "Problem Id to test")
+	problemCmd.MarkFlagRequired("problem-id")
 	problemCmd.Flags().
 		Int64("buffer-size", 100, "Channel buffer size")
 	problemCmd.Flags().
