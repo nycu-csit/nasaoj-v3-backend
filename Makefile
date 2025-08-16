@@ -7,7 +7,7 @@ TARGET := $(shell find . -type f -name '*.go')
 all: judge
 
 judge: swagger $(TARGET)
-	go build
+	CGO_ENABLED=0 go build -o judge
 
 swagger:
 	$(SWAG) fmt

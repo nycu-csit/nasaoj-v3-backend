@@ -2,12 +2,12 @@ package worker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
+	"net/url"
+	"strings"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
@@ -20,64 +20,61 @@ func FetchJob(
 	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET",
-		fmt.Sprintf("%s/schedule/job?tags=%s", viper.GetString("scheduler-url"),
-			viper.GetString("tags")), nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "http new request failed\n")
-		retCh <- err
-		return
-	}
-	req.Header.Add("Authorization", "Bearer "+viper.GetString("access-token"))
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "http GET request failed\n")
-		retCh <- err
-		return
-	}
-	if res.StatusCode == http.StatusServiceUnavailable {
-		retCh <- fmt.Errorf("no job left in queue\n")
-		return
-	}
+	client := resty.New()
 
-	b, err := io.ReadAll(res.Body)
+	jobURL, err := url.JoinPath(
+		viper.GetString("scheduler-url"), "/schedule/job")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "body read failed\n")
-		retCh <- err
+		retCh <- fmt.Errorf("url construction failed, %w", err)
 		return
 	}
 
 	var job models.Job
-	err = json.Unmarshal(b, &job)
+	resp, err := client.R().
+		SetHeader("Authorization",
+			"Bearer "+viper.GetString("access-token")).
+		SetContext(ctx).
+		SetResult(&job).
+		ForceContentType("application/json").
+		SetQueryParam("tags", viper.GetString("tags")).
+		Get(jobURL)
+
+	if resp.StatusCode() == http.StatusServiceUnavailable {
+		retCh <- fmt.Errorf("no job left in queue")
+		return
+	}
+
+	if !resp.IsSuccess() {
+		retCh <- fmt.Errorf("GET %s failed, %v", jobURL, resp.Error())
+		return
+	}
+
+	fileURL, err := url.Parse(job.FileURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "json unmarshal failed\n")
+		retCh <- fmt.Errorf("file url parse failed, %w", err)
+		return
+	}
+	resp, err = client.R().
+		SetContext(ctx).
+		SetQueryString(fileURL.RawQuery).
+		Get(strings.Split(fileURL.String(), "?")[0])
+
+	if err != nil {
 		retCh <- err
 		return
 	}
 
-	req, err = http.NewRequestWithContext(ctx, "GET", job.FileURL, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "http new request failed\n")
-		retCh <- err
-		return
-	}
-	res, err = http.DefaultClient.Do(req)
-	if err != nil || res.StatusCode != http.StatusOK {
-		fmt.Fprintf(os.Stderr, "http GET request failed\n")
-		retCh <- err
-		return
-	}
-
-	b, err = io.ReadAll(res.Body)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "body read failed\n")
-		retCh <- err
+	if !resp.IsSuccess() {
+		// fmt.Fprintf(os.Stderr, "%##+v\n", resp.Request)
+		// fmt.Fprintf(os.Stderr, "%##+v\n", resp.RawResponse)
+		retCh <- fmt.Errorf("GET %s failed, %v",
+			fileURL.String(), resp.Error())
 		return
 	}
 
 	jobIn <- models.JobWithFile{
 		Job:    job,
-		Tarbuf: b,
+		Tarbuf: resp.Body(),
 	}
 	retCh <- nil
 }
