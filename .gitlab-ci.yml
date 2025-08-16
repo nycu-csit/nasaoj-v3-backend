@@ -1,13 +1,62 @@
 ---
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
+  cache:
+    - key:
+        files:
+          - go.mod
+          - go.sum
+      paths:
+        - /go/pkg/
+  script:
+    - CGO_ENABLED=0 go build -o judge
+  artifacts:
+    paths:
+      - judge
+
+go-test:
+  stage: test
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
+  script:
+    - go test ./...
+
+swag-test:
+  stage: test
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
+  before_script:
+    - go install github.com/swaggo/swag/cmd/swag@v1.16.4
+  script:
+    - SWAG=/go/bin/swag make swagger
+    - |
+      if ! git diff --exit-code; then
+        echo "ERROR: /go/bin/swag command introduced uncommitted changes!"
+        echo "Please commit the generated files or update your .gitignore."
+        git status
+        git diff
+        exit 1 # Fail the job
+      else
+        echo "No uncommitted changes detected. OpenAPI is up-to-date."
+      fi
+
 variables:
   DOCKERFILE: "Dockerfile"
-  KANIKO_CACHE_ARGS: "--cache=true --cache-copy-layers=true --cache-ttl=24h"
+  KANIKO_CACHE_ARGS: ""
   KANIKO_ADDITIONAL_ARGS: ""
   NASA_REGISTRY: "nasaoj-v3.it.cs.nycu.edu.tw"
 
 .kaniko:
-  stage: package
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+  stage: deploy
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/utils/kaniko
+  dependencies:
+    - build
   before_script:
     - mkdir -p /kaniko/.docker
     - |
@@ -42,46 +91,17 @@ variables:
   after_script:
     - rm /kaniko/.docker/config.json
 
-stages:
-  - package
-  - test
-  - deploy
-
-package_worker:
+package:worker:
+  extends: .kaniko
   variables:
     IMAGE_NAME: worker
     KANIKO_ADDITIONAL_ARGS: '--target=worker_runtime'
-  extends: .kaniko
 
-package_backend:
+package:backend:
+  extends: .kaniko
   variables:
     IMAGE_NAME: backend
     KANIKO_ADDITIONAL_ARGS: '--target=backend_runtime'
-  extends: .kaniko
-
-go-test:
-  stage: test
-  image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
-  script:
-    - go test ./...
-
-swag-test:
-  stage: test
-  image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
-  before_script:
-    - go install github.com/swaggo/swag/cmd/swag@v1.16.4
-  script:
-    - SWAG=/go/bin/swag make swagger
-    - |
-      if ! git diff --exit-code; then
-        echo "ERROR: /go/bin/swag command introduced uncommitted changes!"
-        echo "Please commit the generated files or update your .gitignore."
-        git status
-        git diff
-        exit 1 # Fail the job
-      else
-        echo "No uncommitted changes detected. OpenAPI is up-to-date."
-      fi
 
 .deploy:
   tags: [nasa]
@@ -89,6 +109,9 @@ swag-test:
     - if: $CI_COMMIT_REF_NAME == $BRANCH
   stage: deploy
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/kubectl/3.21:main
+  dependencies:
+    - package:worker
+    - package:backend
   script:
     - >-
       kubectl rollout restart deployment backend
