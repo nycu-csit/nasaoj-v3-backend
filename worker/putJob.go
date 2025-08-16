@@ -1,13 +1,12 @@
 package worker
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
+	"net/url"
 	"os"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
@@ -20,29 +19,26 @@ func PutJob(
 	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 
-	job := <-jobch
-	b, err := json.Marshal(job.Job)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "json marshal failed, %s\n", err)
-		retCh <- err
-		return
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "PUT",
-		fmt.Sprintf("%s/schedule/result", viper.GetString("scheduler-url")),
-		bytes.NewReader(b))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "http new request failed, %s\n", err)
-		retCh <- err
-		return
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization",
+	client := resty.New()
+	client.SetHeader("Authorization",
 		"Bearer "+viper.GetString("access-token"))
 
+	resultURL, err := url.JoinPath(
+		viper.GetString("scheduler-url"), "/schedule/result")
+	if err != nil {
+		retCh <- fmt.Errorf("url construction failed, %w", err)
+		return
+	}
+
+	job := <-jobch
+
 	for i := 0; i < 3; i++ {
-		res, err := http.DefaultClient.Do(req)
-		if err == nil && res.StatusCode == http.StatusOK {
+		resp, err := client.R().
+			SetContext(ctx).
+			SetBody(job.Job).
+			Put(resultURL)
+
+		if err == nil && resp.IsSuccess() {
 			retCh <- nil
 			return
 		}

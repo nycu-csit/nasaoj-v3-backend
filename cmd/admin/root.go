@@ -173,10 +173,8 @@ var RootCmd = &cobra.Command{
 				return fmt.Errorf("oidc failed, %w", err)
 			}
 		} else {
-			client.SetHeader(
-				"Authorization",
-				"Bearer "+viper.GetString("access-token"),
-			)
+			client.SetHeader("Authorization",
+				"Bearer "+viper.GetString("access-token"))
 		}
 
 		fmt.Fprintf(os.Stderr, "===== PreRun End =====\n")
