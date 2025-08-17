@@ -45,9 +45,19 @@ type Database interface {
 		isProblemId bool,
 	) ([]models.Submission, int, error)
 
+	DeleteSubmission(
+		ctx context.Context,
+		subId int64,
+	) error
+
 	GetUsers(
 		ctx context.Context,
 	) ([]models.UserResource, error)
+
+	DeleteUser(
+		ctx context.Context,
+		csId string,
+	) error
 
 	// Exist Operation
 	ExistUserResource(
@@ -146,6 +156,11 @@ type Database interface {
 	InsertProblem(
 		ctx context.Context,
 		problem models.Problem,
+	) error
+
+	DeleteProblemAndSubmissions(
+		ctx context.Context,
+		sha1 string,
 	) error
 
 	InsertContentFiles(

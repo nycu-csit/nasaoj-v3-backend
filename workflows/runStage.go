@@ -101,12 +101,6 @@ func RunStage(
 			return fmt.Errorf("put file '%s' failed, %w", job.Filename(), err)
 		}
 
-		timeout := time.Duration(job.HardTL) * time.Second
-		job.FileURL, err = s3.GetFileURL(ctx, job.Filename(), timeout)
-		if err != nil {
-			return fmt.Errorf("get file url for '%s' failed, %w", job.Filename(), err)
-		}
-
 		err = jobQue.PutJob(ctx, job, problem.Tag)
 		if err != nil {
 			return fmt.Errorf("put job to queue failed, %w", err)

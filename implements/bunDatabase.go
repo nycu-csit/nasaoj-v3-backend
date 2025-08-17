@@ -708,3 +708,49 @@ func (self *BunDatabase) EnableAllProblem(
 		Exec(ctx)
 	return err
 }
+
+func (self *BunDatabase) DeleteProblemAndSubmissions(
+	ctx context.Context,
+	sha1 string,
+) error {
+	return self.db.RunInTx(ctx, &sql.TxOptions{},
+		func(ctx context.Context, tx bun.Tx) error {
+			_, err := tx.NewDelete().
+				Model((*models.ProblemMarshaled)(nil)).
+				Where("sha1 = ?", sha1).
+				Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("delete problem failed, %w", err)
+			}
+			_, err = tx.NewDelete().
+				Model((*models.Submission)(nil)).
+				Where("problem_sha1 = ?", sha1).
+				Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("delete submissions failed, %w", err)
+			}
+			return nil
+		})
+}
+
+func (self *BunDatabase) DeleteSubmission(
+	ctx context.Context,
+	subId int64,
+) error {
+	_, err := self.db.NewDelete().
+		Model((*models.Submission)(nil)).
+		Where("id = ?", subId).
+		Exec(ctx)
+	return err
+}
+
+func (self *BunDatabase) DeleteUser(
+	ctx context.Context,
+	csId string,
+) error {
+	_, err := self.db.NewDelete().
+		Model((*models.UserResource)(nil)).
+		Where("csid = ?", csId).
+		Exec(ctx)
+	return err
+}

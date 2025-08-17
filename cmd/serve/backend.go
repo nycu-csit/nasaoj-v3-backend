@@ -179,6 +179,12 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PostSubmit(db, jobQue, s3, problems, tokens, true))
 		apiAdminWriteGroup.DELETE("/token",
 			apiHandlers.DeleteToken(tokens))
+		apiAdminWriteGroup.DELETE("/problem",
+			apiHandlers.DeleteProblem(db))
+		apiAdminWriteGroup.DELETE("/submission",
+			apiHandlers.DeleteSubmission(db))
+		apiAdminWriteGroup.DELETE("/user",
+			apiHandlers.DeleteUser(db))
 
 		scheduleGroup := backend.NewGroup("/schedule").
 			Use(middlewares.CheckAuth(db, tokens)).
@@ -186,7 +192,7 @@ var backendCmd = &cobra.Command{
 				CanScheduleAPI: models.ScopeAll,
 			}))
 		scheduleGroup.GET("/job",
-			scheduleHandlers.GetScheduleJob(db, jobQue))
+			scheduleHandlers.GetScheduleJob(db, jobQue, s3))
 		scheduleGroup.PUT("/result",
 			scheduleHandlers.PutScheduleResult(db, jobQue, s3, problems, tokens))
 
