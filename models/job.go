@@ -9,10 +9,10 @@ import (
 type JobStatus = int64
 
 const (
-	StatusBlocked JobStatus = 263
 	StatusPending JobStatus = 260
 	StatusRunning JobStatus = 261
 	StatusSuccess JobStatus = 262
+	StatusBlocked JobStatus = 263
 	StatusFailed  JobStatus = 460
 	StatusSkip    JobStatus = 461
 	StatusTimeout JobStatus = 462

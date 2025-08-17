@@ -16,6 +16,7 @@ import (
 func GetScheduleJob(
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
+	s3 interfaces.ObjectStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
@@ -37,6 +38,12 @@ func GetScheduleJob(
 				Message:     "no job left in queue",
 				OriginError: err,
 			}
+		}
+
+		timeout := time.Duration(job.HardTL) * time.Second
+		job.FileURL, err = s3.GetFileURL(ctx, job.Filename(), timeout)
+		if err != nil {
+			return fmt.Errorf("get file url for '%s' failed, %w", job.Filename(), err)
 		}
 
 		job.Deadline = time.Now().

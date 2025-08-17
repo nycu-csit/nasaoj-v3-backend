@@ -229,20 +229,20 @@ definitions:
     type: object
   models.JobStatus:
     enum:
-    - 263
     - 260
     - 261
     - 262
+    - 263
     - 460
     - 461
     - 462
     - 560
     type: integer
     x-enum-varnames:
-    - StatusBlocked
     - StatusPending
     - StatusRunning
     - StatusSuccess
+    - StatusBlocked
     - StatusFailed
     - StatusSkip
     - StatusTimeout
@@ -389,6 +389,27 @@ paths:
       responses:
         "200":
           description: success
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+  /api/admin/problem:
+    delete:
+      parameters:
+      - description: Problem SHA1
+        in: query
+        name: problemSHA1
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
           schema:
             type: string
         "401":
@@ -547,6 +568,27 @@ paths:
           description: Bad Request
         "404":
           description: Not Found
+  /api/admin/submission:
+    delete:
+      parameters:
+      - description: Submission Id
+        in: query
+        name: subId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
   /api/admin/submissions:
     get:
       parameters:
@@ -673,6 +715,26 @@ paths:
           schema:
             type: string
   /api/admin/user:
+    delete:
+      parameters:
+      - description: User CsId
+        in: query
+        name: csId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
     get:
       parameters:
       - description: User CsId to by queried

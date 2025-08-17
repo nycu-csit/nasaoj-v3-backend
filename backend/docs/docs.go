@@ -54,6 +54,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/problem": {
+            "delete": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Problem SHA1",
+                        "name": "problemSHA1",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/problem-state": {
             "put": {
                 "consumes": [
@@ -291,6 +324,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/submission": {
+            "delete": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Submission Id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/submissions": {
             "get": {
                 "parameters": [
@@ -511,6 +577,37 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "not admin or not login",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User CsId",
+                        "name": "csId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -1350,20 +1447,20 @@ const docTemplate = `{
         "models.JobStatus": {
             "type": "integer",
             "enum": [
-                263,
                 260,
                 261,
                 262,
+                263,
                 460,
                 461,
                 462,
                 560
             ],
             "x-enum-varnames": [
-                "StatusBlocked",
                 "StatusPending",
                 "StatusRunning",
                 "StatusSuccess",
+                "StatusBlocked",
                 "StatusFailed",
                 "StatusSkip",
                 "StatusTimeout",
