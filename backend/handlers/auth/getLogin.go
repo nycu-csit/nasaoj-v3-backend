@@ -59,7 +59,7 @@ func GetLogin(
 	}
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		fmt.Fprintf(os.Stderr, "GET /api/login\n")
+		fmt.Fprintf(os.Stderr, "GET /auth/login\n")
 		var expire = time.Now().Add(365 * 24 * time.Hour)
 
 		b := make([]byte, 16)
