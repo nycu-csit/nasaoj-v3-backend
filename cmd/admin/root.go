@@ -162,6 +162,16 @@ var RootCmd = &cobra.Command{
 	Use:   "admin",
 	Short: "Admin CLI utilities",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("$HOME/.config/judge")
+		viper.AddConfigPath("/etc/judge")
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				return fmt.Errorf("read config file failed, %w", err)
+			}
+		}
+
 		ctx := cmd.Context()
 		client := resty.New()
 		client.SetRedirectPolicy(resty.NoRedirectPolicy())

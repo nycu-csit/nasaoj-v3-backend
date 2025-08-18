@@ -1,0 +1,3 @@
+---
+endpoint: https://nasaoj-v3.alpha.it.cs.nycu.edu.tw
+oauth2-port: '8389'
