@@ -39,7 +39,7 @@ func GetCallback(
 		ClientID: viper.GetString("cli-oauth-client-id")})
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "GET /api/callback\n")
+		fmt.Fprintf(os.Stderr, "GET /auth/callback\n")
 
 		var err error
 		var oauth2Token *oauth2.Token

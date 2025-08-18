@@ -22,7 +22,7 @@ func PutLogout(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "PUT /api/logout\n")
+		fmt.Fprintf(os.Stderr, "PUT /auth/logout\n")
 
 		refreshTokenClaim, ok := req.Context().
 			Value(types.RefreshToken("")).(models.RefreshTokenClaim)
