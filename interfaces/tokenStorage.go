@@ -10,7 +10,7 @@ import (
 type TokenStorage interface {
 	GetTokens(
 		ctx context.Context,
-	) ([]models.Token, error)
+	) (map[string]models.Token, error)
 
 	GetPrivs(
 		ctx context.Context,

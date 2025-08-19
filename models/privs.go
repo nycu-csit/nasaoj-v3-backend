@@ -19,8 +19,8 @@ type Privileges struct {
 }
 
 type Token struct {
-	SHA256 string     `json:"sha256"`
-	Privs  Privileges `json:"privs"`
+	Privs     Privileges `json:"privs" yaml:"privs"`
+	IsEnabled bool       `json:"isEnabled" yaml:"isEnabled"`
 }
 
 func NewWorkerPrivs() Privileges {

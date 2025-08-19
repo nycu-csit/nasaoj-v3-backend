@@ -13,26 +13,19 @@ import (
 )
 
 type MapTokenStorage struct {
-	data map[string]models.Privileges
+	data map[string]models.Token
 }
 
 func NewMapTokenStorage() *MapTokenStorage {
 	return &MapTokenStorage{
-		data: make(map[string]models.Privileges),
+		data: make(map[string]models.Token),
 	}
 }
 
 func (self *MapTokenStorage) GetTokens(
 	_ context.Context,
-) ([]models.Token, error) {
-	ret := []models.Token{}
-	for sha, privs := range self.data {
-		ret = append(ret, models.Token{
-			SHA256: sha,
-			Privs:  privs,
-		})
-	}
-	return ret, nil
+) (map[string]models.Token, error) {
+	return self.data, nil
 }
 
 func (self *MapTokenStorage) GetPrivs(
@@ -47,7 +40,11 @@ func (self *MapTokenStorage) GetPrivs(
 		return models.Privileges{},
 			fmt.Errorf("token '%s' not exist", token)
 	}
-	return ret, nil
+	if !ret.IsEnabled {
+		return models.Privileges{},
+			fmt.Errorf("token is not enabled")
+	}
+	return ret.Privs, nil
 }
 
 func (self *MapTokenStorage) GenerateToken(
@@ -72,7 +69,10 @@ func (self *MapTokenStorage) GenerateTokenWithoutExpire(
 	h := sha256.Sum256([]byte(token))
 	key := hex.EncodeToString(h[:])
 
-	self.data[key] = privs
+	self.data[key] = models.Token{
+		Privs:     privs,
+		IsEnabled: true,
+	}
 	return token, nil
 }
 
@@ -80,6 +80,26 @@ func (self *MapTokenStorage) DisableToken(
 	_ context.Context,
 	key string,
 ) error {
-	delete(self.data, key)
+	token, ok := self.data[key]
+	if !ok {
+		return fmt.Errorf("token not exist")
+	}
+
+	token.IsEnabled = false
+	self.data[key] = token
+	return nil
+}
+
+func (self *MapTokenStorage) EnableToken(
+	_ context.Context,
+	key string,
+) error {
+	token, ok := self.data[key]
+	if !ok {
+		return fmt.Errorf("token not exist")
+	}
+
+	token.IsEnabled = true
+	self.data[key] = token
 	return nil
 }

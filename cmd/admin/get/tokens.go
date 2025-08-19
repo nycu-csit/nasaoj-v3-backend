@@ -7,7 +7,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gopkg.in/yaml.v2"
 )
@@ -27,7 +27,7 @@ var tokensCmd = &cobra.Command{
 			return fmt.Errorf("url construction failed, %w", err)
 		}
 
-		var res []models.Token
+		var res []apiHandlers.GetTokensOutput
 		resp, err := client.R().
 			SetResult(&res).
 			ForceContentType("application/json").

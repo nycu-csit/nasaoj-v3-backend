@@ -1,5 +1,14 @@
 basePath: /
 definitions:
+  api.GetTokensOutput:
+    properties:
+      isEnabled:
+        type: boolean
+      privs:
+        $ref: '#/definitions/models.Privileges'
+      sha256:
+        type: string
+    type: object
   api.GetWorkerStatusesOutput:
     properties:
       ip:
@@ -341,13 +350,6 @@ definitions:
         type: array
       softTL:
         type: integer
-    type: object
-  models.Token:
-    properties:
-      privs:
-        $ref: '#/definitions/models.Privileges'
-      sha256:
-        type: string
     type: object
   models.UserResource:
     properties:
@@ -704,7 +706,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Token'
+              $ref: '#/definitions/api.GetTokensOutput'
             type: array
         "401":
           description: Unauthorized

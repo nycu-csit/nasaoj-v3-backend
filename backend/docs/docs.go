@@ -517,7 +517,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Token"
+                                "$ref": "#/definitions/api.GetTokensOutput"
                             }
                         }
                     },
@@ -1115,6 +1115,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.GetTokensOutput": {
+            "type": "object",
+            "properties": {
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "privs": {
+                    "$ref": "#/definitions/models.Privileges"
+                },
+                "sha256": {
+                    "type": "string"
+                }
+            }
+        },
         "api.GetWorkerStatusesOutput": {
             "type": "object",
             "properties": {
@@ -1633,17 +1647,6 @@ const docTemplate = `{
                 },
                 "softTL": {
                     "type": "integer"
-                }
-            }
-        },
-        "models.Token": {
-            "type": "object",
-            "properties": {
-                "privs": {
-                    "$ref": "#/definitions/models.Privileges"
-                },
-                "sha256": {
-                    "type": "string"
                 }
             }
         },

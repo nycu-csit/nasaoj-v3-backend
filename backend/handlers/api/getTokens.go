@@ -8,12 +8,19 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
+
+type GetTokensOutput struct {
+	SHA256 string `json:"sha256"`
+
+	models.Token `json:",inline"`
+}
 
 // GetTokens
 //
 //	@Produce	json
-//	@Success	200	{object}	[]models.Token
+//	@Success	200	{object}	[]GetTokensOutput
 //	@Failure	401	{object}	string
 //	@Router		/api/admin/tokens [get]
 func GetTokens(
@@ -23,7 +30,7 @@ func GetTokens(
 		fmt.Fprintf(os.Stderr, "GET /api/admin/tokens\n")
 		ctx := req.Context()
 
-		ret, err := tokens.GetTokens(ctx)
+		res, err := tokens.GetTokens(ctx)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
@@ -31,6 +38,15 @@ func GetTokens(
 				OriginError: err,
 			}
 		}
+
+		ret := []GetTokensOutput{}
+		for key, token := range res {
+			ret = append(ret, GetTokensOutput{
+				SHA256: key,
+				Token:  token,
+			})
+		}
+
 		return bunrouter.JSON(w, ret)
 	}
 }
