@@ -1,0 +1,12 @@
+[Unit]
+Description=NASAOJ v3 - Worker
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/judge
+ExecStart=/root/go/bin/judge serve worker
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
