@@ -1,5 +1,25 @@
 basePath: /
 definitions:
+  api.GetTokensOutput:
+    properties:
+      isEnabled:
+        type: boolean
+      privs:
+        $ref: '#/definitions/models.Privileges'
+      sha256:
+        type: string
+    type: object
+  api.GetWorkerStatusesOutput:
+    properties:
+      ip:
+        type: string
+      lastAccess:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+    type: object
   api.MeOutput:
     properties:
       accessToken:
@@ -330,13 +350,6 @@ definitions:
         type: array
       softTL:
         type: integer
-    type: object
-  models.Token:
-    properties:
-      privs:
-        $ref: '#/definitions/models.Privileges'
-      sha256:
-        type: string
     type: object
   models.UserResource:
     properties:
@@ -693,7 +706,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Token'
+              $ref: '#/definitions/api.GetTokensOutput'
             type: array
         "401":
           description: Unauthorized
@@ -783,6 +796,21 @@ paths:
           description: success
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+  /api/admin/worker-statuses:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.GetWorkerStatusesOutput'
+            type: array
         "401":
           description: Unauthorized
           schema:

@@ -64,7 +64,7 @@ func init() {
 	workerCmd.PersistentFlags().
 		Int64("putjob-retry", 3, "How many times to retry if put job failed")
 	workerCmd.PersistentFlags().
-		String("scheduler-url", "http://localhost:8080", "Scheduler url")
+		String("scheduler-url", "http://127.0.0.1:8080", "Scheduler url")
 	workerCmd.PersistentFlags().
 		String("access-token", "", "Scheduler access token")
 	workerCmd.PersistentFlags().

@@ -73,6 +73,7 @@ var backendCmd = &cobra.Command{
 		s3 := implements.NewMinIOObjectStorage(mc)
 		jobQue := implements.NewRedisJobQueue(rdb)
 		tokens := implements.NewRedisTokenStorage(rdb)
+		workers := implements.NewRedisWorkerStatusStorage(rdb)
 		problems := implements.NewDBProblemStorage(db)
 
 		// Initialize backend router
@@ -87,7 +88,8 @@ var backendCmd = &cobra.Command{
 					httpSwagger.Handler()))
 		}
 
-		authGroup := backend.NewGroup("/auth")
+		authGroup := backend.NewGroup("/auth").
+			Use(middlewares.CacheControlHandler)
 		authGroup.GET("/login",
 			authHandlers.GetLogin(ctx))
 		authGroup.PUT("/logout",
@@ -160,6 +162,8 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetProblems(problems, true, true))
 		apiAdminReadGroup.GET("/tokens",
 			apiHandlers.GetTokens(tokens))
+		apiAdminReadGroup.GET("/worker-statuses",
+			apiHandlers.GetWorkerStatuses(workers))
 
 		apiAdminWriteGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -192,9 +196,10 @@ var backendCmd = &cobra.Command{
 				CanScheduleAPI: models.ScopeAll,
 			}))
 		scheduleGroup.GET("/job",
-			scheduleHandlers.GetScheduleJob(db, jobQue, s3))
+			scheduleHandlers.GetScheduleJob(db, jobQue, workers, s3))
 		scheduleGroup.PUT("/result",
-			scheduleHandlers.PutScheduleResult(db, jobQue, s3, problems, tokens))
+			scheduleHandlers.PutScheduleResult(
+				db, jobQue, workers, s3, problems, tokens))
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"), router))
@@ -225,7 +230,7 @@ func init() {
 	backendCmd.Flags().
 		String("web-oauth-client-secret", "", "OAuth client secret")
 	backendCmd.Flags().
-		String("web-oauth-redirect-url", "http://localhost:8080/auth/callback",
+		String("web-oauth-redirect-url", "http://127.0.0.1:8080/auth/callback",
 			"OAuth redirect url")
 	backendCmd.Flags().
 		String("cli-oauth-provider",
@@ -235,7 +240,7 @@ func init() {
 	backendCmd.Flags().
 		String("cli-oauth-client-secret", "", "OAuth client secret")
 	backendCmd.Flags().
-		String("cli-oauth-redirect-url", "http://localhost:8389/auth/callback",
+		String("cli-oauth-redirect-url", "http://127.0.0.1:8389/auth/callback",
 			"OAuth redirect url")
 
 	// Postgresql
@@ -246,7 +251,7 @@ func init() {
 
 	// Redis
 	backendCmd.Flags().
-		String("redis-host", "localhost:6379", "Redis host[:port]")
+		String("redis-host", "127.0.0.1:6379", "Redis host[:port]")
 	backendCmd.Flags().
 		String("redis-user", "nasa", "Redis user")
 	backendCmd.Flags().
@@ -256,7 +261,7 @@ func init() {
 
 	// MinIO
 	backendCmd.Flags().
-		String("minio-host", "localhost:9000", "MinIO host[:port]")
+		String("minio-host", "127.0.0.1:9000", "MinIO host[:port]")
 	backendCmd.Flags().
 		String("minio-bucket", "nasaoj", "MinIO bucket")
 	backendCmd.Flags().

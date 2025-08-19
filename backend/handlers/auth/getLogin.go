@@ -73,10 +73,13 @@ func GetLogin(
 
 		if req.URL.Query().Get("source") == "cli" {
 			w.Header().Set("Location", cliOAuth2Config.AuthCodeURL(state))
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "success")
 		} else {
 			w.Header().Set("Location", webOAuth2Config.AuthCodeURL(state))
+			w.WriteHeader(http.StatusFound)
+			fmt.Fprintf(w, "302 Found")
 		}
-		w.WriteHeader(http.StatusFound)
 		return nil
 	}
 }

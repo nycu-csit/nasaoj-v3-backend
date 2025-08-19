@@ -42,13 +42,23 @@ func getLogin(
 		}
 
 		resp, err := client.R().
-			SetQueryString("source=cli").
+			SetQueryParam("source", "cli").
 			Get(url)
-		if resp.StatusCode() != http.StatusFound && err != nil {
+		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
 				Message:     "GET /auth/login failed",
 				OriginError: err,
+			}
+		}
+
+		if !resp.IsSuccess() {
+			fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.Request)
+			fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.RawResponse)
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "resp.IsSuccess failed",
+				OriginError: fmt.Errorf("%s", string(resp.Body()[:])),
 			}
 		}
 
@@ -60,7 +70,7 @@ func getLogin(
 			}
 		}
 		for _, cookie := range resp.Cookies() {
-			fmt.Fprintf(os.Stderr, "[INFO] apply cookie '%s'\n", cookie.Name)
+			// fmt.Fprintf(os.Stderr, "[DEBUG] apply cookie '%s'\n", cookie.Name)
 			http.SetCookie(w, cookie)
 		}
 
@@ -91,11 +101,19 @@ func getCallback(
 			SetQueryString(req.URL.RawQuery + "&source=cli").
 			Get(url)
 
-		if resp.StatusCode() != http.StatusFound {
+		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
 				Message:     "GET /auth/callback failed",
 				OriginError: err,
+			}
+		}
+
+		if !resp.IsSuccess() {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "resp.IsSuccess failed",
+				OriginError: fmt.Errorf("%s", string(resp.Body()[:])),
 			}
 		}
 
@@ -111,7 +129,7 @@ func getCallback(
 					OriginError: err,
 				}
 			}
-			fmt.Fprintf(os.Stderr, "[INFO] apply cookie '%s'\n", cookie.Name)
+			// fmt.Fprintf(os.Stderr, "[DEBUG] apply cookie '%s'\n", cookie.Name)
 			client.SetCookie(cookie)
 		}
 
@@ -130,7 +148,8 @@ func getCallback(
 func oidcHandler(ctx context.Context, client *resty.Client) error {
 	router := bunrouter.New()
 	authGroup := router.NewGroup("/auth").
-		Use(middlewares.ErrorHandler)
+		Use(middlewares.ErrorHandler).
+		Use(middlewares.CacheControlHandler)
 	authGroup.GET("/login", getLogin(client))
 	authGroup.GET("/callback", getCallback(ctx, client))
 
@@ -140,14 +159,14 @@ func oidcHandler(ctx context.Context, client *resty.Client) error {
 	}
 
 	url, err := url.JoinPath(
-		fmt.Sprintf("http://localhost:%s", viper.GetString("oauth2-port")),
+		"http://127.0.0.1:"+viper.GetString("oauth2-port"),
 		"/auth/login")
 	if err != nil {
 		return fmt.Errorf("url construction failed")
 	}
 
 	go func() {
-		fmt.Printf("URL: %s\n", url)
+		fmt.Printf("[INFO] Open URL: %s\n", url)
 		cmd := exec.Command("xdg-open", url)
 		cmd.Start()
 	}()
@@ -172,9 +191,16 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
+		fmt.Fprintf(os.Stderr, "[INFO] Using endpoint: %s\n",
+			viper.GetString("endpoint"))
+
 		ctx := cmd.Context()
 		client := resty.New()
 		client.SetRedirectPolicy(resty.NoRedirectPolicy())
+		client.SetRetryCount(3)
+		client.AddRetryCondition(func(r *resty.Response, err error) bool {
+			return err != nil || !r.IsSuccess()
+		})
 
 		if viper.GetString("access-token") == "" {
 			// Use OIDC
@@ -183,8 +209,7 @@ var RootCmd = &cobra.Command{
 				return fmt.Errorf("oidc failed, %w", err)
 			}
 		} else {
-			client.SetHeader("Authorization",
-				"Bearer "+viper.GetString("access-token"))
+			client.SetAuthToken(viper.GetString("access-token"))
 		}
 
 		fmt.Fprintf(os.Stderr, "===== PreRun End =====\n")
@@ -198,7 +223,7 @@ var RootCmd = &cobra.Command{
 func init() {
 	RootCmd.PersistentFlags().
 		StringP("endpoint", "e",
-			"http://localhost:8080",
+			"http://127.0.0.1:8080",
 			"The endpoint of the backend server")
 	RootCmd.PersistentFlags().
 		String("oauth2-port", "8389", "The port that oauth2 server listens to")

@@ -149,9 +149,14 @@ func GetCallback(
 			SameSite: http.SameSiteLaxMode,
 		})
 
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
-
+		if req.URL.Query().Get("source") == "cli" {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "success")
+		} else {
+			w.Header().Set("Location", "/")
+			w.WriteHeader(http.StatusFound)
+			fmt.Fprintf(w, "302 Found")
+		}
 		return nil
 	}
 }

@@ -13,6 +13,10 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
+var (
+	tokenKey = "token"
+)
+
 type RedisTokenStorage struct {
 	rdb *redis.Client
 }
@@ -23,24 +27,21 @@ func NewRedisTokenStorage(rdb *redis.Client) *RedisTokenStorage {
 
 func (self *RedisTokenStorage) GetTokens(
 	ctx context.Context,
-) ([]models.Token, error) {
+) (map[string]models.Token, error) {
 	res, err := self.rdb.HGetAll(ctx, "token").Result()
 	if err != nil {
-		return []models.Token{},
+		return map[string]models.Token{},
 			fmt.Errorf("HGETALL failed, %w", err)
 	}
 
-	ret := []models.Token{}
+	ret := make(map[string]models.Token)
 	for sha, payload := range res {
-		var privs models.Privileges
-		if err := json.Unmarshal([]byte(payload), &privs); err != nil {
-			return []models.Token{},
+		var token models.Token
+		if err := json.Unmarshal([]byte(payload), &token); err != nil {
+			return map[string]models.Token{},
 				fmt.Errorf("json unmarshal failed, %w", err)
 		}
-		ret = append(ret, models.Token{
-			SHA256: sha,
-			Privs:  privs,
-		})
+		ret[sha] = token
 	}
 	return ret, nil
 }
@@ -53,19 +54,19 @@ func (self *RedisTokenStorage) GetPrivs(
 	key := hex.EncodeToString(h[:])
 	// fmt.Fprintf(os.Stderr, "[INFO] key: %s\n", key)
 
-	res, err := self.rdb.HGet(ctx, "token", key).Result()
+	res, err := self.rdb.HGet(ctx, tokenKey, key).Result()
 	if err != nil {
 		return models.Privileges{},
 			fmt.Errorf("redis HGET failed, %w", err)
 	}
 	// fmt.Fprintf(os.Stderr, "[INFO] res: %s\n", res)
 
-	var ret models.Privileges
+	var ret models.Token
 	if err := json.Unmarshal([]byte(res), &ret); err != nil {
 		return models.Privileges{},
 			fmt.Errorf("json unmarshal failed, %w", err)
 	}
-	return ret, nil
+	return ret.Privs, nil
 }
 
 func (self *RedisTokenStorage) GenerateTokenWithoutExpire(
@@ -80,12 +81,15 @@ func (self *RedisTokenStorage) GenerateTokenWithoutExpire(
 	h := sha256.Sum256([]byte(token))
 	key := hex.EncodeToString(h[:])
 
-	b, err := json.Marshal(privs)
+	b, err := json.Marshal(models.Token{
+		Privs:     privs,
+		IsEnabled: true,
+	})
 	if err != nil {
 		return "", fmt.Errorf("json marshal failed, %w", err)
 	}
 
-	_, err = self.rdb.HSet(ctx, "token", key, string(b[:])).Result()
+	_, err = self.rdb.HSet(ctx, tokenKey, key, string(b[:])).Result()
 	if err != nil {
 		return "", fmt.Errorf("redis HSET failed, %w", err)
 	}
@@ -105,26 +109,68 @@ func (self *RedisTokenStorage) GenerateToken(
 	h := sha256.Sum256([]byte(token))
 	key := hex.EncodeToString(h[:])
 
-	b, err := json.Marshal(privs)
+	b, err := json.Marshal(models.Token{
+		Privs:     privs,
+		IsEnabled: true,
+	})
 	if err != nil {
 		return "", fmt.Errorf("json marshal failed, %w", err)
 	}
 
-	_, err = self.rdb.HSet(ctx, "token", key, string(b[:])).Result()
+	_, err = self.rdb.HSet(ctx, tokenKey, key, string(b[:])).Result()
 	if err != nil {
 		return "", fmt.Errorf("redis HSET failed, %w", err)
 	}
-	_, err = self.rdb.HExpire(ctx, "token", duration, key).Result()
+	_, err = self.rdb.HExpire(ctx, tokenKey, duration, key).Result()
 	if err != nil {
 		return "", fmt.Errorf("redis HExpire failed, %w", err)
 	}
 	return token, nil
 }
 
+func (self *RedisTokenStorage) modifyToken(
+	ctx context.Context,
+	key string,
+	f func(models.Token) models.Token,
+) error {
+	_, err := self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		res, err := pipe.HGet(ctx, tokenKey, key).Result()
+		if err != nil {
+			return fmt.Errorf("redis HGET failed, %w", err)
+		}
+
+		var token models.Token
+		if err := json.Unmarshal([]byte(res), &token); err != nil {
+			return fmt.Errorf("json unmarshal failed, %w", err)
+		}
+
+		token = f(token)
+		b, err := json.Marshal(token)
+		if err != nil {
+			return fmt.Errorf("json marshal failed, %w", err)
+		}
+		pipe.HSet(ctx, tokenKey, key, string(b[:]))
+		return nil
+	})
+	return err
+}
+
 func (self *RedisTokenStorage) DisableToken(
 	ctx context.Context,
 	key string,
 ) error {
-	_, err := self.rdb.HDel(ctx, "token", key).Result()
-	return err
+	return self.modifyToken(ctx, key, func(token models.Token) models.Token {
+		token.IsEnabled = false
+		return token
+	})
+}
+
+func (self *RedisTokenStorage) EnableToken(
+	ctx context.Context,
+	key string,
+) error {
+	return self.modifyToken(ctx, key, func(token models.Token) models.Token {
+		token.IsEnabled = true
+		return token
+	})
 }

@@ -517,7 +517,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Token"
+                                "$ref": "#/definitions/api.GetTokensOutput"
                             }
                         }
                     },
@@ -658,6 +658,30 @@ const docTemplate = `{
                         "description": "success",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/worker-statuses": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.GetWorkerStatusesOutput"
+                            }
                         }
                     },
                     "401": {
@@ -1091,6 +1115,37 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.GetTokensOutput": {
+            "type": "object",
+            "properties": {
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "privs": {
+                    "$ref": "#/definitions/models.Privileges"
+                },
+                "sha256": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.GetWorkerStatusesOutput": {
+            "type": "object",
+            "properties": {
+                "ip": {
+                    "type": "string"
+                },
+                "lastAccess": {
+                    "type": "integer"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "api.MeOutput": {
             "type": "object",
             "properties": {
@@ -1592,17 +1647,6 @@ const docTemplate = `{
                 },
                 "softTL": {
                     "type": "integer"
-                }
-            }
-        },
-        "models.Token": {
-            "type": "object",
-            "properties": {
-                "privs": {
-                    "$ref": "#/definitions/models.Privileges"
-                },
-                "sha256": {
-                    "type": "string"
                 }
             }
         },

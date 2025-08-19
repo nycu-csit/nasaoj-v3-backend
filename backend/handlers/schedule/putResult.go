@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -18,6 +19,7 @@ import (
 func PutScheduleResult(
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
+	workers interfaces.WorkerStatusStorage,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
 	tokens interfaces.TokenStorage,
@@ -25,6 +27,15 @@ func PutScheduleResult(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 		fmt.Fprintf(os.Stderr, "PUT /schedule/result\n")
+
+		if err := workers.UpdateLastAccess(ctx,
+			strings.Split(req.RemoteAddr, ":")[0]); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "worker status update failed",
+				OriginError: err,
+			}
+		}
 
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
