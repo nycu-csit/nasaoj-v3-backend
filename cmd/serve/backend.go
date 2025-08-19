@@ -73,6 +73,7 @@ var backendCmd = &cobra.Command{
 		s3 := implements.NewMinIOObjectStorage(mc)
 		jobQue := implements.NewRedisJobQueue(rdb)
 		tokens := implements.NewRedisTokenStorage(rdb)
+		workers := implements.NewRedisWorkerStatusStorage(rdb)
 		problems := implements.NewDBProblemStorage(db)
 
 		// Initialize backend router
@@ -160,6 +161,8 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetProblems(problems, true, true))
 		apiAdminReadGroup.GET("/tokens",
 			apiHandlers.GetTokens(tokens))
+		apiAdminReadGroup.GET("/worker-statuses",
+			apiHandlers.GetWorkerStatuses(workers))
 
 		apiAdminWriteGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -192,9 +195,10 @@ var backendCmd = &cobra.Command{
 				CanScheduleAPI: models.ScopeAll,
 			}))
 		scheduleGroup.GET("/job",
-			scheduleHandlers.GetScheduleJob(db, jobQue, s3))
+			scheduleHandlers.GetScheduleJob(db, jobQue, workers, s3))
 		scheduleGroup.PUT("/result",
-			scheduleHandlers.PutScheduleResult(db, jobQue, s3, problems, tokens))
+			scheduleHandlers.PutScheduleResult(
+				db, jobQue, workers, s3, problems, tokens))
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"), router))

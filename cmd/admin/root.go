@@ -42,15 +42,17 @@ func getLogin(
 		}
 
 		resp, err := client.R().
-			SetQueryString("source=cli").
+			SetQueryParam("source", "cli").
 			Get(url)
-		if resp.StatusCode() != http.StatusFound && err != nil {
+		if err != nil || !resp.IsSuccess() {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
 				Message:     "GET /auth/login failed",
 				OriginError: err,
 			}
 		}
+
+		// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.RawResponse)
 
 		location := resp.Header().Get("Location")
 		if location == "" {
@@ -60,7 +62,7 @@ func getLogin(
 			}
 		}
 		for _, cookie := range resp.Cookies() {
-			fmt.Fprintf(os.Stderr, "[INFO] apply cookie '%s'\n", cookie.Name)
+			// fmt.Fprintf(os.Stderr, "[DEBUG] apply cookie '%s'\n", cookie.Name)
 			http.SetCookie(w, cookie)
 		}
 
@@ -91,7 +93,7 @@ func getCallback(
 			SetQueryString(req.URL.RawQuery + "&source=cli").
 			Get(url)
 
-		if resp.StatusCode() != http.StatusFound {
+		if err != nil || !resp.IsSuccess() {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
 				Message:     "GET /auth/callback failed",
@@ -111,7 +113,7 @@ func getCallback(
 					OriginError: err,
 				}
 			}
-			fmt.Fprintf(os.Stderr, "[INFO] apply cookie '%s'\n", cookie.Name)
+			// fmt.Fprintf(os.Stderr, "[DEBUG] apply cookie '%s'\n", cookie.Name)
 			client.SetCookie(cookie)
 		}
 
@@ -140,14 +142,14 @@ func oidcHandler(ctx context.Context, client *resty.Client) error {
 	}
 
 	url, err := url.JoinPath(
-		fmt.Sprintf("http://localhost:%s", viper.GetString("oauth2-port")),
+		"http://localhost:"+viper.GetString("oauth2-port"),
 		"/auth/login")
 	if err != nil {
 		return fmt.Errorf("url construction failed")
 	}
 
 	go func() {
-		fmt.Printf("URL: %s\n", url)
+		fmt.Printf("[INFO] Open URL: %s\n", url)
 		cmd := exec.Command("xdg-open", url)
 		cmd.Start()
 	}()
@@ -172,9 +174,13 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
+		fmt.Fprintf(os.Stderr, "[INFO] Using endpoint: %s\n",
+			viper.GetString("endpoint"))
+
 		ctx := cmd.Context()
 		client := resty.New()
 		client.SetRedirectPolicy(resty.NoRedirectPolicy())
+		client.SetRetryCount(3)
 
 		if viper.GetString("access-token") == "" {
 			// Use OIDC

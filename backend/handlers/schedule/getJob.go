@@ -16,12 +16,23 @@ import (
 func GetScheduleJob(
 	db interfaces.Database,
 	jobQue interfaces.JobQueue,
+	workers interfaces.WorkerStatusStorage,
 	s3 interfaces.ObjectStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 		tags := req.URL.Query().Get("tags")
 		fmt.Fprintf(os.Stderr, "GET /schedule/job?tags=%s\n", tags)
+
+		if err := workers.UpdateWorkerStatus(ctx,
+			strings.Split(req.RemoteAddr, ":")[0],
+			strings.Split(tags, ",")); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "worker status update failed",
+				OriginError: err,
+			}
+		}
 
 		// Get Job from queue
 		var err error

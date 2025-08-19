@@ -669,6 +669,30 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/worker-statuses": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.GetWorkerStatusesOutput"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/me": {
             "get": {
                 "responses": {
@@ -1091,6 +1115,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.GetWorkerStatusesOutput": {
+            "type": "object",
+            "properties": {
+                "ip": {
+                    "type": "string"
+                },
+                "lastAccess": {
+                    "type": "integer"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "api.MeOutput": {
             "type": "object",
             "properties": {

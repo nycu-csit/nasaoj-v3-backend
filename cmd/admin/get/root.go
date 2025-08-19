@@ -12,4 +12,5 @@ func init() {
 	RootCmd.AddCommand(toolsCmd)
 	RootCmd.AddCommand(userCmd)
 	RootCmd.AddCommand(tokensCmd)
+	RootCmd.AddCommand(workersCmd)
 }

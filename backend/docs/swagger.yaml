@@ -1,5 +1,16 @@
 basePath: /
 definitions:
+  api.GetWorkerStatusesOutput:
+    properties:
+      ip:
+        type: string
+      lastAccess:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+    type: object
   api.MeOutput:
     properties:
       accessToken:
@@ -783,6 +794,21 @@ paths:
           description: success
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+  /api/admin/worker-statuses:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.GetWorkerStatusesOutput'
+            type: array
         "401":
           description: Unauthorized
           schema:
