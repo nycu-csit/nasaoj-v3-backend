@@ -117,7 +117,7 @@ func GetResults(
 
 				if submission.CsId != privs.OwnerCsId {
 					return middlewares.HTTPError{
-						StatusCode:  http.StatusUnauthorized,
+						StatusCode:  http.StatusForbidden,
 						Message:     "submission author mismatch",
 						OriginError: err,
 					}
