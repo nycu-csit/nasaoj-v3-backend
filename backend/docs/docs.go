@@ -110,6 +110,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
@@ -473,15 +479,22 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "delete": {
+            }
+        },
+        "/api/admin/token-state": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Token",
-                        "name": "token",
-                        "in": "query",
-                        "required": true
+                        "description": "query params",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PutTokenStateInput"
+                        }
                     }
                 ],
                 "responses": {
@@ -1197,6 +1210,17 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "problemSHA1": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PutTokenStateInput": {
+            "type": "object",
+            "properties": {
+                "state": {
+                    "type": "boolean"
+                },
+                "token": {
                     "type": "string"
                 }
             }

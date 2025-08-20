@@ -53,8 +53,8 @@ func getLogin(
 		}
 
 		if !resp.IsSuccess() {
-			fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.Request)
-			fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.RawResponse)
+			// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.Request)
+			// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.RawResponse)
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
 				Message:     "resp.IsSuccess failed",

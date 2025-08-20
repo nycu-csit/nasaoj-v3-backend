@@ -32,4 +32,9 @@ type TokenStorage interface {
 		ctx context.Context,
 		token string,
 	) error
+
+	EnableToken(
+		ctx context.Context,
+		token string,
+	) error
 }

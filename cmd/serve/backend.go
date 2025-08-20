@@ -177,12 +177,12 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PutProblemState(problems))
 		apiAdminWriteGroup.PUT("/users",
 			apiHandlers.PutUsers(db))
+		apiAdminWriteGroup.PUT("/token-state",
+			apiHandlers.PutTokenState(tokens))
 		apiAdminWriteGroup.POST("/token",
 			apiHandlers.PostToken(tokens))
 		apiAdminWriteGroup.POST("/submit",
 			apiHandlers.PostSubmit(db, jobQue, s3, problems, tokens, true))
-		apiAdminWriteGroup.DELETE("/token",
-			apiHandlers.DeleteToken(tokens))
 		apiAdminWriteGroup.DELETE("/problem",
 			apiHandlers.DeleteProblem(db))
 		apiAdminWriteGroup.DELETE("/submission",
