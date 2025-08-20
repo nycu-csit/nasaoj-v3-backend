@@ -388,7 +388,7 @@ definitions:
 info:
   contact: {}
   license:
-    name: WTFPL
+    name: 0BSD
   termsOfService: http://swagger.io/terms/
   title: NASAOJ v3
   version: "2.0"

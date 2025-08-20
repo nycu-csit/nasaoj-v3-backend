@@ -30,7 +30,7 @@ import (
 //	@version		2.0
 //	@termsOfService	http://swagger.io/terms/
 
-// @license.name	WTFPL
+// @license.name	0BSD
 // @BasePath		/
 var backendCmd = &cobra.Command{
 	Use:   "backend",

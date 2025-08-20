@@ -12,7 +12,7 @@ const docTemplate = `{
         "termsOfService": "http://swagger.io/terms/",
         "contact": {},
         "license": {
-            "name": "WTFPL"
+            "name": "0BSD"
         },
         "version": "{{.Version}}"
     },
