@@ -6,13 +6,13 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
 
@@ -29,7 +29,7 @@ func PutScheduleResult(
 		fmt.Fprintf(os.Stderr, "PUT /schedule/result\n")
 
 		if err := workers.UpdateLastAccess(ctx,
-			strings.Split(req.RemoteAddr, ":")[0]); err != nil {
+			utils.GetRemoteAddr(req)); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "worker status update failed",

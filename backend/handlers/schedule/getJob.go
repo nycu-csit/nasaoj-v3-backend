@@ -11,6 +11,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 func GetScheduleJob(
@@ -25,7 +26,7 @@ func GetScheduleJob(
 		fmt.Fprintf(os.Stderr, "GET /schedule/job?tags=%s\n", tags)
 
 		if err := workers.UpdateWorkerStatus(ctx,
-			strings.Split(req.RemoteAddr, ":")[0],
+			utils.GetRemoteAddr(req),
 			strings.Split(tags, ",")); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
