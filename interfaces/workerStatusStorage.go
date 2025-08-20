@@ -21,4 +21,9 @@ type WorkerStatusStorage interface {
 		ctx context.Context,
 		ip string,
 	) error
+
+	DeleteWorker(
+		ctx context.Context,
+		ip string,
+	) error
 }

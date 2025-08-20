@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -41,6 +42,16 @@ func GetWorkerStatuses(
 
 		ret := []GetWorkerStatusesOutput{}
 		for ip, status := range res {
+			if status.LastAccess < time.Now().Add(-time.Hour).Unix() {
+				if err := workers.DeleteWorker(ctx, ip); err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "worker delete failed",
+						OriginError: err,
+					}
+				}
+				continue
+			}
 			ret = append(ret, GetWorkerStatusesOutput{
 				IP:           ip,
 				WorkerStatus: status,

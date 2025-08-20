@@ -100,3 +100,18 @@ func (self *RedisWorkerStatusStorage) UpdateLastAccess(
 	}
 	return nil
 }
+
+func (self *RedisWorkerStatusStorage) DeleteWorker(
+	ctx context.Context,
+	ip string,
+) error {
+	if _, err := self.rdb.HDel(ctx,
+		workerTagsKey, ip).Result(); err != nil {
+		return fmt.Errorf("redis HDEL failed, %w", err)
+	}
+	if _, err := self.rdb.HDel(ctx,
+		workerLastAccessKey, ip).Result(); err != nil {
+		return fmt.Errorf("redis HDEL failed, %w", err)
+	}
+	return nil
+}
