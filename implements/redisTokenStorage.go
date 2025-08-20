@@ -133,26 +133,28 @@ func (self *RedisTokenStorage) modifyToken(
 	key string,
 	f func(models.Token) models.Token,
 ) error {
-	_, err := self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		res, err := pipe.HGet(ctx, tokenKey, key).Result()
-		if err != nil {
-			return fmt.Errorf("redis HGET failed, %w", err)
-		}
+	res, err := self.rdb.HGet(ctx, tokenKey, key).Result()
+	if err != nil {
+		return fmt.Errorf("redis HGET failed, %w", err)
+	}
 
-		var token models.Token
-		if err := json.Unmarshal([]byte(res), &token); err != nil {
-			return fmt.Errorf("json unmarshal failed, %w", err)
-		}
+	var token models.Token
+	if err := json.Unmarshal([]byte(res), &token); err != nil {
+		// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", res)
+		return fmt.Errorf("json unmarshal failed, %w", err)
+	}
 
-		token = f(token)
-		b, err := json.Marshal(token)
-		if err != nil {
-			return fmt.Errorf("json marshal failed, %w", err)
-		}
-		pipe.HSet(ctx, tokenKey, key, string(b[:]))
-		return nil
-	})
-	return err
+	token = f(token)
+	b, err := json.Marshal(token)
+	if err != nil {
+		return fmt.Errorf("json marshal failed, %w", err)
+	}
+	if _, err := self.rdb.HSet(
+		ctx, tokenKey, key, string(b[:])).Result(); err != nil {
+		return fmt.Errorf("redis HSET failed, %w", err)
+	}
+
+	return nil
 }
 
 func (self *RedisTokenStorage) DisableToken(

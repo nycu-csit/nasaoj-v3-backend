@@ -22,6 +22,7 @@ type PutProblemStateInput struct {
 //	@Param		request	body	PutProblemStateInput	true	"problem state"
 //	@Accept		json
 //	@Success	200	{object}	string	"success"
+//	@Failure	400	{object}	string
 //	@Failure	401	{object}	string
 //	@Router		/api/admin/problem-state [put]
 func PutProblemState(

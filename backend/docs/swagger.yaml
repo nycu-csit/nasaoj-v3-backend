@@ -55,6 +55,13 @@ definitions:
       problemSHA1:
         type: string
     type: object
+  api.PutTokenStateInput:
+    properties:
+      state:
+        type: boolean
+      token:
+        type: string
+    type: object
   api.adminSubmitInput:
     properties:
       asCsId:
@@ -445,6 +452,10 @@ paths:
           description: success
           schema:
             type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
         "401":
           description: Unauthorized
           schema:
@@ -654,26 +665,6 @@ paths:
         "429":
           description: Too Many Requests
   /api/admin/token:
-    delete:
-      parameters:
-      - description: Token
-        in: query
-        name: token
-        required: true
-        type: string
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
     post:
       consumes:
       - application/json
@@ -689,6 +680,30 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.PostTokenOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+  /api/admin/token-state:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: query params
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PutTokenStateInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
         "400":
           description: Bad Request
           schema:
