@@ -39,9 +39,14 @@ var toolsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportTools, err := problems.GetAllTools(ctx)
+		exportTools, err := problems.GetAllProblems(ctx)
 		if err != nil {
 			return fmt.Errorf("get all tools failed, %w", err)
+		}
+
+		for sha1, tool := range exportTools {
+			tool.IsTool = true
+			exportTools[sha1] = tool
 		}
 
 		exportContentFiles, err := problems.GetAllContentFiles(ctx)

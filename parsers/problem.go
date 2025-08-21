@@ -19,7 +19,7 @@ type problem struct {
 	Tag         TagType           `yaml:"tag"`
 	PreScript   Content           `yaml:"preScript"`
 	PostScript  Content           `yaml:"postScript"`
-	IsTool      bool              `yaml:"isTool"`
+	// IsTool      bool              `yaml:"isTool"`
 }
 
 type Problem struct {
@@ -68,7 +68,7 @@ func (self *Problem) ToModelProblem(
 		PostScript: models.Content{
 			Scripts: self.PostScript.Scripts,
 		},
-		IsTool: self.IsTool,
+		// IsTool: self.IsTool,
 	}
 
 	ret.Timeout = 0
