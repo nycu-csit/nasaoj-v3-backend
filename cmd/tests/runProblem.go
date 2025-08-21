@@ -22,7 +22,7 @@ var problemCmd = &cobra.Command{
 	Use:   "problem",
 	Short: "Run a problem on local environment",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		color.Blue("Start running problem '%d'\n", viper.GetInt64("problem-sha1"))
+		color.Blue("Start running problem '%d'\n", viper.GetInt64("problem-id"))
 
 		ctx := cmd.Context()
 
@@ -92,6 +92,9 @@ var problemCmd = &cobra.Command{
 					close(jobIn)
 					return
 				}
+
+				timeout := time.Duration(job.HardTL) * time.Second
+				job.FileURL, err = s3.GetFileURL(ctx, job.Filename(), timeout)
 				tarbuf, err := s3.GetFileByURL(ctx, job.FileURL)
 				if err != nil {
 					color.Red("get file failed, %v\n", err)

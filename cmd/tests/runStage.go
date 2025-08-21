@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -109,6 +110,9 @@ var stageCmd = &cobra.Command{
 			if err != nil {
 				color.Red("get job from job queue failed, %v\n", err)
 			}
+
+			timeout := time.Duration(job.HardTL) * time.Second
+			job.FileURL, err = s3.GetFileURL(ctx, job.Filename(), timeout)
 			tarbuf, err := s3.GetFileByURL(ctx, job.FileURL)
 			if err != nil {
 				color.Red("get file failed, %v\n", err)

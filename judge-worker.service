@@ -4,8 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
+User=judge
 EnvironmentFile=-/etc/default/judge
-ExecStart=/root/go/bin/judge serve worker
+ExecStart=/opt/judge/judge serve worker
 Restart=on-failure
 
 [Install]

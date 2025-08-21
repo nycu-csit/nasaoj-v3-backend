@@ -16,7 +16,7 @@ type UserResource struct {
 
 func (self UserResource) Map() map[string]string {
 	ret := map[string]string{
-		"csid": self.CsId,
+		"csId": self.CsId,
 	}
 	maps.Copy(ret, self.Args)
 	return ret
