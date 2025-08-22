@@ -11,9 +11,10 @@ import (
 )
 
 var problemCmd = &cobra.Command{
-	Use:   "problem [problem_sha1]",
-	Short: "Delete problem and related submissions",
-	Args:  cobra.ExactArgs(1),
+	Use:     "problem [problem_sha1]",
+	Short:   "Delete problem and related submissions",
+	Aliases: []string{"tool"},
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, ok := cmd.Context().Value(types.RestyClient("")).(*resty.Client)
 		if !ok {

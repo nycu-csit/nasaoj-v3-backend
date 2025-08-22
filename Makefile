@@ -4,9 +4,9 @@ SWAG ?= ~/go/bin/swag
 
 TARGET := $(shell find . -type f -name '*.go')
 
-all: docker install
+all: swagger docker install
 
-docker: swagger judge
+docker: judge
 	docker compose up -d --force-recreate --build backend worker
 
 install: judge

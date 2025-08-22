@@ -3,12 +3,14 @@ package implements
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"text/template"
 	"time"
 
 	"github.com/uptrace/bun"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type BunDatabase struct {
@@ -218,13 +220,52 @@ func (self *BunDatabase) InsertUserResources(
 	ctx context.Context,
 	userResources []models.UserResource,
 ) error {
-	for _, user := range userResources {
-		_, err := self.db.NewInsert().Model(&user).
-			On("CONFLICT (csid) DO UPDATE").
-			Set("args = EXCLUDED.args").
-			Exec(ctx)
+	for _, newUser := range userResources {
+		err := self.db.RunInTx(ctx, nil,
+			func(ctx context.Context, tx bun.Tx) error {
+				var oldUser models.UserResource
+				err := tx.NewSelect().
+					Model(&oldUser).
+					Where("csid = ?", newUser.CsId).
+					Scan(ctx)
+				if err == sql.ErrNoRows {
+					// Insert New User
+					_, err := tx.NewInsert().
+						Model(&newUser).
+						Exec(ctx)
+					if err != nil {
+						return fmt.Errorf("insert user failed, %w", err)
+					}
+					return nil
+				}
+				if err != nil {
+					return fmt.Errorf("select user failed, %w", err)
+				}
+
+				// TODO: JSON Merge
+				b, err := utils.JSONMerge(oldUser, newUser)
+				if err != nil {
+					return fmt.Errorf("merge user failed, %w", err)
+				}
+
+				var mergedUser models.UserResource
+				if err := json.Unmarshal(b, &mergedUser); err != nil {
+					return fmt.Errorf("json unmarshal failed, %w", err)
+				}
+
+				_, err = tx.NewUpdate().
+					Model((*models.UserResource)(nil)).
+					Set("args = ?", mergedUser.Args).
+					Where("csid = ?", newUser.CsId).
+					Exec(ctx)
+				if err != nil {
+					return fmt.Errorf("update user failed, %w", err)
+				}
+
+				return nil
+			})
 		if err != nil {
-			return fmt.Errorf("insert user resource '%+v' failed, %w", user, err)
+			return fmt.Errorf("insert user resource '%+v' failed, %w", newUser, err)
 		}
 	}
 	return nil
