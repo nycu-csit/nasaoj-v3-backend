@@ -2,7 +2,8 @@
 name: Generate password
 problemId: 87
 description: Generate random string using openssl
-isTool: true
+args:
+  endpoint: 'http://backend:8080'
 stages:
   output:
     testcases:

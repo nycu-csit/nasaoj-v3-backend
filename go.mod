@@ -4,6 +4,7 @@ go 1.24.3
 
 require (
 	github.com/coreos/go-oidc/v3 v3.14.1
+	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/fatih/color v1.18.0
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -20,6 +21,7 @@ require (
 	github.com/uptrace/bun/driver/sqliteshim v1.2.11
 	github.com/uptrace/bunrouter v1.0.23
 	golang.org/x/oauth2 v0.30.0
+	golang.org/x/term v0.34.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -75,7 +77,6 @@ require (
 	golang.org/x/exp v0.0.0-20250228200357-dead58393ab7 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/tools v0.33.0 // indirect
 	mellium.im/sasl v0.3.2 // indirect
