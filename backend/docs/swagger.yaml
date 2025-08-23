@@ -37,6 +37,27 @@ definitions:
       token:
         type: string
     type: object
+  api.ProblemOutput:
+    properties:
+      description:
+        type: string
+      importedAt:
+        type: integer
+      isEnabled:
+        type: boolean
+      name:
+        type: string
+      problemId:
+        type: integer
+      sha1:
+        type: string
+      stages:
+        additionalProperties:
+          $ref: '#/definitions/api.problemOutputStage'
+        type: object
+      tag:
+        type: string
+    type: object
   api.PutContentFilesInput:
     properties:
       isTemplate:
@@ -68,27 +89,6 @@ definitions:
         type: string
       problemSHA1:
         description: Submit problem ID
-        type: string
-    type: object
-  api.problemOutput:
-    properties:
-      description:
-        type: string
-      importedAt:
-        type: integer
-      isEnabled:
-        type: boolean
-      name:
-        type: string
-      problemId:
-        type: integer
-      sha1:
-        type: string
-      stages:
-        additionalProperties:
-          $ref: '#/definitions/api.problemOutputStage'
-        type: object
-      tag:
         type: string
     type: object
   api.problemOutputStage:
@@ -295,8 +295,6 @@ definitions:
         type: object
       description:
         type: string
-      importedAt:
-        type: integer
       isTool:
         type: boolean
       name:
@@ -469,7 +467,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/api.problemOutput'
+              $ref: '#/definitions/api.ProblemOutput'
             type: array
         "500":
           description: Problem loading error
@@ -736,7 +734,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/api.problemOutput'
+              $ref: '#/definitions/api.ProblemOutput'
             type: array
         "500":
           description: Tool loading error
@@ -855,7 +853,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.problemOutput'
+            $ref: '#/definitions/api.ProblemOutput'
         "500":
           description: Problem loading failed
           schema:
@@ -869,7 +867,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/api.problemOutput'
+              $ref: '#/definitions/api.ProblemOutput'
             type: array
         "500":
           description: Problem loading error
@@ -1020,7 +1018,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.problemOutput'
+            $ref: '#/definitions/api.ProblemOutput'
         "500":
           description: Problem loading failed
           schema:
@@ -1034,7 +1032,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/api.problemOutput'
+              $ref: '#/definitions/api.ProblemOutput'
             type: array
         "500":
           description: Tool loading error

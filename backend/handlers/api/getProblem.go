@@ -15,7 +15,7 @@ import (
 //
 //	@Param		problemSHA1	query	string	true	"problem sha1"
 //	@Produce	json
-//	@Success	200	{object}	problemOutput
+//	@Success	200	{object}	ProblemOutput
 //	@Failure	500	{object}	string	"Problem loading failed"
 //	@Router		/api/tool [get]
 func getToolPlaceholder() {}
@@ -24,7 +24,7 @@ func getToolPlaceholder() {}
 //
 //	@Param		problemSHA1	query	string	true	"problem sha1"
 //	@Produce	json
-//	@Success	200	{object}	problemOutput
+//	@Success	200	{object}	ProblemOutput
 //	@Failure	500	{object}	string	"Problem loading failed"
 //	@Router		/api/problem [get]
 func GetProblem(
@@ -62,7 +62,7 @@ func GetProblem(
 			}
 		}
 
-		ret := problemOutput{
+		ret := ProblemOutput{
 			Name:        problem.Name,
 			SHA1:        problemSHA1,
 			ImportedAt:  problem.ImportedAt,

@@ -128,7 +128,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -546,7 +546,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -734,7 +734,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.problemOutput"
+                            "$ref": "#/definitions/api.ProblemOutput"
                         }
                     },
                     "500": {
@@ -757,7 +757,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -992,7 +992,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.problemOutput"
+                            "$ref": "#/definitions/api.ProblemOutput"
                         }
                     },
                     "500": {
@@ -1015,7 +1015,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -1178,6 +1178,38 @@
                 }
             }
         },
+        "api.ProblemOutput": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "importedAt": {
+                    "type": "integer"
+                },
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/api.problemOutputStage"
+                    }
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
         "api.PutContentFilesInput": {
             "type": "object",
             "properties": {
@@ -1225,38 +1257,6 @@
                 },
                 "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "string"
-                }
-            }
-        },
-        "api.problemOutput": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "importedAt": {
-                    "type": "integer"
-                },
-                "isEnabled": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "problemId": {
-                    "type": "integer"
-                },
-                "sha1": {
-                    "type": "string"
-                },
-                "stages": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/api.problemOutputStage"
-                    }
-                },
-                "tag": {
                     "type": "string"
                 }
             }
@@ -1569,9 +1569,6 @@
                 },
                 "description": {
                     "type": "string"
-                },
-                "importedAt": {
-                    "type": "integer"
                 },
                 "isTool": {
                     "type": "boolean"
