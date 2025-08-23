@@ -47,6 +47,20 @@ func (self *MapTokenStorage) GetPrivs(
 	return ret.Privs, nil
 }
 
+func (self *MapTokenStorage) SetAdminToken(
+	_ context.Context,
+	token string,
+) error {
+	h := sha256.Sum256([]byte(token))
+	key := hex.EncodeToString(h[:])
+
+	self.data[key] = models.Token{
+		Privs:     models.NewAdminPrivs(""),
+		IsEnabled: true,
+	}
+	return nil
+}
+
 func (self *MapTokenStorage) GenerateToken(
 	ctx context.Context,
 	privs models.Privileges,

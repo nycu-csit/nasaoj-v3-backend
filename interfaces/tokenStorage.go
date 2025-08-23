@@ -17,6 +17,11 @@ type TokenStorage interface {
 		token string,
 	) (models.Privileges, error)
 
+	SetAdminToken(
+		ctx context.Context,
+		token string,
+	) error
+
 	GenerateToken(
 		ctx context.Context,
 		privs models.Privileges,

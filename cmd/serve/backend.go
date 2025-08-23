@@ -2,6 +2,7 @@ package serve
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -35,7 +36,7 @@ import (
 var backendCmd = &cobra.Command{
 	Use:   "backend",
 	Short: "NASAOJ backend server",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
 		// Initialize DB instance
@@ -61,11 +62,11 @@ var backendCmd = &cobra.Command{
 			Secure: viper.GetBool("minio-usessl"),
 		})
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("minio client creation failed, %w", err)
 		}
 
 		if err := utils.InitMinIO(ctx, mc); err != nil {
-			panic(err)
+			return fmt.Errorf("minio init failed, %w", err)
 		}
 
 		// Initialize custom interfaces
@@ -75,6 +76,13 @@ var backendCmd = &cobra.Command{
 		tokens := implements.NewRedisTokenStorage(rdb)
 		workers := implements.NewRedisWorkerStatusStorage(rdb)
 		problems := implements.NewDBProblemStorage(db)
+
+		if viper.GetString("admin-token") != "" {
+			if err := tokens.SetAdminToken(
+				ctx, viper.GetString("admin-token")); err != nil {
+				return fmt.Errorf("admin token set failed, %w", err)
+			}
+		}
 
 		// Initialize backend router
 		router := bunrouter.New()
@@ -203,6 +211,8 @@ var backendCmd = &cobra.Command{
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"), router))
+
+		return nil
 	},
 }
 
@@ -272,6 +282,8 @@ func init() {
 		Bool("minio-usessl", false, "MinIO usessl")
 
 	// Others
+	backendCmd.Flags().
+		String("admin-token", "", "Bootstrap with an predefined admin token")
 	backendCmd.Flags().
 		String("admin-role", "nasata", "Admin role in OIDC groups")
 	backendCmd.Flags().
