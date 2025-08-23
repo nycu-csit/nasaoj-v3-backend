@@ -21,7 +21,7 @@ type problemOutputStage struct {
 	Testcases []problemOutputStageTestcase `json:"testcases"`
 }
 
-type problemOutput struct {
+type ProblemOutput struct {
 	ProblemId  int64  `json:"problemId"`
 	SHA1       string `json:"sha1"`
 	ImportedAt int64  `json:"importedAt"`
@@ -36,7 +36,7 @@ type problemOutput struct {
 // GetAdminTools
 //
 //	@Produce	json
-//	@Success	200	{object}	[]problemOutput
+//	@Success	200	{object}	[]ProblemOutput
 //	@Failure	500	{object}	string	"Tool loading error"
 //	@Router		/api/admin/tools [get]
 func getAdminToolsPlaceholder() {}
@@ -44,7 +44,7 @@ func getAdminToolsPlaceholder() {}
 // GetTools
 //
 //	@Produce	json
-//	@Success	200	{object}	[]problemOutput
+//	@Success	200	{object}	[]ProblemOutput
 //	@Failure	500	{object}	string	"Tool loading error"
 //	@Router		/api/tools [get]
 func getToolsPlaceholder() {}
@@ -52,7 +52,7 @@ func getToolsPlaceholder() {}
 // GetAdminProblems
 //
 //	@Produce	json
-//	@Success	200	{object}	[]problemOutput
+//	@Success	200	{object}	[]ProblemOutput
 //	@Failure	500	{object}	string	"Problem loading error"
 //	@Router		/api/admin/problems [get]
 func getAdminProblemsPlaceholder() {}
@@ -60,7 +60,7 @@ func getAdminProblemsPlaceholder() {}
 // GetProblems
 //
 //	@Produce	json
-//	@Success	200	{object}	[]problemOutput
+//	@Success	200	{object}	[]ProblemOutput
 //	@Failure	500	{object}	string	"Problem loading error"
 //	@Router		/api/problems [get]
 func GetProblems(
@@ -107,9 +107,9 @@ func GetProblems(
 			}
 		}
 
-		ret := []problemOutput{}
+		ret := []ProblemOutput{}
 		for sha1, problem := range resProblems {
-			retProblem := problemOutput{
+			retProblem := ProblemOutput{
 				Name:        problem.Name,
 				SHA1:        sha1,
 				ImportedAt:  problem.ImportedAt,

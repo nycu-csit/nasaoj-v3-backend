@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gopkg.in/yaml.v2"
 )
@@ -27,7 +29,7 @@ var toolsCmd = &cobra.Command{
 			return fmt.Errorf("url construction failed, %w", err)
 		}
 
-		var res []problemResult
+		var res []apiHandlers.ProblemOutput
 		resp, err := client.R().
 			SetResult(&res).
 			ForceContentType("application/json").
@@ -42,12 +44,25 @@ var toolsCmd = &cobra.Command{
 			return fmt.Errorf("%v\n", resp.Error())
 		}
 
-		sort.Slice(res, func(i, j int) bool {
+		var ret []problemResult
+		for _, problem := range res {
+			ret = append(ret, problemResult{
+				ProblemId:   problem.ProblemId,
+				SHA1:        problem.SHA1,
+				ImportedAt:  time.Unix(problem.ImportedAt, 0).String(),
+				Name:        problem.Name,
+				Description: problem.Description,
+				Tag:         problem.Tag,
+				IsEnabled:   problem.IsEnabled,
+			})
+		}
+
+		sort.Slice(ret, func(i, j int) bool {
 			return res[i].ProblemId < res[j].ProblemId ||
 				(res[i].ProblemId == res[j].ProblemId && res[i].SHA1 < res[j].SHA1)
 		})
 
-		b, err := yaml.Marshal(res)
+		b, err := yaml.Marshal(ret)
 		if err != nil {
 			return fmt.Errorf("yaml marshal failed, %w", err)
 		}

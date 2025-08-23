@@ -136,7 +136,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -554,7 +554,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -742,7 +742,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.problemOutput"
+                            "$ref": "#/definitions/api.ProblemOutput"
                         }
                     },
                     "500": {
@@ -765,7 +765,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -1000,7 +1000,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.problemOutput"
+                            "$ref": "#/definitions/api.ProblemOutput"
                         }
                     },
                     "500": {
@@ -1023,7 +1023,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.problemOutput"
+                                "$ref": "#/definitions/api.ProblemOutput"
                             }
                         }
                     },
@@ -1186,6 +1186,38 @@ const docTemplate = `{
                 }
             }
         },
+        "api.ProblemOutput": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "importedAt": {
+                    "type": "integer"
+                },
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/api.problemOutputStage"
+                    }
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
         "api.PutContentFilesInput": {
             "type": "object",
             "properties": {
@@ -1233,38 +1265,6 @@ const docTemplate = `{
                 },
                 "problemSHA1": {
                     "description": "Submit problem ID",
-                    "type": "string"
-                }
-            }
-        },
-        "api.problemOutput": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string"
-                },
-                "importedAt": {
-                    "type": "integer"
-                },
-                "isEnabled": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "problemId": {
-                    "type": "integer"
-                },
-                "sha1": {
-                    "type": "string"
-                },
-                "stages": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/api.problemOutputStage"
-                    }
-                },
-                "tag": {
                     "type": "string"
                 }
             }
@@ -1577,9 +1577,6 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
-                },
-                "importedAt": {
-                    "type": "integer"
                 },
                 "isTool": {
                     "type": "boolean"
