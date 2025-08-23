@@ -69,6 +69,28 @@ func (self *RedisTokenStorage) GetPrivs(
 	return ret.Privs, nil
 }
 
+func (self *RedisTokenStorage) SetAdminToken(
+	ctx context.Context,
+	token string,
+) error {
+	h := sha256.Sum256([]byte(token))
+	key := hex.EncodeToString(h[:])
+
+	b, err := json.Marshal(models.Token{
+		Privs:     models.NewAdminPrivs(""),
+		IsEnabled: true,
+	})
+	if err != nil {
+		return fmt.Errorf("json marshal failed, %w", err)
+	}
+
+	_, err = self.rdb.HSet(ctx, tokenKey, key, string(b[:])).Result()
+	if err != nil {
+		return fmt.Errorf("redis HSET failed, %w", err)
+	}
+	return nil
+}
+
 func (self *RedisTokenStorage) GenerateTokenWithoutExpire(
 	ctx context.Context,
 	privs models.Privileges,
