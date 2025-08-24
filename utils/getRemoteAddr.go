@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"strings"
+	"net"
 
 	"github.com/uptrace/bunrouter"
 )
@@ -18,5 +18,6 @@ func GetRemoteAddr(req bunrouter.Request) string {
 		return xRealIP
 	}
 
-	return strings.Split(req.RemoteAddr, ":")[0]
+	host, _, _ := net.SplitHostPort(req.RemoteAddr)
+	return host
 }

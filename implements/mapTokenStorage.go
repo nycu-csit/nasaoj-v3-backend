@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
-	"os"
 	"time"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 )
 
 type MapTokenStorage struct {
@@ -29,7 +30,7 @@ func (self *MapTokenStorage) GetTokens(
 }
 
 func (self *MapTokenStorage) GetPrivs(
-	_ context.Context,
+	ctx context.Context,
 	token string,
 ) (models.Privileges, error) {
 	h := sha256.Sum256([]byte(token))
@@ -37,12 +38,16 @@ func (self *MapTokenStorage) GetPrivs(
 
 	ret, ok := self.data[key]
 	if !ok {
-		return models.Privileges{},
-			fmt.Errorf("token '%s' not exist", token)
+		tracing.Logger.Ctx(ctx).
+			Warn("token not exist",
+				zap.String("token.sha256", key))
+		return models.Privileges{}, types.TokenNotExistError
 	}
 	if !ret.IsEnabled {
-		return models.Privileges{},
-			fmt.Errorf("token is not enabled")
+		tracing.Logger.Ctx(ctx).
+			Warn("token not enabled",
+				zap.String("token.sha256", key))
+		return models.Privileges{}, types.TokenNotEnabledError
 	}
 	return ret.Privs, nil
 }
@@ -66,8 +71,8 @@ func (self *MapTokenStorage) GenerateToken(
 	privs models.Privileges,
 	_ time.Duration,
 ) (string, error) {
-	fmt.Fprintf(os.Stderr,
-		"[WARN] tokens with expiration are not supported in this mode\n")
+	tracing.Logger.Ctx(ctx).
+		Warn("tokens with expiration are not supported in this mode")
 	return self.GenerateTokenWithoutExpire(ctx, privs)
 }
 
@@ -77,7 +82,7 @@ func (self *MapTokenStorage) GenerateTokenWithoutExpire(
 ) (string, error) {
 	token, err := utils.RandomString(48)
 	if err != nil {
-		return "", fmt.Errorf("string generate failed, %w", err)
+		return "", err
 	}
 
 	h := sha256.Sum256([]byte(token))
@@ -91,12 +96,15 @@ func (self *MapTokenStorage) GenerateTokenWithoutExpire(
 }
 
 func (self *MapTokenStorage) DisableToken(
-	_ context.Context,
+	ctx context.Context,
 	key string,
 ) error {
 	token, ok := self.data[key]
 	if !ok {
-		return fmt.Errorf("token not exist")
+		tracing.Logger.Ctx(ctx).
+			Error("token not exist",
+				zap.String("token.sha256", key))
+		return types.TokenNotExistError
 	}
 
 	token.IsEnabled = false
@@ -105,12 +113,15 @@ func (self *MapTokenStorage) DisableToken(
 }
 
 func (self *MapTokenStorage) EnableToken(
-	_ context.Context,
+	ctx context.Context,
 	key string,
 ) error {
 	token, ok := self.data[key]
 	if !ok {
-		return fmt.Errorf("token not exist")
+		tracing.Logger.Ctx(ctx).
+			Error("token not exist",
+				zap.String("token.sha256", key))
+		return types.TokenNotExistError
 	}
 
 	token.IsEnabled = true

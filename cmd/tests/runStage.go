@@ -2,7 +2,6 @@ package tests
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -14,14 +13,17 @@ import (
 	"github.com/uptrace/bun/driver/sqliteshim"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
+	"go.uber.org/zap"
 )
 
 var stageCmd = &cobra.Command{
 	Use:   "stage",
 	Short: "Run a single stage on local",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		color.Blue("Start running stage '%s' in problem '%d'\n",
 			viper.GetString("stage"),
 			viper.GetInt64("problem-id"))
@@ -32,7 +34,9 @@ var stageCmd = &cobra.Command{
 		for _, arg := range viper.GetStringSlice("arg") {
 			strs := strings.Split(arg, "=")
 			if len(strs) != 2 {
-				return fmt.Errorf("argument format incorrect, %s\n", strs)
+				tracing.Logger.Ctx(ctx).
+					Panic("argument format incorrect")
+				panic(types.WrongFormatError)
 			}
 			mockArgs[strs[0]] = strs[1]
 		}
@@ -40,7 +44,10 @@ var stageCmd = &cobra.Command{
 		// Initialize SQLite
 		sqldb, err := sql.Open(sqliteshim.ShimName, "file::memory:?cache=shared")
 		if err != nil {
-			return fmt.Errorf("sqlite init failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to init sqlite",
+					zap.Error(err))
+			panic(err)
 		}
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
 		utils.InitDB(ctx, bunDB)
@@ -55,28 +62,43 @@ var stageCmd = &cobra.Command{
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
-			return fmt.Errorf("load problems failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to load problems",
+					zap.Error(err))
+			panic(err)
 		}
 
 		err = utils.LoadProblems(ctx, problems,
 			viper.GetString("tools-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
-			return fmt.Errorf("load tools failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to load tools",
+					zap.Error(err))
+			panic(err)
 		}
 
 		if err := db.EnableAllProblem(ctx); err != nil {
-			return fmt.Errorf("enable problems failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to enable problems",
+					zap.Error(err))
+			panic(err)
 		}
 
 		problem, err := problems.GetProblemOrToolById(
 			ctx, viper.GetInt64("problem-id"))
 		if err != nil {
-			return fmt.Errorf("problem not found, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("problem not exist",
+					zap.Error(err))
+			panic(err)
 		}
 		problemMarshaled, err := problem.Marshal()
 		if err != nil {
-			return fmt.Errorf("problem marshal failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to marshal problem",
+					zap.Error(err))
+			panic(err)
 		}
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -96,7 +118,10 @@ var stageCmd = &cobra.Command{
 			viper.GetString("stage"),
 		)
 		if err != nil {
-			return fmt.Errorf("stage scheduling failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to schedule stage",
+					zap.Error(err))
+			panic(err)
 		}
 
 		color.Cyan("run stage complete\n")
@@ -131,7 +156,6 @@ var stageCmd = &cobra.Command{
 		}
 
 		color.Magenta("Program exit\n")
-		return nil
 	},
 }
 

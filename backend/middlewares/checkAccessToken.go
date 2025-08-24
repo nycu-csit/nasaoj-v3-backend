@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -10,7 +9,9 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 func refreshAccessToken(
@@ -22,22 +23,30 @@ func refreshAccessToken(
 	refreshTokenClaim, ok := req.Context().
 		Value(types.RefreshToken("")).(models.RefreshTokenClaim)
 	if !ok {
-		return "", fmt.Errorf("refresh token not exist")
+		tracing.Logger.Ctx(ctx).
+			Warn("refresh token not exist")
+		return "", types.ContextNotExistError
 	}
 
 	session, err := db.GetSession(ctx, refreshTokenClaim.CsId)
 	if err != nil {
-		return "", fmt.Errorf("session not exist, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Warn("session not exist", zap.Error(err))
+		return "", err
 	}
 
 	user, err := db.GetUserResource(ctx, refreshTokenClaim.CsId)
 	if err != nil {
-		return "", fmt.Errorf("user not exist, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Warn("user not exist", zap.Error(err))
+		return "", err
 	}
 
 	ret, err := session.ToAccessToken(user)
 	if err != nil {
-		return "", fmt.Errorf("access token generate failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Warn("access token generate failed", zap.Error(err))
+		return "", err
 	}
 
 	http.SetCookie(w, &http.Cookie{

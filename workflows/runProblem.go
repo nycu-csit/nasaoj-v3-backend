@@ -3,10 +3,11 @@ package workflows
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 )
 
 // Do Topological Sorting to stages
@@ -22,11 +23,17 @@ func RunProblem(
 ) error {
 	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
 	if err != nil {
-		return fmt.Errorf("problem with sha1 '%s' not exist, %w",
-			submission.ProblemSHA1, err)
+		tracing.Logger.Ctx(ctx).
+			Error("problem not exist",
+				zap.String("problem", submission.ProblemSHA1),
+				zap.Error(err))
+		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "run problem '%s'\n", problem.Name)
+	tracing.Logger.Ctx(ctx).
+		Info("run problem",
+			zap.String("problem.name", problem.Name),
+			zap.String("problem.sha1", submission.ProblemSHA1))
 
 	// Calc dependency count (indegree of the stages)
 	stageDeps := make(map[string]int)
@@ -34,6 +41,9 @@ func RunProblem(
 		err := jobQue.SetJobCnt(ctx,
 			fmt.Sprintf("%d-%s", submission.Id, stageName), len(stage.Testcases))
 		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to set jobCnt",
+					zap.Error(err))
 			return err
 		}
 
@@ -47,12 +57,20 @@ func RunProblem(
 		if _, exist := stageDeps[stageName]; !exist {
 			err := RunStage(ctx, jobQue, db, s3, problems, tokens, submission, stageName)
 			if err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to run stage",
+						zap.String("problem.sha1", submission.ProblemSHA1),
+						zap.String("stage.name", stageName),
+						zap.Error(err))
 				return err
 			}
 		} else {
 			err := jobQue.SetDepCnt(ctx,
 				fmt.Sprintf("%d-%s", submission.Id, stageName), stageDeps[stageName])
 			if err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to set depCnt",
+						zap.Error(err))
 				return err
 			}
 		}

@@ -2,7 +2,6 @@ package tests
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -10,17 +9,22 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 )
 
 var problemsCmd = &cobra.Command{
 	Use:   "problems",
 	Short: "Check dependencies on problems",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 		sqldb, err := sql.Open(sqliteshim.ShimName, "file::memory:?cache=shared")
 		if err != nil {
-			return fmt.Errorf("sqlite init failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to init sqlite",
+					zap.Error(err))
+			panic(err)
 		}
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
 		utils.InitDB(ctx, bunDB)
@@ -28,20 +32,29 @@ var problemsCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		problems := implements.NewDBProblemStorage(db)
 
-		return utils.LoadProblems(ctx, problems,
+		err = utils.LoadProblems(ctx, problems,
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to load problems",
+					zap.Error(err))
+			panic(err)
+		}
 	},
 }
 
 var toolsCmd = &cobra.Command{
 	Use:   "tools",
 	Short: "Check dependencies on tools",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 		sqldb, err := sql.Open(sqliteshim.ShimName, "file::memory:?cache=shared")
 		if err != nil {
-			return fmt.Errorf("sqlite init failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to init sqlite",
+					zap.Error(err))
+			panic(err)
 		}
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
 		utils.InitDB(ctx, bunDB)
@@ -49,9 +62,15 @@ var toolsCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		tools := implements.NewDBProblemStorage(db)
 
-		return utils.LoadProblems(ctx, tools,
+		err = utils.LoadProblems(ctx, tools,
 			viper.GetString("tools-dir"),
 			viper.GetString("testcases-dir"))
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to load tools",
+					zap.Error(err))
+			panic(err)
+		}
 	},
 }
 

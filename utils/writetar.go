@@ -4,10 +4,11 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
-	"fmt"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 )
 
 func WriteTar(
@@ -25,10 +26,12 @@ func WriteTar(
 			if file.IsTemplate {
 				buf := bytes.NewBufferString("")
 				if err := file.Template.Execute(buf, args); err != nil {
-					return fmt.Errorf("template execute failed, %w", err)
+					tracing.Logger.Ctx(ctx).
+						Error("failed to execute template",
+							zap.Error(err))
+					return err
 				}
 				b = buf.Bytes()
-				// fmt.Fprintf(os.Stderr, "[DEBUG] %s\n", string(b[:]))
 			} else {
 				b = []byte(file.Payload)
 			}
@@ -39,15 +42,24 @@ func WriteTar(
 				Size: int64(len(b)),
 			}
 			if err := tw.WriteHeader(hdr); err != nil {
-				return fmt.Errorf("tar header write failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to write tar header",
+						zap.Error(err))
+				return err
 			}
 			if _, err := tw.Write(b); err != nil {
-				return fmt.Errorf("tar body write failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to write tar body",
+						zap.Error(err))
+				return err
 			}
 		}
 	}
 	if err := tw.Close(); err != nil {
-		return fmt.Errorf("tar writer close failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to close tar writer",
+				zap.Error(err))
+		return err
 	}
 
 	return nil

@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
@@ -17,6 +18,11 @@ var workerCmd = &cobra.Command{
 	Short: "NASAOJ worker server",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
+		// Initialize Tracing
+		appname := "nasaoj-worker"
+		tracing.InitTracer(appname)
+		tracing.InitUptrace(appname)
+		defer tracing.DeferUptrace(ctx)
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -55,20 +61,22 @@ var workerCmd = &cobra.Command{
 }
 
 func init() {
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		Int64("threads", 20, "Threads count")
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		Int64("buffer-size", 100, "Channel buffer size")
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		Int64("thread-backoff", 10, "Thread backoff seconds")
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		Int64("putjob-retry", 3, "How many times to retry if put job failed")
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		String("scheduler-url", "http://127.0.0.1:8080", "Scheduler url")
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		String("access-token", "", "Scheduler access token")
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		String("tags", "default", "Tags for worker to take jobs")
-	workerCmd.PersistentFlags().
+	workerCmd.Flags().
 		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
+	workerCmd.Flags().
+		String("uptrace-dsn", "", "Uptrace DSN")
 }

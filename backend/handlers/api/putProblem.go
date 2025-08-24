@@ -49,7 +49,7 @@ func PutProblems(
 		}
 
 		for sha1, problem := range inputProblems {
-			if err := utils.CheckDeps(problem); err != nil {
+			if err := utils.CheckDeps(ctx, problem); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
 					Message:     "dependencies check failed",

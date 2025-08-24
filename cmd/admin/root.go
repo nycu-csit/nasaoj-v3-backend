@@ -20,7 +20,9 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/gen"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/get"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/imports"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 var (
@@ -31,6 +33,8 @@ func getLogin(
 	client *resty.Client,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
+
 		url, err := url.JoinPath(
 			viper.GetString("endpoint"), "/auth/login")
 		if err != nil {
@@ -53,12 +57,12 @@ func getLogin(
 		}
 
 		if !resp.IsSuccess() {
-			// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.Request)
-			// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", resp.RawResponse)
+			tracing.Logger.Ctx(ctx).
+				Error("resp.IsSuccess failed",
+					zap.String("body", string(resp.Body()[:])))
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusBadRequest,
-				Message:     "resp.IsSuccess failed",
-				OriginError: fmt.Errorf("%s", string(resp.Body()[:])),
+				StatusCode: http.StatusBadRequest,
+				Message:    "resp.IsSuccess failed",
 			}
 		}
 
@@ -70,7 +74,6 @@ func getLogin(
 			}
 		}
 		for _, cookie := range resp.Cookies() {
-			// fmt.Fprintf(os.Stderr, "[DEBUG] apply cookie '%s'\n", cookie.Name)
 			http.SetCookie(w, cookie)
 		}
 
@@ -110,15 +113,14 @@ func getCallback(
 		}
 
 		if !resp.IsSuccess() {
+			tracing.Logger.Ctx(ctx).
+				Error("resp.IsSuccess failed",
+					zap.String("body", string(resp.Body()[:])))
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusBadRequest,
-				Message:     "resp.IsSuccess failed",
-				OriginError: fmt.Errorf("%s", string(resp.Body()[:])),
+				StatusCode: http.StatusBadRequest,
+				Message:    "resp.IsSuccess failed",
 			}
 		}
-
-		// fmt.Printf("%##v\n", resp.Request)
-		// fmt.Printf("%##v\n", resp.RawResponse)
 
 		for _, value := range resp.Header().Values("Set-Cookie") {
 			cookie, err := http.ParseSetCookie(value)
@@ -129,7 +131,6 @@ func getCallback(
 					OriginError: err,
 				}
 			}
-			// fmt.Fprintf(os.Stderr, "[DEBUG] apply cookie '%s'\n", cookie.Name)
 			client.SetCookie(cookie)
 		}
 
@@ -137,7 +138,10 @@ func getCallback(
 		fmt.Fprintf(w, "<script>window.close();</script>")
 		go func() {
 			if err := httpServer.Shutdown(ctx); err != nil {
-				fmt.Printf("shutdown server failed, %v", err)
+				tracing.Logger.Ctx(ctx).
+					Panic("failed to shutdown server",
+						zap.Error(err))
+				panic(err)
 			}
 		}()
 
@@ -158,21 +162,29 @@ func oidcHandler(ctx context.Context, client *resty.Client) error {
 		Handler: http.Handler(router),
 	}
 
-	url, err := url.JoinPath(
+	oauthURL, err := url.JoinPath(
 		"http://127.0.0.1:"+viper.GetString("oauth2-port"),
 		"/auth/login")
 	if err != nil {
-		return fmt.Errorf("url construction failed")
+		tracing.Logger.Ctx(ctx).
+			Panic("failed to construct url",
+				zap.Error(err))
+		panic(err)
 	}
 
 	go func() {
-		fmt.Printf("[INFO] Open URL: %s\n", url)
-		cmd := exec.Command("xdg-open", url)
+		tracing.Logger.Ctx(ctx).
+			Info("open url",
+				zap.String("url", oauthURL))
+		cmd := exec.Command("xdg-open", oauthURL)
 		cmd.Start()
 	}()
 
 	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
-		fmt.Printf("http server failed, %v\n", err)
+		tracing.Logger.Ctx(ctx).
+			Panic("failed to start http server",
+				zap.Error(err))
+		panic(err)
 	}
 	return nil
 }
@@ -180,21 +192,28 @@ func oidcHandler(ctx context.Context, client *resty.Client) error {
 var RootCmd = &cobra.Command{
 	Use:   "admin",
 	Short: "Admin CLI utilities",
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+
 		viper.SetConfigName("config")
 		viper.SetConfigType("yaml")
 		viper.AddConfigPath("$HOME/.config/judge")
 		viper.AddConfigPath("/etc/judge")
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-				return fmt.Errorf("read config file failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Panic("failed to read config file",
+						zap.Error(err))
+				panic(err)
 			}
 		}
 
-		fmt.Fprintf(os.Stderr, "[INFO] Using endpoint: %s\n",
-			viper.GetString("endpoint"))
+		tracing.InitTracer("nasaoj-cli")
 
-		ctx := cmd.Context()
+		tracing.Logger.Ctx(ctx).
+			Info("using endpoint",
+				zap.String("url", viper.GetString("endpoint")))
+
 		client := resty.New()
 		client.SetRedirectPolicy(resty.NoRedirectPolicy())
 		client.SetRetryCount(3)
@@ -206,7 +225,10 @@ var RootCmd = &cobra.Command{
 			// Use OIDC
 			err := oidcHandler(ctx, client)
 			if err != nil {
-				return fmt.Errorf("oidc failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Panic("failed to handle oidc",
+						zap.Error(err))
+				panic(err)
 			}
 		} else {
 			client.SetAuthToken(viper.GetString("access-token"))
@@ -216,7 +238,6 @@ var RootCmd = &cobra.Command{
 
 		ctx = context.WithValue(ctx, types.RestyClient(""), client)
 		cmd.SetContext(ctx)
-		return nil
 	},
 }
 

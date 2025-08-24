@@ -20,7 +20,7 @@ func RunJob(
 ) {
 	// Setup environment
 	basepath := path.Join(viper.GetString("running-dir"), job.Id())
-	if err := utils.UnTar(basepath, job.Tarbuf); err != nil {
+	if err := utils.UnTar(pctx, basepath, job.Tarbuf); err != nil {
 		retCh <- err
 		return
 	}

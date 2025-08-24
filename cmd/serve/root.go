@@ -8,6 +8,9 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.PersistentFlags().
+		Bool("zap-production", true, "Use production logger")
+
 	RootCmd.AddCommand(backendCmd)
 	RootCmd.AddCommand(workerCmd)
 }

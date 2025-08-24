@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,6 +45,7 @@ stages:
 		},
 	}
 
+	tracing.InitTracer("nasaoj-test")
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			var problem models.Problem
@@ -52,7 +54,7 @@ stages:
 				t.Fatalf("unmarshal failed, %+v", err)
 			}
 
-			err = CheckDeps(problem)
+			err = CheckDeps(t.Context(), problem)
 			t.Logf("Type: %T", err)
 			if (err != nil) != test.ExpectedFail {
 				t.Fatalf("expect no error, got %v", err)

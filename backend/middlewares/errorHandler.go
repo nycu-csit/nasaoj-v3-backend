@@ -2,10 +2,10 @@ package middlewares
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -29,23 +29,10 @@ func NewHTTPError(err error) HTTPError {
 	}
 }
 
-var (
-	once   sync.Once
-	logger *otelzap.Logger
-)
-
 func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		err := next(w, req)
 		ctx := req.Context()
-		span := trace.SpanFromContext(ctx)
-		once.Do(func() {
-			l, err := zap.NewDevelopment()
-			if err != nil {
-				panic(err)
-			}
-			logger = otelzap.New(l)
-		})
 
 		var httpErr HTTPError
 		switch err := err.(type) {
@@ -54,19 +41,33 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 
 		case HTTPError:
 			httpErr = err
-			span.SetStatus(codes.Error, err.Error())
+			if httpErr.OriginError == nil {
+				tracing.Logger.Ctx(ctx).
+					Warn(httpErr.Message)
+			} else {
+				tracing.Logger.Ctx(ctx).
+					Warn(httpErr.Message,
+						zap.Error(httpErr.OriginError))
+			}
 
 		default:
+			tracing.Logger.Ctx(ctx).
+				Error("unhandled error",
+					zap.Error(err))
 			httpErr = NewHTTPError(err)
 		}
 
-		if httpErr.OriginError != nil {
-			logger.Ctx(ctx).Error(httpErr.Message,
-				zap.Error(httpErr.OriginError),
-			)
+		// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(
+			attribute.Int("http.response.status_code", httpErr.StatusCode),
+		)
+		if 500 <= httpErr.StatusCode && httpErr.StatusCode <= 599 {
+			span.SetStatus(codes.Error, err.Error())
 		} else {
-			logger.Ctx(ctx).Error(httpErr.Message)
+			span.SetStatus(codes.Ok, "")
 		}
+
 		w.WriteHeader(httpErr.StatusCode)
 		_ = bunrouter.JSON(w, httpErr)
 

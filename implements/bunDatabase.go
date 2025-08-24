@@ -4,13 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"text/template"
 	"time"
 
 	"github.com/uptrace/bun"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 )
 
 type BunDatabase struct {
@@ -44,15 +45,15 @@ func (self *BunDatabase) GetLastSubmission(
 		Where("problem_id = ?", problemId).
 		Order("id DESC").Limit(1).Scan(ctx)
 	if err != nil {
-		return ret, fmt.Errorf("select submission failed, %w", err)
+		return models.Submission{}, err
 	}
 	if err = self.submissionQueryHook(ctx, ret.Id); err != nil {
-		return ret, fmt.Errorf("submission query hook failed, %w", err)
+		return models.Submission{}, err
 	}
 	err = self.db.NewSelect().Model(&ret).
 		WherePK().Relation("Jobs").Scan(ctx)
 	if err != nil {
-		return ret, fmt.Errorf("select submission failed, %w", err)
+		return models.Submission{}, err
 	}
 	return ret, nil
 }
@@ -63,7 +64,7 @@ func (self *BunDatabase) GetSubmission(
 ) (models.Submission, error) {
 	ret := models.Submission{Id: subId}
 	if err := self.submissionQueryHook(ctx, subId); err != nil {
-		return ret, fmt.Errorf("submission query hook failed, %w", err)
+		return models.Submission{}, err
 	}
 	err := self.db.NewSelect().Model(&ret).
 		WherePK().Relation("Jobs").Scan(ctx)
@@ -102,7 +103,7 @@ func (self *BunDatabase) InsertSubmissionAndJobs(
 	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		err := tx.NewInsert().Model(submission).Scan(ctx)
 		if err != nil {
-			return fmt.Errorf("submission insertion failed, %w", err)
+			return err
 		}
 
 		for stageName, stage := range problem.Stages {
@@ -117,14 +118,14 @@ func (self *BunDatabase) InsertSubmissionAndJobs(
 
 				_, err = tx.NewInsert().Model(&job).Exec(ctx)
 				if err != nil {
-					return fmt.Errorf("job insertion failed, %w", err)
+					return err
 				}
 			}
 		}
 
 		_, err = tx.NewUpdate().Model(submission).WherePK().Exec(ctx)
 		if err != nil {
-			return fmt.Errorf("submission update failed, %w", err)
+			return err
 		}
 
 		return nil
@@ -152,14 +153,14 @@ func (self *BunDatabase) IncreaseScore(
 		Set("score_score = score_score + ?", delta).
 		Where("id = ?", subId).Exec(ctx)
 	if err != nil {
-		return fmt.Errorf("db score update failed, %w", err)
+		return err
 	}
 	_, err = self.db.NewUpdate().Model((*models.Submission)(nil)).
 		Set("score_stages = score_stages || ?",
 			map[string]int64{stageName: delta}).
 		Where("id = ?", subId).Exec(ctx)
 	if err != nil {
-		return fmt.Errorf("db stage score update failed, %w", err)
+		return err
 	}
 	return nil
 }
@@ -176,7 +177,7 @@ func (self *BunDatabase) GetScoresWithStages(
 		OrderExpr("csid, id DESC").
 		Scan(ctx)
 	if err != nil {
-		return ret, fmt.Errorf("score query failed, %w", err)
+		return []models.UserScoreWithStages{}, err
 	}
 
 	for _, submission := range submissions {
@@ -202,7 +203,7 @@ func (self *BunDatabase) GetScores(
 		OrderExpr("csid, id DESC").
 		Scan(ctx)
 	if err != nil {
-		return ret, fmt.Errorf("score query failed, %w", err)
+		return []models.UserScore{}, err
 	}
 
 	for _, submission := range submissions {
@@ -234,23 +235,28 @@ func (self *BunDatabase) InsertUserResources(
 						Model(&newUser).
 						Exec(ctx)
 					if err != nil {
-						return fmt.Errorf("insert user failed, %w", err)
+						return err
 					}
 					return nil
 				}
 				if err != nil {
-					return fmt.Errorf("select user failed, %w", err)
+					return err
 				}
 
-				// TODO: JSON Merge
-				b, err := utils.JSONMerge(oldUser, newUser)
+				b, err := utils.JSONMerge(ctx, oldUser, newUser)
 				if err != nil {
-					return fmt.Errorf("merge user failed, %w", err)
+					tracing.Logger.Ctx(ctx).
+						Error("failed to merge json",
+							zap.Error(err))
+					return err
 				}
 
 				var mergedUser models.UserResource
 				if err := json.Unmarshal(b, &mergedUser); err != nil {
-					return fmt.Errorf("json unmarshal failed, %w", err)
+					tracing.Logger.Ctx(ctx).
+						Error("failed to unmarshal json to user resource",
+							zap.Error(err))
+					return err
 				}
 
 				_, err = tx.NewUpdate().
@@ -259,13 +265,13 @@ func (self *BunDatabase) InsertUserResources(
 					Where("csid = ?", newUser.CsId).
 					Exec(ctx)
 				if err != nil {
-					return fmt.Errorf("update user failed, %w", err)
+					return err
 				}
 
 				return nil
 			})
 		if err != nil {
-			return fmt.Errorf("insert user resource '%+v' failed, %w", newUser, err)
+			return err
 		}
 	}
 	return nil
@@ -359,10 +365,13 @@ func (self *BunDatabase) UpdateRefreshToken(
 	}
 	err := self.db.NewSelect().Model(&ret).WherePK().Scan(ctx)
 	if err != nil {
-		return ret, err
+		return models.Session{}, err
 	}
 	if err := ret.RotateRefreshToken(); err != nil {
-		return ret, err
+		tracing.Logger.Ctx(ctx).
+			Error("failed to rotate refresh token",
+				zap.Error(err))
+		return models.Session{}, err
 	}
 	err = self.db.NewUpdate().Model((*models.Session)(nil)).
 		Where("cs_id = ?", csId).
@@ -396,13 +405,17 @@ func (self *BunDatabase) getProblems(
 		Where("is_enabled = ?", true).
 		Scan(ctx)
 	if err != nil {
-		return ret, err
+		return map[string]models.Problem{}, err
 	}
 
 	for _, problem := range problemsMarshaled {
 		ret[problem.SHA1], err = problem.Unmarshal()
 		if err != nil {
-			return ret, err
+			tracing.Logger.Ctx(ctx).
+				Error("failed to unmarshal problem",
+					zap.String("problem.sha1", problem.SHA1),
+					zap.Error(err))
+			return map[string]models.Problem{}, err
 		}
 	}
 	return ret, nil
@@ -528,13 +541,17 @@ func (self *BunDatabase) getAllProblems(
 		Where("is_tool = ?", isTool).
 		Scan(ctx)
 	if err != nil {
-		return ret, err
+		return map[string]models.Problem{}, err
 	}
 
 	for _, problem := range problemsMarshaled {
 		ret[problem.SHA1], err = problem.Unmarshal()
 		if err != nil {
-			return ret, err
+			tracing.Logger.Ctx(ctx).
+				Error("failed to unmarshal problem",
+					zap.String("problem.sha1", problem.SHA1),
+					zap.Error(err))
+			return map[string]models.Problem{}, err
 		}
 	}
 	return ret, nil
@@ -558,6 +575,10 @@ func (self *BunDatabase) InsertProblem(
 ) error {
 	problemMarshaled, err := problem.Marshal()
 	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal problem",
+				zap.String("problem.name", problem.Name),
+				zap.Error(err))
 		return err
 	}
 
@@ -592,8 +613,7 @@ func (self *BunDatabase) GetContentFiles(
 		Where("sha1 IN (?)", bun.In(sha1s)).
 		Scan(ctx)
 	if err != nil {
-		return []models.ContentFile{},
-			fmt.Errorf("content files select failed, %w", err)
+		return []models.ContentFile{}, err
 	}
 
 	var ret []models.ContentFile
@@ -602,8 +622,11 @@ func (self *BunDatabase) GetContentFiles(
 			contentFile.Template, err = template.New(contentFile.Name).
 				Parse(contentFile.Payload)
 			if err != nil {
-				return []models.ContentFile{},
-					fmt.Errorf("templating failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to template file",
+						zap.String("file.name", contentFile.Name),
+						zap.Error(err))
+				return []models.ContentFile{}, err
 			}
 		}
 		ret = append(ret, contentFile)
@@ -619,8 +642,7 @@ func (self *BunDatabase) GetAllContentFiles(
 		Model(&ret).
 		Scan(ctx)
 	if err != nil {
-		return []models.ContentFile{},
-			fmt.Errorf("content files select failed, %w", err)
+		return []models.ContentFile{}, err
 	}
 
 	for i, contentFile := range ret {
@@ -628,8 +650,11 @@ func (self *BunDatabase) GetAllContentFiles(
 			ret[i].Template, err = template.New(contentFile.Name).
 				Parse(contentFile.Payload)
 			if err != nil {
-				return []models.ContentFile{},
-					fmt.Errorf("templating failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to template file",
+						zap.String("file.name", contentFile.Name),
+						zap.Error(err))
+				return []models.ContentFile{}, err
 			}
 		}
 	}
@@ -657,7 +682,7 @@ func (self *BunDatabase) UpdateProblem(
 					Where("sha1 = ?", sha1).
 					Scan(ctx)
 				if err != nil {
-					return fmt.Errorf("problem select failed, %w", err)
+					return err
 				}
 				_, err = tx.NewUpdate().
 					Model((*models.ProblemMarshaled)(nil)).
@@ -665,7 +690,7 @@ func (self *BunDatabase) UpdateProblem(
 					Where("problem_id = ?", problem.ProblemId).
 					Exec(ctx)
 				if err != nil {
-					return fmt.Errorf("problem update failed, %w", err)
+					return err
 				}
 				return nil
 			})
@@ -698,9 +723,8 @@ func (self *BunDatabase) HydrateContentFiles(
 
 	res, err := self.GetContentFiles(ctx, sha1s)
 	if err != nil {
-		return fmt.Errorf("get content files failed, %w", err)
+		return err
 	}
-	// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", res)
 	*contentFiles = res
 	return nil
 }
@@ -711,27 +735,42 @@ func (self *BunDatabase) HydrateProblem(
 ) error {
 	if err := self.HydrateContentFiles(
 		ctx, &problem.PreScript.Files); err != nil {
-		return fmt.Errorf("hydrate problem prescript failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to hydrate problem prescript",
+				zap.Error(err))
+		return err
 	}
 	if err := self.HydrateContentFiles(
 		ctx, &problem.PostScript.Files); err != nil {
-		return fmt.Errorf("hydrate problem postscript failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to hydrate problem postscript",
+				zap.Error(err))
+		return err
 	}
 
 	for stageName, stage := range problem.Stages {
 		if err := self.HydrateContentFiles(
 			ctx, &stage.PreScript.Files); err != nil {
-			return fmt.Errorf("hydrate stage prescript failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to hydrate stage prescript",
+					zap.Error(err))
+			return err
 		}
 		if err := self.HydrateContentFiles(
 			ctx, &stage.PostScript.Files); err != nil {
-			return fmt.Errorf("hydrate stage postscript failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to hydrate stage postscript",
+					zap.Error(err))
+			return err
 		}
 
 		for i := range stage.Testcases {
 			if err := self.HydrateContentFiles(ctx,
 				&stage.Testcases[i].Content.Files); err != nil {
-				return fmt.Errorf("hydrate content files failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to hydrate content files",
+						zap.Error(err))
+				return err
 			}
 		}
 		problem.Stages[stageName] = stage
@@ -761,14 +800,14 @@ func (self *BunDatabase) DeleteProblemAndSubmissions(
 				Where("sha1 = ?", sha1).
 				Exec(ctx)
 			if err != nil {
-				return fmt.Errorf("delete problem failed, %w", err)
+				return err
 			}
 			_, err = tx.NewDelete().
 				Model((*models.Submission)(nil)).
 				Where("problem_sha1 = ?", sha1).
 				Exec(ctx)
 			if err != nil {
-				return fmt.Errorf("delete submissions failed, %w", err)
+				return err
 			}
 			return nil
 		})

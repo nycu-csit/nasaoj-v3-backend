@@ -1,16 +1,22 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 	"golang.org/x/term"
 )
 
-func ReadStdin(original string) (string, error) {
+func ReadStdin(
+	ctx context.Context,
+	original string,
+) (string, error) {
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		editor := os.Getenv("EDITOR")
 		if len(editor) == 0 {
@@ -26,7 +32,10 @@ func ReadStdin(original string) (string, error) {
 
 		fmt.Fprintf(f, "%s\n", original)
 		if _, err := f.Seek(0, 0); err != nil {
-			return "", fmt.Errorf("seek to the origin of the file failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to seek to the origin of the file",
+					zap.Error(err))
+			return "", err
 		}
 
 		fmt.Printf("Run: %s %s\n", editor, f.Name())
@@ -34,7 +43,10 @@ func ReadStdin(original string) (string, error) {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		if err := cmd.Run(); err != nil {
-			return "", fmt.Errorf("editor failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to open editor",
+					zap.Error(err))
+			return "", err
 		}
 
 		b, err := io.ReadAll(f)

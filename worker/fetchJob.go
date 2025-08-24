@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,6 +9,9 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 func FetchJob(
@@ -25,7 +27,10 @@ func FetchJob(
 	jobURL, err := url.JoinPath(
 		viper.GetString("scheduler-url"), "/schedule/job")
 	if err != nil {
-		retCh <- fmt.Errorf("url construction failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to construct url",
+				zap.Error(err))
+		retCh <- err
 		return
 	}
 
@@ -39,19 +44,28 @@ func FetchJob(
 		SetQueryParam("tags", viper.GetString("tags")).
 		Get(jobURL)
 
-	if resp.StatusCode() == http.StatusServiceUnavailable {
-		retCh <- fmt.Errorf("no job left in queue")
+	if resp.StatusCode() == http.StatusNoContent {
+		tracing.Logger.Ctx(ctx).
+			Error("job not exist")
+		retCh <- types.JobNotExistError
 		return
 	}
 
 	if !resp.IsSuccess() {
-		retCh <- fmt.Errorf("GET %s failed, %v", jobURL, resp.Error())
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get job",
+				zap.String("url", jobURL))
+		retCh <- types.HTTPRequestFailedError
 		return
 	}
 
 	fileURL, err := url.Parse(job.FileURL)
 	if err != nil {
-		retCh <- fmt.Errorf("file url parse failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to parse file url",
+				zap.String("url", job.FileURL),
+				zap.Error(err))
+		retCh <- types.WrongFormatError
 		return
 	}
 	resp, err = client.R().
@@ -65,10 +79,10 @@ func FetchJob(
 	}
 
 	if !resp.IsSuccess() {
-		// fmt.Fprintf(os.Stderr, "%##+v\n", resp.Request)
-		// fmt.Fprintf(os.Stderr, "%##+v\n", resp.RawResponse)
-		retCh <- fmt.Errorf("GET %s failed, %v",
-			fileURL.String(), resp.Error())
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get file",
+				zap.String("url", fileURL.String()))
+		retCh <- types.HTTPRequestFailedError
 		return
 	}
 

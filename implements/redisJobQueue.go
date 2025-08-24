@@ -3,10 +3,11 @@ package implements
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/redis/go-redis/v9"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 )
 
 type RedisJobQueue struct {
@@ -18,7 +19,7 @@ func NewRedisJobQueue(rdb *redis.Client) *RedisJobQueue {
 }
 
 func (self *RedisJobQueue) QueueKey(tag models.TagType) string {
-	return fmt.Sprintf("queue-%s", tag)
+	return "queue-" + tag
 }
 
 func (self *RedisJobQueue) GetJob(
@@ -27,18 +28,21 @@ func (self *RedisJobQueue) GetJob(
 ) (models.Job, error) {
 	jobkey, err := self.rdb.RPop(ctx, self.QueueKey(tag)).Result()
 	if err != nil {
-		return models.Job{}, fmt.Errorf("rdb RPOP failed or no job left in queue")
+		return models.Job{}, err
 	}
 
 	jobRaw, err := self.rdb.Get(ctx, jobkey).Result()
 	if err != nil {
-		return models.Job{}, fmt.Errorf("rdb GET failed")
+		return models.Job{}, err
 	}
 
 	var job models.Job
 	err = json.Unmarshal([]byte(jobRaw), &job)
 	if err != nil {
-		return models.Job{}, fmt.Errorf("job json unmarshal failed")
+		tracing.Logger.Ctx(ctx).
+			Error("failed to unmarshal json to job",
+				zap.Error(err))
+		return models.Job{}, err
 	}
 
 	return job, nil
@@ -51,7 +55,10 @@ func (self *RedisJobQueue) PutJob(
 ) error {
 	b, err := json.Marshal(job)
 	if err != nil {
-		return fmt.Errorf("marshal job to json failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal job to json",
+				zap.Error(err))
+		return err
 	}
 
 	_, err = self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {

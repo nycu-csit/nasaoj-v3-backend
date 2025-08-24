@@ -1,9 +1,11 @@
 package parsers
 
 import (
-	"fmt"
+	"context"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -52,6 +54,7 @@ func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
 }
 
 func (self *Problem) ToModelProblem(
+	ctx context.Context,
 	contentFiles map[string]models.ContentFile,
 ) (models.Problem, error) {
 	ret := models.Problem{
@@ -87,9 +90,12 @@ func (self *Problem) ToModelProblem(
 		maxTL := int64(0)
 		for _, testcase := range stage.Testcases {
 			maxTL = max(maxTL, testcase.HardTL)
-			retTestcase, err := testcase.ToModelTestcase(contentFiles)
+			retTestcase, err := testcase.ToModelTestcase(ctx, contentFiles)
 			if err != nil {
-				return ret, fmt.Errorf("testcase extraction failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("testcase extraction failed",
+						zap.Error(err))
+				return models.Problem{}, err
 			}
 			retStage.Testcases = append(retStage.Testcases, retTestcase)
 		}

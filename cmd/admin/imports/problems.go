@@ -13,40 +13,58 @@ import (
 	"github.com/uptrace/bun/driver/sqliteshim"
 	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 )
 
 var problemsCmd = &cobra.Command{
 	Use:   "problems",
 	Short: "Import problems",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 		sqldb, err := sql.Open(sqliteshim.ShimName, "file::memory:?cache=shared")
 		if err != nil {
-			return fmt.Errorf("sqlite init failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to init sqlite",
+					zap.Error(err))
+			panic(err)
 		}
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
 		if err := utils.InitDB(ctx, bunDB); err != nil {
-			return fmt.Errorf("db init failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to init db",
+					zap.Error(err))
+			panic(err)
 		}
 		db := implements.NewBunDatabase(bunDB)
 		problems := implements.NewDBProblemStorage(db)
 
 		err = utils.LoadProblems(ctx, problems,
-			viper.GetString("problems-dir"), viper.GetString("testcases-dir"))
+			viper.GetString("problems-dir"),
+			viper.GetString("testcases-dir"))
 		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to load problems",
+					zap.Error(err))
 			panic(err)
 		}
 
 		exportProblems, err := problems.GetAllProblems(ctx)
 		if err != nil {
-			return fmt.Errorf("get all problems failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to get all problems",
+					zap.Error(err))
+			panic(err)
 		}
 
 		exportContentFiles, err := problems.GetAllContentFiles(ctx)
 		if err != nil {
-			return fmt.Errorf("get all content files failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to get all content files",
+					zap.Error(err))
+			panic(err)
 		}
 
 		var contentFilesPayload []apiHandlers.PutContentFilesInput
@@ -59,48 +77,65 @@ var problemsCmd = &cobra.Command{
 					IsTemplate: file.IsTemplate,
 				})
 		}
-		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", contentFilesPayload)
 
-		// fmt.Fprintf(os.Stderr, "problems: %+v\n", exportProblems)
 		client, ok := ctx.Value(types.RestyClient("")).(*resty.Client)
 		if !ok {
-			return fmt.Errorf("resty client not found")
+			tracing.Logger.Ctx(ctx).
+				Panic("resty client not exist")
+			panic(types.ContextNotExistError)
 		}
 
-		uri, err := url.JoinPath(
+		problemsURL, err := url.JoinPath(
 			viper.GetString("endpoint"), "/api/admin/problems")
 		if err != nil {
-			return fmt.Errorf("url construction failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to construct url",
+					zap.Error(err))
+			panic(err)
 		}
 		resp, err := client.R().
 			SetBody(exportProblems).
-			Put(uri)
+			Put(problemsURL)
 		if err != nil {
-			return fmt.Errorf("PUT %s failed, %w", uri, err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to put problems",
+					zap.String("url", problemsURL),
+					zap.Error(err))
+			panic(err)
 		}
 
 		if !resp.IsSuccess() {
-			return fmt.Errorf("%v\n", resp.Error())
+			tracing.Logger.Ctx(ctx).
+				Panic("resp.IsSuccess failed")
+			panic(types.HTTPRequestFailedError)
 		}
 		fmt.Printf("%v\n", string(resp.Body()[:]))
 
-		uri, err = url.JoinPath(
+		contentFilesURL, err := url.JoinPath(
 			viper.GetString("endpoint"), "/api/admin/content-files")
 		if err != nil {
-			return fmt.Errorf("url construction failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to construct url",
+					zap.Error(err))
+			panic(err)
 		}
 		resp, err = client.R().
 			SetBody(contentFilesPayload).
-			Put(uri)
+			Put(contentFilesURL)
 		if err != nil {
-			return fmt.Errorf("PUT %s failed, %w", uri, err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to put content files",
+					zap.String("url", contentFilesURL),
+					zap.Error(err))
+			panic(err)
 		}
 
 		if !resp.IsSuccess() {
-			return fmt.Errorf("%v\n", resp.Error())
+			tracing.Logger.Ctx(ctx).
+				Panic("resp.IsSuccess failed")
+			panic(types.HTTPRequestFailedError)
 		}
 		fmt.Printf("%v\n", string(resp.Body()[:]))
-		return nil
 	},
 }
 
