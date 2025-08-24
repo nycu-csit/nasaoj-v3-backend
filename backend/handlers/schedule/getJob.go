@@ -3,7 +3,6 @@ package schedule
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -23,7 +22,6 @@ func GetScheduleJob(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 		tags := req.URL.Query().Get("tags")
-		fmt.Fprintf(os.Stderr, "GET /schedule/job?tags=%s\n", tags)
 
 		if err := workers.UpdateWorkerStatus(ctx,
 			utils.GetRemoteAddr(req),

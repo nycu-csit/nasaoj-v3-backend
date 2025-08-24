@@ -16,12 +16,14 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/bunrouter/extra/bunrouterotel"
 	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	authHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
 	scheduleHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
@@ -38,6 +40,9 @@ var backendCmd = &cobra.Command{
 	Short: "NASAOJ backend server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
+		// Initialize Tracing
+		tracing.Init()
+		defer tracing.Cleanup(ctx)
 
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
@@ -87,6 +92,9 @@ var backendCmd = &cobra.Command{
 		// Initialize backend router
 		router := bunrouter.New()
 		backend := router.NewGroup("").
+			Use(bunrouterotel.NewMiddleware(
+				bunrouterotel.WithClientIP(),
+			)).
 			Use(middlewares.ErrorHandler).
 			Use(middlewares.CORSHandler)
 
@@ -280,6 +288,10 @@ func init() {
 		String("minio-secretkey", "poop", "MinIO secretkey")
 	backendCmd.Flags().
 		Bool("minio-usessl", false, "MinIO usessl")
+
+	// Uptrace
+	backendCmd.Flags().
+		String("uptrace-dsn", "", "Uptrace DSN")
 
 	// Others
 	backendCmd.Flags().

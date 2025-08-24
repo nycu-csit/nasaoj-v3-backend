@@ -1,11 +1,14 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
-	"os"
+	"sync"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 type HTTPError struct {
@@ -26,9 +29,23 @@ func NewHTTPError(err error) HTTPError {
 	}
 }
 
+var (
+	once   sync.Once
+	logger *otelzap.Logger
+)
+
 func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		err := next(w, req)
+		ctx := req.Context()
+		span := trace.SpanFromContext(ctx)
+		once.Do(func() {
+			l, err := zap.NewDevelopment()
+			if err != nil {
+				panic(err)
+			}
+			logger = otelzap.New(l)
+		})
 
 		var httpErr HTTPError
 		switch err := err.(type) {
@@ -37,15 +54,18 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 
 		case HTTPError:
 			httpErr = err
+			span.SetStatus(codes.Error, err.Error())
 
 		default:
 			httpErr = NewHTTPError(err)
 		}
 
 		if httpErr.OriginError != nil {
-			fmt.Fprintf(os.Stderr, "%s, %s\n", httpErr.Message, httpErr.OriginError)
+			logger.Ctx(ctx).Error(httpErr.Message,
+				zap.Error(httpErr.OriginError),
+			)
 		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", httpErr.Message)
+			logger.Ctx(ctx).Error(httpErr.Message)
 		}
 		w.WriteHeader(httpErr.StatusCode)
 		_ = bunrouter.JSON(w, httpErr)
