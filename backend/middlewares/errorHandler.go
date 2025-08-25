@@ -15,6 +15,8 @@ type HTTPError struct {
 	StatusCode  int    `json:"code"`
 	Message     string `json:"message"`
 	OriginError error  `json:"-"`
+
+	TraceID string `json:"traceId"`
 }
 
 func (e HTTPError) Error() string {
@@ -59,6 +61,7 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 
 		// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
 		span := trace.SpanFromContext(ctx)
+		httpErr.TraceID = span.SpanContext().TraceID().String()
 		span.SetAttributes(
 			attribute.Int("http.response.status_code", httpErr.StatusCode),
 		)
