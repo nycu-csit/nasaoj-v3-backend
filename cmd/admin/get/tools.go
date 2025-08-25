@@ -71,8 +71,8 @@ var toolsCmd = &cobra.Command{
 		}
 
 		sort.Slice(ret, func(i, j int) bool {
-			return res[i].ProblemId < res[j].ProblemId ||
-				(res[i].ProblemId == res[j].ProblemId && res[i].SHA1 < res[j].SHA1)
+			return ret[i].ProblemId < ret[j].ProblemId ||
+				(ret[i].ProblemId == ret[j].ProblemId && ret[i].SHA1 < ret[j].SHA1)
 		})
 
 		b, err := yaml.Marshal(ret)

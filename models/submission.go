@@ -9,7 +9,7 @@ type Submission struct {
 	ProblemId     int64  `json:"problemId" bun:"problem_id"`
 	ProblemName   string `json:"problemName" bun:"problem_name"`
 
-	CsId     string            `json:"csId" bun:"csid"`
+	CsId     string            `json:"csId" bun:"cs_id"`
 	SubmitAt int64             `json:"submitAt" bun:"submit_at"`
 	Args     map[string]string `json:"args" bun:"args"`
 

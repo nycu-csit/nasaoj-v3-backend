@@ -10,7 +10,7 @@ import (
 type UserResource struct {
 	bun.BaseModel `json:"-" yaml:"-" bun:"table:userresource"`
 
-	CsId string            `json:"csId" yaml:"csId" bun:"csid,pk"`
+	CsId string            `json:"csId" yaml:"csId" bun:"cs_id,pk"`
 	Args map[string]string `json:"args" yaml:"args" bun:"args"`
 }
 

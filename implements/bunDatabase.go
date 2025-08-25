@@ -41,7 +41,7 @@ func (self *BunDatabase) GetLastSubmission(
 ) (models.Submission, error) {
 	var ret models.Submission
 	err := self.db.NewSelect().Model(&ret).
-		Where("csid = ?", csId).
+		Where("cs_id = ?", csId).
 		Where("problem_id = ?", problemId).
 		Order("id DESC").Limit(1).Scan(ctx)
 	if err != nil {
@@ -139,7 +139,7 @@ func (self *BunDatabase) GetUserResource(
 ) (models.UserResource, error) {
 	var ret models.UserResource
 	err := self.db.NewSelect().Model(&ret).
-		Where("csid = ?", csId).Scan(ctx)
+		Where("cs_id = ?", csId).Scan(ctx)
 	return ret, err
 }
 
@@ -171,10 +171,10 @@ func (self *BunDatabase) GetScoresWithStages(
 ) ([]models.UserScoreWithStages, error) {
 	ret := []models.UserScoreWithStages{}
 	var submissions []models.Submission
-	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
-		Column("csid", "score_score", "score_stages").
+	err := self.db.NewSelect().DistinctOn("cs_id").Model(&submissions).
+		Column("cs_id", "score_score", "score_stages").
 		Where("problem_id = ?", problemId).
-		OrderExpr("csid, id DESC").
+		OrderExpr("cs_id, id DESC").
 		Scan(ctx)
 	if err != nil {
 		return []models.UserScoreWithStages{}, err
@@ -197,10 +197,10 @@ func (self *BunDatabase) GetScores(
 ) ([]models.UserScore, error) {
 	ret := []models.UserScore{}
 	var submissions []models.Submission
-	err := self.db.NewSelect().DistinctOn("csid").Model(&submissions).
-		Column("csid", "score_score").
+	err := self.db.NewSelect().DistinctOn("cs_id").Model(&submissions).
+		Column("cs_id", "score_score").
 		Where("problem_id = ?", problemId).
-		OrderExpr("csid, id DESC").
+		OrderExpr("cs_id, id DESC").
 		Scan(ctx)
 	if err != nil {
 		return []models.UserScore{}, err
@@ -227,7 +227,7 @@ func (self *BunDatabase) InsertUserResources(
 				var oldUser models.UserResource
 				err := tx.NewSelect().
 					Model(&oldUser).
-					Where("csid = ?", newUser.CsId).
+					Where("cs_id = ?", newUser.CsId).
 					Scan(ctx)
 				if err == sql.ErrNoRows {
 					// Insert New User
@@ -262,7 +262,7 @@ func (self *BunDatabase) InsertUserResources(
 				_, err = tx.NewUpdate().
 					Model((*models.UserResource)(nil)).
 					Set("args = ?", mergedUser.Args).
-					Where("csid = ?", newUser.CsId).
+					Where("cs_id = ?", newUser.CsId).
 					Exec(ctx)
 				if err != nil {
 					return err
@@ -283,7 +283,7 @@ func (self *BunDatabase) ExistUserResource(
 ) (bool, error) {
 	return self.db.NewSelect().
 		Model((*models.UserResource)(nil)).
-		Where("csid = ?", csId).
+		Where("cs_id = ?", csId).
 		Exists(ctx)
 }
 
@@ -311,7 +311,7 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 ) ([]models.Submission, int, error) {
 	query := self.db.NewSelect().Order("id DESC").Limit(pageSize)
 	if isCsId {
-		query = query.Where("csid = ?", csId)
+		query = query.Where("cs_id = ?", csId)
 	}
 	if isPageNum {
 		query = query.Offset(pageNum * pageSize)
@@ -830,7 +830,7 @@ func (self *BunDatabase) DeleteUser(
 ) error {
 	_, err := self.db.NewDelete().
 		Model((*models.UserResource)(nil)).
-		Where("csid = ?", csId).
+		Where("cs_id = ?", csId).
 		Exec(ctx)
 	return err
 }
