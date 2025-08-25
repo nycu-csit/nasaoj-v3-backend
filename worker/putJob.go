@@ -2,13 +2,13 @@ package worker
 
 import (
 	"context"
-	"fmt"
 	"net/url"
-	"os"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 )
 
 func PutJob(
@@ -26,7 +26,9 @@ func PutJob(
 	resultURL, err := url.JoinPath(
 		viper.GetString("scheduler-url"), "/schedule/result")
 	if err != nil {
-		retCh <- fmt.Errorf("url construction failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to construct url")
+		retCh <- err
 		return
 	}
 
@@ -44,6 +46,8 @@ func PutJob(
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "http put failed\n")
+	tracing.Logger.Ctx(ctx).
+		Error("failed to put job",
+			zap.Error(err))
 	retCh <- err
 }

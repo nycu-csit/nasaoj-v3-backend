@@ -24,7 +24,7 @@ func CheckRefreshToken(
 			if err != nil {
 				return HTTPError{
 					StatusCode:  http.StatusUnauthorized,
-					Message:     "user didn't login",
+					Message:     "user did not login",
 					OriginError: err,
 				}
 			}

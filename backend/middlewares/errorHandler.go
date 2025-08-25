@@ -1,11 +1,14 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 type HTTPError struct {
@@ -29,6 +32,7 @@ func NewHTTPError(err error) HTTPError {
 func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		err := next(w, req)
+		ctx := req.Context()
 
 		var httpErr HTTPError
 		switch err := err.(type) {
@@ -37,16 +41,33 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 
 		case HTTPError:
 			httpErr = err
+			if httpErr.OriginError == nil {
+				tracing.Logger.Ctx(ctx).
+					Warn(httpErr.Message)
+			} else {
+				tracing.Logger.Ctx(ctx).
+					Warn(httpErr.Message,
+						zap.Error(httpErr.OriginError))
+			}
 
 		default:
+			tracing.Logger.Ctx(ctx).
+				Error("unhandled error",
+					zap.Error(err))
 			httpErr = NewHTTPError(err)
 		}
 
-		if httpErr.OriginError != nil {
-			fmt.Fprintf(os.Stderr, "%s, %s\n", httpErr.Message, httpErr.OriginError)
+		// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(
+			attribute.Int("http.response.status_code", httpErr.StatusCode),
+		)
+		if 500 <= httpErr.StatusCode && httpErr.StatusCode <= 599 {
+			span.SetStatus(codes.Error, err.Error())
 		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", httpErr.Message)
+			span.SetStatus(codes.Ok, "")
 		}
+
 		w.WriteHeader(httpErr.StatusCode)
 		_ = bunrouter.JSON(w, httpErr)
 

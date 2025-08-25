@@ -1,0 +1,4 @@
+CREATE USER uptrace;
+CREATE DATABASE uptrace;
+ALTER DATABASE uptrace OWNER TO uptrace;
+ALTER USER uptrace ENCRYPTED PASSWORD 'uptrace';

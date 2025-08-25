@@ -5,12 +5,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 )
 
 var (
@@ -30,16 +31,17 @@ func (self *RedisTokenStorage) GetTokens(
 ) (map[string]models.Token, error) {
 	res, err := self.rdb.HGetAll(ctx, "token").Result()
 	if err != nil {
-		return map[string]models.Token{},
-			fmt.Errorf("HGETALL failed, %w", err)
+		return map[string]models.Token{}, err
 	}
 
 	ret := make(map[string]models.Token)
 	for sha, payload := range res {
 		var token models.Token
 		if err := json.Unmarshal([]byte(payload), &token); err != nil {
-			return map[string]models.Token{},
-				fmt.Errorf("json unmarshal failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to unmarshal json to token",
+					zap.Error(err))
+			return map[string]models.Token{}, err
 		}
 		ret[sha] = token
 	}
@@ -52,19 +54,18 @@ func (self *RedisTokenStorage) GetPrivs(
 ) (models.Privileges, error) {
 	h := sha256.Sum256([]byte(token))
 	key := hex.EncodeToString(h[:])
-	// fmt.Fprintf(os.Stderr, "[INFO] key: %s\n", key)
 
 	res, err := self.rdb.HGet(ctx, tokenKey, key).Result()
 	if err != nil {
-		return models.Privileges{},
-			fmt.Errorf("redis HGET failed, %w", err)
+		return models.Privileges{}, err
 	}
-	// fmt.Fprintf(os.Stderr, "[INFO] res: %s\n", res)
 
 	var ret models.Token
 	if err := json.Unmarshal([]byte(res), &ret); err != nil {
-		return models.Privileges{},
-			fmt.Errorf("json unmarshal failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to unmarshal json to token",
+				zap.Error(err))
+		return models.Privileges{}, err
 	}
 	return ret.Privs, nil
 }
@@ -81,12 +82,15 @@ func (self *RedisTokenStorage) SetAdminToken(
 		IsEnabled: true,
 	})
 	if err != nil {
-		return fmt.Errorf("json marshal failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal token to json",
+				zap.Error(err))
+		return err
 	}
 
 	_, err = self.rdb.HSet(ctx, tokenKey, key, string(b[:])).Result()
 	if err != nil {
-		return fmt.Errorf("redis HSET failed, %w", err)
+		return err
 	}
 	return nil
 }
@@ -97,7 +101,7 @@ func (self *RedisTokenStorage) GenerateTokenWithoutExpire(
 ) (string, error) {
 	token, err := utils.RandomString(48)
 	if err != nil {
-		return "", fmt.Errorf("string generate failed, %w", err)
+		return "", err
 	}
 
 	h := sha256.Sum256([]byte(token))
@@ -108,12 +112,15 @@ func (self *RedisTokenStorage) GenerateTokenWithoutExpire(
 		IsEnabled: true,
 	})
 	if err != nil {
-		return "", fmt.Errorf("json marshal failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal token to json",
+				zap.Error(err))
+		return "", err
 	}
 
 	_, err = self.rdb.HSet(ctx, tokenKey, key, string(b[:])).Result()
 	if err != nil {
-		return "", fmt.Errorf("redis HSET failed, %w", err)
+		return "", err
 	}
 	return token, nil
 }
@@ -125,7 +132,7 @@ func (self *RedisTokenStorage) GenerateToken(
 ) (string, error) {
 	token, err := utils.RandomString(48)
 	if err != nil {
-		return "", fmt.Errorf("string generate failed, %w", err)
+		return "", err
 	}
 
 	h := sha256.Sum256([]byte(token))
@@ -136,16 +143,19 @@ func (self *RedisTokenStorage) GenerateToken(
 		IsEnabled: true,
 	})
 	if err != nil {
-		return "", fmt.Errorf("json marshal failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal token to json",
+				zap.Error(err))
+		return "", err
 	}
 
 	_, err = self.rdb.HSet(ctx, tokenKey, key, string(b[:])).Result()
 	if err != nil {
-		return "", fmt.Errorf("redis HSET failed, %w", err)
+		return "", err
 	}
 	_, err = self.rdb.HExpire(ctx, tokenKey, duration, key).Result()
 	if err != nil {
-		return "", fmt.Errorf("redis HExpire failed, %w", err)
+		return "", err
 	}
 	return token, nil
 }
@@ -157,23 +167,28 @@ func (self *RedisTokenStorage) modifyToken(
 ) error {
 	res, err := self.rdb.HGet(ctx, tokenKey, key).Result()
 	if err != nil {
-		return fmt.Errorf("redis HGET failed, %w", err)
+		return err
 	}
 
 	var token models.Token
 	if err := json.Unmarshal([]byte(res), &token); err != nil {
-		// fmt.Fprintf(os.Stderr, "[DEBUG] %+##v\n", res)
-		return fmt.Errorf("json unmarshal failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to unmarshal json to token",
+				zap.Error(err))
+		return err
 	}
 
 	token = f(token)
 	b, err := json.Marshal(token)
 	if err != nil {
-		return fmt.Errorf("json marshal failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal token to json",
+				zap.Error(err))
+		return err
 	}
 	if _, err := self.rdb.HSet(
 		ctx, tokenKey, key, string(b[:])).Result(); err != nil {
-		return fmt.Errorf("redis HSET failed, %w", err)
+		return err
 	}
 
 	return nil

@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/uptrace/bun"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -20,7 +19,7 @@ func InitDB(ctx context.Context, db *bun.DB) error {
 		(*models.Session)(nil),
 	)
 	if err != nil {
-		return fmt.Errorf("db reset failed, %s\n", err)
+		panic(err)
 	}
 
 	return nil

@@ -1,22 +1,31 @@
 package utils
 
 import (
-	"fmt"
-	"os"
+	"context"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
-func CheckDeps(problem models.Problem) error {
-	fmt.Fprintf(os.Stderr, "Checking problem '%s'\n", problem.Name)
+func CheckDeps(
+	ctx context.Context,
+	problem models.Problem,
+) error {
+	tracing.Logger.Ctx(ctx).
+		Info("checking problem",
+			zap.String("problem.name", problem.Name))
 
 	stageDepCnt := make(map[string]int64)
 	for _, stage := range problem.Stages {
 		for _, next := range stage.Before {
 			if _, exist := problem.Stages[next]; !exist {
-				return fmt.Errorf(
-					"dependency '%s' in problem '%s' does not exist",
-					next, problem.Name)
+				tracing.Logger.Ctx(ctx).
+					Error("dependency not exist",
+						zap.String("problem.name", problem.Name),
+						zap.String("stage.name", next))
+				return types.StageNotExistError
 			}
 			stageDepCnt[next] += 1
 		}
@@ -46,7 +55,10 @@ func CheckDeps(problem models.Problem) error {
 	}
 
 	if len(stagePass) != len(problem.Stages) {
-		return fmt.Errorf("problem '%s' contains cycle\n", problem.Name)
+		tracing.Logger.Ctx(ctx).
+			Error("problem contains cycle",
+				zap.String("problem.name", problem.Name))
+		return types.ProblemContainsCycleError
 	}
 
 	return nil

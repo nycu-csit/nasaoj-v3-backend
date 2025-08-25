@@ -1,3 +1,3 @@
 #!/usr/bin/env -S bash
 
-echo 'csid: {{ .csid }}'
+echo 'csid: {{ .csId }}'

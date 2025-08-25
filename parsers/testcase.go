@@ -1,9 +1,12 @@
 package parsers
 
 import (
-	"fmt"
+	"context"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
@@ -55,6 +58,7 @@ func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
 }
 
 func (self *Testcase) ToModelTestcase(
+	ctx context.Context,
 	contentFiles map[string]models.ContentFile,
 ) (models.Testcase, error) {
 	ret := models.Testcase{
@@ -70,7 +74,10 @@ func (self *Testcase) ToModelTestcase(
 	for _, file := range self.Content.Files {
 		contentFile, ok := contentFiles[file]
 		if !ok {
-			return ret, fmt.Errorf("file '%s' not exist", file)
+			tracing.Logger.Ctx(ctx).
+				Error("file not exist",
+					zap.String("file.path", file))
+			return ret, types.FileNotExistError
 		}
 		ret.Content.Files = append(ret.Content.Files, contentFile)
 	}

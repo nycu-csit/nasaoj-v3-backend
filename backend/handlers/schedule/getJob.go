@@ -1,9 +1,7 @@
 package schedule
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -11,7 +9,10 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 )
 
 func GetScheduleJob(
@@ -23,7 +24,6 @@ func GetScheduleJob(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 		tags := req.URL.Query().Get("tags")
-		fmt.Fprintf(os.Stderr, "GET /schedule/job?tags=%s\n", tags)
 
 		if err := workers.UpdateWorkerStatus(ctx,
 			utils.GetRemoteAddr(req),
@@ -46,7 +46,7 @@ func GetScheduleJob(
 		}
 		if err != nil {
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusServiceUnavailable,
+				StatusCode:  http.StatusNoContent,
 				Message:     "no job left in queue",
 				OriginError: err,
 			}
@@ -55,7 +55,11 @@ func GetScheduleJob(
 		timeout := time.Duration(job.HardTL) * time.Second
 		job.FileURL, err = s3.GetFileURL(ctx, job.Filename(), timeout)
 		if err != nil {
-			return fmt.Errorf("get file url for '%s' failed, %w", job.Filename(), err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to get file url",
+					zap.String("file.name", job.Filename()),
+					zap.Error(err))
+			return types.FileNotExistError
 		}
 
 		job.Deadline = time.Now().

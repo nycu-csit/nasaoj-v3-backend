@@ -7,7 +7,9 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 var problemCmd = &cobra.Command{
@@ -15,29 +17,41 @@ var problemCmd = &cobra.Command{
 	Short:   "Delete problem and related submissions",
 	Aliases: []string{"tool"},
 	Args:    cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+
 		client, ok := cmd.Context().Value(types.RestyClient("")).(*resty.Client)
 		if !ok {
-			return fmt.Errorf("resty client not found")
+			tracing.Logger.Ctx(ctx).
+				Panic("resty client not exist")
+			panic(types.ContextNotExistError)
 		}
 
 		problemURL, err := url.JoinPath(
 			viper.GetString("endpoint"), "/api/admin/problem")
 		if err != nil {
-			return fmt.Errorf("url construction failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to construct url",
+					zap.Error(err))
+			panic(err)
 		}
 
 		resp, err := client.R().
 			SetQueryParam("problemSHA1", args[0]).
 			Delete(problemURL)
 		if err != nil {
-			return fmt.Errorf("DELETE %s failed, %w", problemURL, err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to delete problem",
+					zap.String("url", problemURL),
+					zap.Error(err))
+			panic(err)
 		}
 
 		if !resp.IsSuccess() {
-			return fmt.Errorf("%v\n", resp.Error())
+			tracing.Logger.Ctx(ctx).
+				Panic("resp.IsSuccess failed")
+			panic(types.HTTPRequestFailedError)
 		}
 		fmt.Printf("%v\n", string(resp.Body()[:]))
-		return nil
 	},
 }

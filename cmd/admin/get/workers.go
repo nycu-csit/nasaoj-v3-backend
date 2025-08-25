@@ -9,7 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
@@ -23,29 +25,42 @@ type workersCmdOutput struct {
 var workersCmd = &cobra.Command{
 	Use:   "workers",
 	Short: "Get workers",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+
 		client, ok := cmd.Context().Value(types.RestyClient("")).(*resty.Client)
 		if !ok {
-			return fmt.Errorf("resty client not found")
+			tracing.Logger.Ctx(ctx).
+				Panic("resty client not exist")
+			panic(types.ContextNotExistError)
 		}
 
-		url, err := url.JoinPath(
+		workerURL, err := url.JoinPath(
 			viper.GetString("endpoint"), "/api/admin/worker-statuses")
 		if err != nil {
-			return fmt.Errorf("url construction failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to construct url",
+					zap.Error(err))
+			panic(err)
 		}
 
 		var res []apiHandlers.GetWorkerStatusesOutput
 		resp, err := client.R().
 			SetResult(&res).
 			ForceContentType("application/json").
-			Get(url)
+			Get(workerURL)
 		if err != nil {
-			return fmt.Errorf("GET %s failed, %w", url, err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to get worker statuses",
+					zap.String("url", workerURL),
+					zap.Error(err))
+			panic(err)
 		}
 
 		if !resp.IsSuccess() {
-			return fmt.Errorf("%v\n", resp.Error())
+			tracing.Logger.Ctx(ctx).
+				Panic("resp.IsSuccess failed")
+			panic(types.HTTPRequestFailedError)
 		}
 
 		var ret []workersCmdOutput
@@ -60,9 +75,11 @@ var workersCmd = &cobra.Command{
 
 		b, err := yaml.Marshal(ret)
 		if err != nil {
-			return fmt.Errorf("yaml marshal failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to marshal workers output",
+					zap.Error(err))
+			panic(err)
 		}
 		fmt.Printf("%s", string(b[:]))
-		return nil
 	},
 }

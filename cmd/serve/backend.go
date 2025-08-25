@@ -2,12 +2,12 @@ package serve
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -15,6 +15,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/extra/bunotel"
 	"github.com/uptrace/bunrouter"
 	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	authHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
@@ -22,7 +23,10 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.uber.org/zap"
 
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
 )
@@ -36,13 +40,19 @@ import (
 var backendCmd = &cobra.Command{
 	Use:   "backend",
 	Short: "NASAOJ backend server",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
+		// Initialize Tracing
+		appname := "nasaoj-backend"
+		tracing.InitTracer(appname)
+		tracing.InitUptrace(appname)
+		defer tracing.DeferUptrace(ctx)
 
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
 			viper.GetString("pg-connection-string"))))
 		bunDB := bun.NewDB(sqldb, pgdialect.New())
+		bunDB.AddQueryHook(bunotel.NewQueryHook(bunotel.WithDBName("backend")))
 
 		// Initialize Redis instance
 		rdb := redis.NewClient(&redis.Options{
@@ -51,6 +61,12 @@ var backendCmd = &cobra.Command{
 			Password: viper.GetString("redis-pass"),
 			DB:       viper.GetInt("redis-db"),
 		})
+		if err := redisotel.InstrumentTracing(rdb); err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to instrument tracing on redisotel",
+					zap.Error(err))
+			panic(err)
+		}
 
 		// Initialize MinIO instance
 		mc, err := minio.New(viper.GetString("minio-host"), &minio.Options{
@@ -62,11 +78,17 @@ var backendCmd = &cobra.Command{
 			Secure: viper.GetBool("minio-usessl"),
 		})
 		if err != nil {
-			return fmt.Errorf("minio client creation failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to create minio client",
+					zap.Error(err))
+			panic(err)
 		}
 
 		if err := utils.InitMinIO(ctx, mc); err != nil {
-			return fmt.Errorf("minio init failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to minio init",
+					zap.Error(err))
+			panic(err)
 		}
 
 		// Initialize custom interfaces
@@ -80,7 +102,10 @@ var backendCmd = &cobra.Command{
 		if viper.GetString("admin-token") != "" {
 			if err := tokens.SetAdminToken(
 				ctx, viper.GetString("admin-token")); err != nil {
-				return fmt.Errorf("admin token set failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to set admin token",
+						zap.Error(err))
+				panic(err)
 			}
 		}
 
@@ -88,6 +113,8 @@ var backendCmd = &cobra.Command{
 		router := bunrouter.New()
 		backend := router.NewGroup("").
 			Use(middlewares.ErrorHandler).
+			Use(middlewares.BunrouterOtel).
+			Use(middlewares.AccessLog).
 			Use(middlewares.CORSHandler)
 
 		if viper.GetBool("swagger") {
@@ -210,9 +237,8 @@ var backendCmd = &cobra.Command{
 				db, jobQue, workers, s3, problems, tokens))
 
 		log.Println(http.ListenAndServe(
-			":"+viper.GetString("port"), router))
-
-		return nil
+			":"+viper.GetString("port"),
+			otelhttp.NewHandler(router, "")))
 	},
 }
 
@@ -280,6 +306,10 @@ func init() {
 		String("minio-secretkey", "poop", "MinIO secretkey")
 	backendCmd.Flags().
 		Bool("minio-usessl", false, "MinIO usessl")
+
+	// Uptrace
+	backendCmd.Flags().
+		String("uptrace-dsn", "", "Uptrace DSN")
 
 	// Others
 	backendCmd.Flags().

@@ -2,10 +2,11 @@ package implements
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
 type ChanJobQueue struct {
@@ -23,11 +24,11 @@ func NewChanJobQueue() *ChanJobQueue {
 }
 
 func (self *ChanJobQueue) QueueKey(tag models.TagType) string {
-	return fmt.Sprintf("queue-%s", tag)
+	return "queue-" + tag
 }
 
 func (self *ChanJobQueue) GetJob(
-	_ context.Context,
+	ctx context.Context,
 	tag models.TagType,
 ) (models.Job, error) {
 	if _, exist := self.data[tag]; !exist {
@@ -35,7 +36,9 @@ func (self *ChanJobQueue) GetJob(
 	}
 	ret, ok := <-self.data[tag]
 	if !ok {
-		return ret, fmt.Errorf("channel closed")
+		tracing.Logger.Ctx(ctx).
+			Error("channel closed")
+		return models.Job{}, types.ChannelClosedError
 	}
 	return ret, nil
 }

@@ -1,0 +1,4 @@
+CREATE USER nasaoj;
+CREATE DATABASE nasaoj;
+ALTER DATABASE nasaoj OWNER TO nasaoj;
+ALTER USER nasaoj ENCRYPTED PASSWORD 'nasaoj';

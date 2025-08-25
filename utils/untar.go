@@ -3,22 +3,34 @@ package utils
 import (
 	"archive/tar"
 	"bytes"
-	"fmt"
+	"context"
 	"io"
 	"os"
 	"path"
+
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 )
 
 func UnTar(
+	ctx context.Context,
 	basepath string,
 	tarbuf []byte,
 ) error {
 	if err := os.MkdirAll(basepath, 0700); err != nil && !os.IsExist(err) {
-		return fmt.Errorf("make directory failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to make directory",
+				zap.String("file.path", basepath),
+				zap.Error(err))
+		return err
 	}
 
 	if err := os.RemoveAll(basepath); err != nil {
-		return fmt.Errorf("remove files from previous run failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to remove files from previous run",
+				zap.String("file.path", basepath),
+				zap.Error(err))
+		return err
 	}
 
 	buf := bytes.NewBuffer(tarbuf)
@@ -34,17 +46,28 @@ func UnTar(
 
 		b, err := io.ReadAll(tr)
 		if err != nil {
-			return fmt.Errorf("read file from tar failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to read file from tar",
+					zap.Error(err))
+			return err
 		}
 
 		filepath := path.Join(basepath, hdr.Name)
 		err = os.MkdirAll(path.Dir(filepath), 0700)
 		if err != nil && !os.IsExist(err) {
-			return fmt.Errorf("make directory for file failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to make directory for file",
+					zap.String("file.path", filepath),
+					zap.Error(err))
+			return err
 		}
 
 		if err = os.WriteFile(filepath, b, os.FileMode(hdr.Mode)); err != nil {
-			return fmt.Errorf("write to file failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to write file",
+					zap.String("file.path", filepath),
+					zap.Error(err))
+			return err
 		}
 	}
 

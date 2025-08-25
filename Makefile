@@ -1,4 +1,4 @@
-.PHONY: all swagger docker install
+.PHONY: all swagger docker install test
 
 SWAG ?= ~/go/bin/swag
 
@@ -11,6 +11,9 @@ docker: judge
 
 install: judge
 	go install
+
+test:
+	go test ./...
 
 swagger:
 	$(SWAG) fmt

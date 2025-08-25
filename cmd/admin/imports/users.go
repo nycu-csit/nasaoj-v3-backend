@@ -1,6 +1,7 @@
 package imports
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -9,15 +10,22 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
-func validateInput(inputs []models.UserResource) error {
+func validateInput(
+	ctx context.Context,
+	inputs []models.UserResource,
+) error {
 	for _, input := range inputs {
 		if input.CsId == "" {
-			return fmt.Errorf("csId cannot be empty")
+			tracing.Logger.Ctx(ctx).
+				Error("csid cannot be empty")
+			return types.WrongFormatError
 		}
 	}
 	return nil
@@ -26,48 +34,71 @@ func validateInput(inputs []models.UserResource) error {
 var usersCmd = &cobra.Command{
 	Use:   "users",
 	Short: "Import users, read from stdin",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
 		client, ok := cmd.Context().Value(types.RestyClient("")).(*resty.Client)
 		if !ok {
-			return fmt.Errorf("resty client not found")
+			tracing.Logger.Ctx(ctx).
+				Panic("resty client not exist")
+			panic(types.ContextNotExistError)
 		}
 
-		url, err := url.JoinPath(
+		usersURL, err := url.JoinPath(
 			viper.GetString("endpoint"), "/api/admin/users")
 		if err != nil {
-			return fmt.Errorf("url construction failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to construct url",
+					zap.Error(err))
+			panic(err)
 		}
 
-		input, err := utils.ReadStdin("---")
+		input, err := utils.ReadStdin(ctx, "---")
 		if err != nil {
-			return fmt.Errorf("read content failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to read from stdin",
+					zap.Error(err))
+			panic(err)
 		}
 
 		var inputUsers []models.UserResource
 		if err := yaml.Unmarshal([]byte(input), &inputUsers); err != nil {
-			return fmt.Errorf("yaml unmarshal failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to unmarshal yaml to user resources",
+					zap.Error(err))
+			panic(err)
 		}
 
-		if err := validateInput(inputUsers); err != nil {
-			return fmt.Errorf("input validate failed, %w", err)
+		if err := validateInput(ctx, inputUsers); err != nil {
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to validate input",
+					zap.Error(err))
+			panic(err)
 		}
 
 		b, err := json.Marshal(inputUsers)
 		if err != nil {
-			return fmt.Errorf("json marshal failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to marshal user resources to json",
+					zap.Error(err))
+			panic(err)
 		}
 
 		resp, err := client.R().
 			SetBody(string(b[:])).
-			Put(url)
+			Put(usersURL)
 		if err != nil {
-			return fmt.Errorf("PUT %s failed, %w", url, err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to put user resources",
+					zap.String("url", usersURL),
+					zap.Error(err))
+			panic(err)
 		}
 
 		if !resp.IsSuccess() {
-			return fmt.Errorf("%v\n", resp.Error())
+			tracing.Logger.Ctx(ctx).
+				Panic("resp.IsSuccess failed")
+			panic(types.HTTPRequestFailedError)
 		}
 		fmt.Printf("%s", string(resp.Body()[:]))
-		return nil
 	},
 }

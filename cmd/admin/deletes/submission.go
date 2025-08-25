@@ -7,36 +7,50 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 var submissionCmd = &cobra.Command{
 	Use:   "submission [submission_id]",
 	Short: "Delete submission",
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		client, ok := cmd.Context().Value(types.RestyClient("")).(*resty.Client)
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+
+		client, ok := ctx.Value(types.RestyClient("")).(*resty.Client)
 		if !ok {
-			return fmt.Errorf("resty client not found")
+			tracing.Logger.Ctx(ctx).
+				Panic("resty client not exist")
+			panic(types.ContextNotExistError)
 		}
 
 		submissionURL, err := url.JoinPath(
 			viper.GetString("endpoint"), "/api/admin/submission")
 		if err != nil {
-			return fmt.Errorf("url construction failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to construct url",
+					zap.Error(err))
+			panic(err)
 		}
 
 		resp, err := client.R().
 			SetQueryParam("subId", args[0]).
 			Delete(submissionURL)
 		if err != nil {
-			return fmt.Errorf("DELETE %s failed, %w", submissionURL, err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to delete submission",
+					zap.String("url", submissionURL),
+					zap.Error(err))
+			panic(err)
 		}
 
 		if !resp.IsSuccess() {
-			return fmt.Errorf("%v\n", resp.Error())
+			tracing.Logger.Ctx(ctx).
+				Panic("resp.IsSuccess failed")
+			panic(types.HTTPRequestFailedError)
 		}
 		fmt.Printf("%v\n", string(resp.Body()[:]))
-		return nil
 	},
 }

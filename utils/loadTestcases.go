@@ -1,9 +1,9 @@
 package utils
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -11,9 +11,14 @@ import (
 	"text/template"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.uber.org/zap"
 )
 
-func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
+func LoadTestcases(
+	ctx context.Context,
+	dir string,
+) (map[string]models.ContentFile, error) {
 	ret := make(map[string]models.ContentFile)
 
 	err := filepath.WalkDir(dir,
@@ -28,14 +33,23 @@ func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
 
 			b, err := os.ReadFile(cur)
 			if err != nil {
-				return fmt.Errorf("file '%s' read failed, %w", cur, err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to read file",
+						zap.String("file.path", cur),
+						zap.Error(err))
+				return err
 			}
 
 			name, err := filepath.Rel(dir, cur)
 			if err != nil {
-				return fmt.Errorf("parse relative path failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Error("failed to parse relative path",
+						zap.Error(err))
+				return err
 			}
-			fmt.Fprintf(os.Stderr, "[INFO] Found '%s'\n", name)
+			tracing.Logger.Ctx(ctx).
+				Info("found file",
+					zap.String("file.name", name))
 
 			h := sha1.Sum(b)
 			contentFile := models.ContentFile{
@@ -46,7 +60,10 @@ func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
 			if path.Ext(name) == ".tmpl" {
 				tmpl, err := template.New(name).Parse(string(b[:]))
 				if err != nil {
-					return fmt.Errorf("templating failed, %w", err)
+					tracing.Logger.Ctx(ctx).
+						Error("failed to template file",
+							zap.Error(err))
+					return err
 				}
 				contentFile.IsTemplate = true
 				contentFile.Template = tmpl
@@ -56,11 +73,16 @@ func LoadTestcases(dir string) (map[string]models.ContentFile, error) {
 			}
 			ret[name] = contentFile
 
-			fmt.Fprintf(os.Stderr, "[INFO] Load testcase '%s'\n", name)
+			tracing.Logger.Ctx(ctx).
+				Info("load testcase",
+					zap.String("testcase.name", name))
 			return nil
 		})
 	if err != nil {
-		return ret, fmt.Errorf("filepath walk failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to walk filepath",
+				zap.Error(err))
+		return map[string]models.ContentFile{}, nil
 	}
 
 	return ret, nil

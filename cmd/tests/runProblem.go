@@ -2,7 +2,6 @@ package tests
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -14,14 +13,17 @@ import (
 	"github.com/uptrace/bun/driver/sqliteshim"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
+	"go.uber.org/zap"
 )
 
 var problemCmd = &cobra.Command{
 	Use:   "problem",
 	Short: "Run a problem on local environment",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		color.Blue("Start running problem '%d'\n", viper.GetInt64("problem-id"))
 
 		ctx := cmd.Context()
@@ -30,7 +32,9 @@ var problemCmd = &cobra.Command{
 		for _, arg := range viper.GetStringSlice("arg") {
 			strs := strings.Split(arg, "=")
 			if len(strs) != 2 {
-				return fmt.Errorf("argument format incorrect, %s\n", strs)
+				tracing.Logger.Ctx(ctx).
+					Panic("argument format incorrect")
+				panic(types.WrongFormatError)
 			}
 			mockArgs[strs[0]] = strs[1]
 		}
@@ -38,7 +42,10 @@ var problemCmd = &cobra.Command{
 		// Initialize SQLite
 		sqldb, err := sql.Open(sqliteshim.ShimName, "file::memory:?cache=shared")
 		if err != nil {
-			return fmt.Errorf("sqlite init failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to init sqlite",
+					zap.Error(err))
+			panic(err)
 		}
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
 		utils.InitDB(ctx, bunDB)
@@ -53,30 +60,44 @@ var problemCmd = &cobra.Command{
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
-			return fmt.Errorf("load problems failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to load problems",
+					zap.Error(err))
+			panic(err)
 		}
 
 		err = utils.LoadProblems(ctx, problems,
 			viper.GetString("tools-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
-			return fmt.Errorf("load tools failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to load tools",
+					zap.Error(err))
+			panic(err)
 		}
 
 		if err := db.EnableAllProblem(ctx); err != nil {
-			return fmt.Errorf("enable problems failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to enable problems",
+					zap.Error(err))
+			panic(err)
 		}
 
 		problem, err := problems.GetProblemOrToolById(
 			ctx, viper.GetInt64("problem-id"))
 		if err != nil {
-			return fmt.Errorf("problem not found, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("problem not exist",
+					zap.Error(err))
+			panic(err)
 		}
 		problemMarshaled, err := problem.Marshal()
 		if err != nil {
-			return fmt.Errorf("problem marshal failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to marshal problem",
+					zap.Error(err))
+			panic(err)
 		}
-		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", problem)
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -122,13 +143,19 @@ var problemCmd = &cobra.Command{
 		}
 		err = db.InsertSubmissionAndJobs(ctx, &submission, problem)
 		if err != nil {
-			return fmt.Errorf("insert submission failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to insert submission",
+					zap.Error(err))
+			panic(err)
 		}
 
 		err = workflows.RunProblem(
 			ctx, jobQue, db, s3, problems, tokens, submission)
 		if err != nil {
-			return fmt.Errorf("run problem failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to run problem",
+					zap.Error(err))
+			panic(err)
 		}
 
 		color.Cyan("workflows run problem done\n")
@@ -143,18 +170,27 @@ var problemCmd = &cobra.Command{
 			job := jobWithFile.Job
 
 			if err = db.UpdateJob(ctx, &job); err != nil {
-				return fmt.Errorf("job update failed, %w", err)
+				tracing.Logger.Ctx(ctx).
+					Panic("failed to update job",
+						zap.Error(err))
+				panic(err)
 			}
 
 			if job.Status == models.StatusSuccess {
 				err = workflows.HandleStageDone(
 					ctx, db, jobQue, s3, problems, tokens, job)
 				if err != nil {
-					return fmt.Errorf("handle job done failed, %w", err)
+					tracing.Logger.Ctx(ctx).
+						Panic("failed to handle job done",
+							zap.Error(err))
+					panic(err)
 				}
 			} else {
 				if err = db.SkipJobs(ctx, job.SubId); err != nil {
-					return fmt.Errorf("job skip status update failed, %w", err)
+					tracing.Logger.Ctx(ctx).
+						Panic("failed to update job skip status",
+							zap.Error(err))
+					panic(err)
 				}
 			}
 
@@ -166,7 +202,6 @@ var problemCmd = &cobra.Command{
 		}
 
 		color.Magenta("Program exit\n")
-		return nil
 	},
 }
 

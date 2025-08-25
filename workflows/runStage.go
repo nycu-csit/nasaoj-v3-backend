@@ -3,13 +3,14 @@ package workflows
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"os"
 	"time"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.uber.org/zap"
 )
 
 func RunStage(
@@ -25,20 +26,32 @@ func RunStage(
 ) error {
 	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
 	if err != nil {
-		return fmt.Errorf("problem with sha1 '%s' not exist",
-			submission.ProblemSHA1)
+		tracing.Logger.Ctx(ctx).
+			Error("problem not exist",
+				zap.String("problem", submission.ProblemSHA1),
+				zap.Error(err))
+		return err
 	}
 	if err := problems.HydrateProblem(ctx, &problem); err != nil {
-		return fmt.Errorf("hydrate problem failed, %w", err)
+		tracing.Logger.Ctx(ctx).
+			Error("failed to hydrate problem",
+				zap.Error(err))
+		return err
 	}
-	// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", problem)
 
 	stage, ok := problem.Stages[stageName]
 	if !ok {
-		return fmt.Errorf("stage '%s' not exist", stageName)
+		tracing.Logger.Ctx(ctx).
+			Error("stage not exist",
+				zap.String("stage", stageName))
+		return types.StageNotExistError
 	}
 
-	fmt.Fprintf(os.Stderr, "run stage '%s' from '%s'\n", stageName, problem.Name)
+	tracing.Logger.Ctx(ctx).
+		Info("run stage",
+			zap.String("problem.name", problem.Name),
+			zap.String("problem.sha1", submission.ProblemSHA1),
+			zap.String("stage.name", stageName))
 
 	for _, testcase := range stage.Testcases {
 		contents := []models.Content{
@@ -61,7 +74,10 @@ func RunStage(
 		jobToken, err := tokens.GenerateToken(
 			ctx, models.NewJobPrivs(submission.CsId), duration)
 		if err != nil {
-			return fmt.Errorf("token generate failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to generate token",
+					zap.Error(err))
+			return err
 		}
 		job := models.Job{
 			SubId:     submission.Id,
@@ -76,7 +92,10 @@ func RunStage(
 		}
 
 		if err := db.UpdateJob(ctx, &job); err != nil {
-			return fmt.Errorf("update job status failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to update job status",
+					zap.Error(err))
+			return err
 		}
 
 		args := utils.ArgsOverlay(
@@ -88,22 +107,30 @@ func RunStage(
 				"jobToken": jobToken,
 			},
 		)
-		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", args)
-		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", contents)
 
 		var tarbuf bytes.Buffer
 		if err = utils.WriteTar(ctx, problems, &tarbuf, contents, args); err != nil {
-			return fmt.Errorf("write to tar failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to write to tar",
+					zap.Error(err))
+			return err
 		}
 
 		err = s3.PutFile(ctx, job.Filename(), tarbuf.Bytes())
 		if err != nil {
-			return fmt.Errorf("put file '%s' failed, %w", job.Filename(), err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to put file",
+					zap.String("file.name", job.Filename()),
+					zap.Error(err))
+			return err
 		}
 
 		err = jobQue.PutJob(ctx, job, problem.Tag)
 		if err != nil {
-			return fmt.Errorf("put job to queue failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Error("failed to put job to queue",
+					zap.Error(err))
+			return err
 		}
 	}
 

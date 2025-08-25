@@ -2,8 +2,11 @@ package implements
 
 import (
 	"context"
-	"fmt"
 	"time"
+
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 type MapObjectStorage struct {
@@ -37,12 +40,15 @@ func (self *MapObjectStorage) GetFileURL(
 }
 
 func (self *MapObjectStorage) GetFileByURL(
-	_ context.Context,
+	ctx context.Context,
 	filename string,
 ) ([]byte, error) {
 	ret, ok := self.data[filename]
 	if !ok {
-		return []byte{}, fmt.Errorf("file not exist")
+		tracing.Logger.Ctx(ctx).
+			Error("file not exist",
+				zap.String("file.name", filename))
+		return []byte{}, types.FileNotExistError
 	}
 	return ret, nil
 }

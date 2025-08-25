@@ -8,7 +8,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 var tokenCmd = &cobra.Command{
@@ -18,17 +20,24 @@ var tokenCmd = &cobra.Command{
 
 func tokenCmdHandler(
 	tokenType string,
-) func(*cobra.Command, []string) error {
-	return func(cmd *cobra.Command, args []string) error {
+) func(*cobra.Command, []string) {
+	return func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
+
 		client, ok := cmd.Context().Value(types.RestyClient("")).(*resty.Client)
 		if !ok {
-			return fmt.Errorf("resty client not found")
+			tracing.Logger.Ctx(ctx).
+				Panic("resty client not exist")
+			panic(types.ContextNotExistError)
 		}
 
-		url, err := url.JoinPath(
+		tokenURL, err := url.JoinPath(
 			viper.GetString("endpoint"), "/api/admin/token")
 		if err != nil {
-			return fmt.Errorf("url construction failed, %w", err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to construct url",
+					zap.Error(err))
+			panic(err)
 		}
 
 		var res apiHandlers.PostTokenOutput
@@ -38,17 +47,22 @@ func tokenCmdHandler(
 			SetBody(apiHandlers.PostTokenInput{
 				TokenType: tokenType,
 			}).
-			Post(url)
+			Post(tokenURL)
 		if err != nil {
-			return fmt.Errorf("POST %s failed, %w", url, err)
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to post token",
+					zap.String("url", tokenURL),
+					zap.Error(err))
+			panic(err)
 		}
 
 		if !resp.IsSuccess() {
-			return fmt.Errorf("%v\n", resp.Error())
+			tracing.Logger.Ctx(ctx).
+				Panic("resp.IsSuccess failed")
+			panic(types.HTTPRequestFailedError)
 		}
 
 		fmt.Printf("Token: %s\n", res.Token)
-		return nil
 	}
 }
 
@@ -56,11 +70,11 @@ func init() {
 	tokenCmd.AddCommand(&cobra.Command{
 		Use:   "admin",
 		Short: "Generate Admin Access Token",
-		RunE:  tokenCmdHandler("admin"),
+		Run:   tokenCmdHandler("admin"),
 	})
 	tokenCmd.AddCommand(&cobra.Command{
 		Use:   "worker",
 		Short: "Generate Worker Access Token",
-		RunE:  tokenCmdHandler("worker"),
+		Run:   tokenCmdHandler("worker"),
 	})
 }
