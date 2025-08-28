@@ -12,6 +12,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func PutScheduleResult(
@@ -52,6 +54,10 @@ func PutScheduleResult(
 				OriginError: err,
 			}
 		}
+
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(
+			attribute.Int64("submission.id", job.SubId))
 
 		// Handle hard timeout if timeout isn't put on worker
 		if time.Now().Compare(time.Unix(job.Deadline, 0)) > 0 {

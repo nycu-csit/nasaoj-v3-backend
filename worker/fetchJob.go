@@ -11,6 +11,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -61,6 +63,12 @@ func FetchJob(
 		retCh <- types.HTTPRequestFailedError
 		return
 	}
+
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(
+		attribute.Int64("submission.id", job.SubId),
+		attribute.String("job.stage", job.StageName),
+		attribute.String("job.test", job.TestName))
 
 	fileURL, err := url.Parse(job.FileURL)
 	if err != nil {

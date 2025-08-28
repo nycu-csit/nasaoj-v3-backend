@@ -8,6 +8,8 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func CheckAuth(
@@ -17,7 +19,6 @@ func CheckAuth(
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
 			authHeader := strings.Split(req.Header.Get("Authorization"), " ")
-			// fmt.Fprintf(os.Stderr, "%+v\n", authHeader)
 			if len(authHeader) != 2 || authHeader[0] != "Bearer" {
 				return CheckRefreshToken(db)(
 					CheckAccessToken(db)(next),
@@ -34,7 +35,11 @@ func CheckAuth(
 					OriginError: err,
 				}
 			}
-			// fmt.Fprintf(os.Stderr, "[INFO] access token accept, %v\n", privs)
+
+			span := trace.SpanFromContext(ctx)
+			span.SetAttributes(
+				attribute.String("owner.csid", privs.OwnerCsId))
+
 			ctx = context.WithValue(ctx, types.Privileges(""), privs)
 			return next(w, req.WithContext(ctx))
 		}

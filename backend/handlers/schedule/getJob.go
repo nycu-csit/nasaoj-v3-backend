@@ -12,6 +12,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -51,6 +53,12 @@ func GetScheduleJob(
 				OriginError: err,
 			}
 		}
+
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(
+			attribute.Int64("submission.id", job.SubId),
+			attribute.String("job.stage", job.StageName),
+			attribute.String("job.test", job.TestName))
 
 		timeout := time.Duration(job.HardTL) * time.Second
 		job.FileURL, err = s3.GetFileURL(ctx, job.Filename(), timeout)

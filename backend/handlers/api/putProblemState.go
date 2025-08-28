@@ -9,6 +9,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type PutProblemStateInput struct {
@@ -47,6 +49,10 @@ func PutProblemState(
 				OriginError: err,
 			}
 		}
+
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(
+			attribute.String("problem.sha1", input.ProblemSHA1))
 
 		if err = problems.PutProblemState(
 			ctx, input.ProblemSHA1, input.IsEnabled); err != nil {
