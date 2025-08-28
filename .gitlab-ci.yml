@@ -113,6 +113,9 @@ package:backend:
     - >-
       kubectl rollout restart deployment backend
       --kubeconfig "$KUBECONFIG" --namespace "$NAMESPACE"
+    - >-
+      kubectl rollout restart deployment worker
+      --kubeconfig "$KUBECONFIG" --namespace "$NAMESPACE"
 
 deploy:alpha:
   extends: .deploy
