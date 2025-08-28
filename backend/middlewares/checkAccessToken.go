@@ -11,6 +11,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -109,8 +111,10 @@ func CheckAccessToken(
 				}
 			}
 
-			// fmt.Fprintf(os.Stderr, "[INFO] AccessTokenClaim: %v\n", claim)
-			// fmt.Fprintf(os.Stderr, "[INFO] Context: %v\n", ctx)
+			span := trace.SpanFromContext(ctx)
+			span.SetAttributes(
+				attribute.String("owner.csid", claim.Privs.OwnerCsId))
+
 			ctx = context.WithValue(ctx, types.AccessToken(""), claim)
 			ctx = context.WithValue(ctx, types.Privileges(""), claim.Privs)
 			return next(w, req.WithContext(ctx))

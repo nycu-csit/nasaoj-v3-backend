@@ -16,6 +16,8 @@ services:
     image: library/redis:8.2.1-alpine3.22
     ports:
       - 6379:6379
+    volumes:
+      - redis:/data
     restart: unless-stopped
 
   minio:
@@ -83,6 +85,7 @@ services:
     depends_on:
       - backend
 volumes:
+  redis: {}
   postgres: {}
   minio: {}
   clickhouse: {}
