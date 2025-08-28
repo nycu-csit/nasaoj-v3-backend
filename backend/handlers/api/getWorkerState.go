@@ -10,19 +10,19 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-type GetWorkerStatusesOutput struct {
+type GetWorkerStatesOutput struct {
 	IP string `json:"ip"`
 
 	models.WorkerStatus `json:",inline"`
 }
 
-// GetWorkerStatuses
+// GetWorkerState
 //
 //	@Produce	json
-//	@Success	200	{object}	[]GetWorkerStatusesOutput
+//	@Success	200	{object}	[]GetWorkerStatesOutput
 //	@Failure	401	{object}	string
-//	@Router		/api/admin/worker-statuses [get]
-func GetWorkerStatuses(
+//	@Router		/api/admin/worker/state [get]
+func GetWorkerStates(
 	workers interfaces.WorkerStatusStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -37,7 +37,7 @@ func GetWorkerStatuses(
 			}
 		}
 
-		ret := []GetWorkerStatusesOutput{}
+		ret := []GetWorkerStatesOutput{}
 		for ip, status := range res {
 			if status.LastAccess < time.Now().Add(-time.Hour).Unix() {
 				if err := workers.DeleteWorker(ctx, ip); err != nil {
@@ -49,7 +49,7 @@ func GetWorkerStatuses(
 				}
 				continue
 			}
-			ret = append(ret, GetWorkerStatusesOutput{
+			ret = append(ret, GetWorkerStatesOutput{
 				IP:           ip,
 				WorkerStatus: status,
 			})

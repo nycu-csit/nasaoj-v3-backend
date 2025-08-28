@@ -41,14 +41,15 @@ func HandleStageDone(
 		return err
 	}
 
-	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
+	problem, err := problems.GetProblem(ctx, submission.RefSHA1)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("problem not exist",
-				zap.String("problem.sha1", submission.ProblemSHA1),
+				zap.String("problem.sha1", submission.RefSHA1),
 				zap.Error(err))
 		return err
 	}
+
 	stage, ok := problem.Stages[job.StageName]
 	if !ok {
 		tracing.Logger.Ctx(ctx).

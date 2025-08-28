@@ -68,7 +68,7 @@ func PutScheduleResult(
 			if err = db.SkipJobs(ctx, job.SubId); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
-					Message:     "job skip status update failed",
+					Message:     "failed to update job skip status",
 					OriginError: err,
 				}
 			}
@@ -76,7 +76,7 @@ func PutScheduleResult(
 		if err = db.UpdateJob(ctx, &job); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
-				Message:     "job update failed",
+				Message:     "failed to update job",
 				OriginError: err,
 			}
 		}

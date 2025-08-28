@@ -25,7 +25,7 @@ type PutProblemStateInput struct {
 //	@Success	200	{object}	string	"success"
 //	@Failure	400	{object}	string
 //	@Failure	401	{object}	string
-//	@Router		/api/admin/problem-state [put]
+//	@Router		/api/admin/problem/state [put]
 func PutProblemState(
 	problems interfaces.ProblemStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {

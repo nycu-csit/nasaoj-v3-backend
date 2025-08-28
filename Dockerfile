@@ -13,8 +13,8 @@ FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12:main AS worker_runti
 
 RUN mkdir -p /var/run/nasaoj-worker
 RUN apt-get update && apt-get install -y \
-      netcat-openbsd swaks ldap-utils bind9-dnsutils iputils-ping \
-      openssh-client python3-minimal python3-mailutils curl sshpass oathtool
+      netcat-openbsd swaks ldap-utils bind9-dnsutils iputils-ping jq \
+      openssh-client python3-minimal python3-mailutils curl sshpass oathtool 
 
 ADD judge /work/judge
 WORKDIR /work

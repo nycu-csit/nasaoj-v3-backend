@@ -24,11 +24,11 @@ func RunStage(
 	submission models.Submission,
 	stageName string,
 ) error {
-	problem, err := problems.GetProblemOrTool(ctx, submission.ProblemSHA1)
+	problem, err := problems.GetProblem(ctx, submission.RefSHA1)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("problem not exist",
-				zap.String("problem", submission.ProblemSHA1),
+				zap.String("problem.sha1", submission.RefSHA1),
 				zap.Error(err))
 		return err
 	}
@@ -50,7 +50,7 @@ func RunStage(
 	tracing.Logger.Ctx(ctx).
 		Info("run stage",
 			zap.String("problem.name", problem.Name),
-			zap.String("problem.sha1", submission.ProblemSHA1),
+			zap.String("problem.sha1", submission.RefSHA1),
 			zap.String("stage.name", stageName))
 
 	for _, testcase := range stage.Testcases {
@@ -109,7 +109,7 @@ func RunStage(
 		)
 
 		var tarbuf bytes.Buffer
-		if err = utils.WriteTar(ctx, problems, &tarbuf, contents, args); err != nil {
+		if err = utils.WriteTar(ctx, &tarbuf, contents, args); err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to write to tar",
 					zap.Error(err))

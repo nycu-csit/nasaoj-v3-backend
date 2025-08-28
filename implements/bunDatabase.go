@@ -28,30 +28,39 @@ func (self *BunDatabase) submissionQueryHook(
 ) error {
 	_, err := self.db.NewUpdate().Model((*models.Job)(nil)).
 		Set("status = ?", models.StatusTimeout).
-		Where("subid = ?", subId).
+		Where("sub_id = ?", subId).
 		Where("deadline < ?", time.Now().Unix()).
-		Where("status = ?", models.StatusRunning).Exec(ctx)
+		Where("status = ?", models.StatusRunning).
+		Exec(ctx)
 	return err
 }
 
 func (self *BunDatabase) GetLastSubmission(
 	ctx context.Context,
 	csId string,
-	problemId int64,
+	refId int64,
+	subType int,
 ) (models.Submission, error) {
 	var ret models.Submission
-	err := self.db.NewSelect().Model(&ret).
+	err := self.db.NewSelect().
+		Model(&ret).
 		Where("cs_id = ?", csId).
-		Where("problem_id = ?", problemId).
-		Order("id DESC").Limit(1).Scan(ctx)
+		Where("ref_id = ?", refId).
+		Where("type = ?", subType).
+		Order("id DESC").
+		Limit(1).
+		Scan(ctx)
 	if err != nil {
 		return models.Submission{}, err
 	}
 	if err = self.submissionQueryHook(ctx, ret.Id); err != nil {
 		return models.Submission{}, err
 	}
-	err = self.db.NewSelect().Model(&ret).
-		WherePK().Relation("Jobs").Scan(ctx)
+	err = self.db.NewSelect().
+		Model(&ret).
+		WherePK().
+		Relation("Jobs").
+		Scan(ctx)
 	if err != nil {
 		return models.Submission{}, err
 	}
@@ -77,7 +86,7 @@ func (self *BunDatabase) SkipJobs(
 ) error {
 	_, err := self.db.NewUpdate().Model((*models.Job)(nil)).
 		Set("status = ?", models.StatusSkip).
-		Where("subid = ?", subId).
+		Where("sub_id = ?", subId).
 		WhereGroup(" AND ", func(q *bun.UpdateQuery) *bun.UpdateQuery {
 			return q.
 				Where("status = ?", models.StatusBlocked).
@@ -95,13 +104,15 @@ func (self *BunDatabase) UpdateJob(
 	return err
 }
 
-func (self *BunDatabase) InsertSubmissionAndJobs(
+func (self *BunDatabase) InsertProblemSubmission(
 	ctx context.Context,
 	submission *models.Submission,
 	problem models.Problem,
 ) error {
-	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		err := tx.NewInsert().Model(submission).Scan(ctx)
+	return self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		err := tx.NewInsert().
+			Model(submission).
+			Scan(ctx)
 		if err != nil {
 			return err
 		}
@@ -130,7 +141,37 @@ func (self *BunDatabase) InsertSubmissionAndJobs(
 
 		return nil
 	})
-	return err
+}
+
+func (self *BunDatabase) InsertToolSubmission(
+	ctx context.Context,
+	submission *models.Submission,
+	tool models.Tool,
+) error {
+	return self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		err := tx.NewInsert().
+			Model(submission).
+			Scan(ctx)
+		if err != nil {
+			return err
+		}
+
+		job := models.Job{
+			SubId:     submission.Id,
+			StageName: "tool",
+			TestName:  tool.Testcase.Name,
+
+			Status: models.StatusBlocked,
+		}
+		_, err = tx.NewInsert().
+			Model(&job).
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (self *BunDatabase) GetUserResource(
@@ -171,7 +212,9 @@ func (self *BunDatabase) GetScoresWithStages(
 ) ([]models.UserScoreWithStages, error) {
 	ret := []models.UserScoreWithStages{}
 	var submissions []models.Submission
-	err := self.db.NewSelect().DistinctOn("cs_id").Model(&submissions).
+	err := self.db.NewSelect().
+		DistinctOn("cs_id").
+		Model(&submissions).
 		Column("cs_id", "score_score", "score_stages").
 		Where("problem_id = ?", problemId).
 		OrderExpr("cs_id, id DESC").
@@ -306,22 +349,26 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 	pageNum int,
 	isPageNum bool,
 	pageSize int,
-	problemId int64,
-	isProblemId bool,
+	refId int64,
+	isRefId bool,
 ) ([]models.Submission, int, error) {
-	query := self.db.NewSelect().Order("id DESC").Limit(pageSize)
+	query := self.db.NewSelect().
+		Order("id DESC").
+		Limit(pageSize)
 	if isCsId {
 		query = query.Where("cs_id = ?", csId)
 	}
 	if isPageNum {
 		query = query.Offset(pageNum * pageSize)
 	}
-	if isProblemId {
-		query = query.Where("problem_id = ?", problemId)
+	if isRefId {
+		query = query.Where("ref_id = ?", refId)
 	}
 
 	var ret []models.Submission
-	count, err := query.Model(&ret).ScanAndCount(ctx)
+	count, err := query.
+		Model(&ret).
+		ScanAndCount(ctx)
 	return ret, count, err
 }
 
@@ -391,23 +438,21 @@ func (self *BunDatabase) InvalidateSession(
 	return err
 }
 
-func (self *BunDatabase) getProblems(
+func (self *BunDatabase) GetProblems(
 	ctx context.Context,
-	isTool bool,
 ) (map[string]models.Problem, error) {
-	ret := make(map[string]models.Problem)
 	var problemsMarshaled []models.ProblemMarshaled
 	err := self.db.NewSelect().
 		Model(&problemsMarshaled).
 		OrderExpr("problem_id, sha1").
 		DistinctOn("problem_id").
-		Where("is_tool = ?", isTool).
 		Where("is_enabled = ?", true).
 		Scan(ctx)
 	if err != nil {
 		return map[string]models.Problem{}, err
 	}
 
+	ret := make(map[string]models.Problem)
 	for _, problem := range problemsMarshaled {
 		ret[problem.SHA1], err = problem.Unmarshal()
 		if err != nil {
@@ -421,54 +466,37 @@ func (self *BunDatabase) getProblems(
 	return ret, nil
 }
 
-func (self *BunDatabase) GetProblems(
-	ctx context.Context,
-) (map[string]models.Problem, error) {
-	return self.getProblems(ctx, false)
-}
-
 func (self *BunDatabase) GetTools(
 	ctx context.Context,
 ) (map[string]models.Tool, error) {
-	return self.getProblems(ctx, true)
-}
-
-func (self *BunDatabase) getProblem(
-	ctx context.Context,
-	sha1 string,
-	isTool bool,
-) (models.Problem, error) {
-	var problemMarshaled models.ProblemMarshaled
+	var toolsMarshaled []models.ToolMarshaled
 	err := self.db.NewSelect().
-		Model(&problemMarshaled).
-		Where("sha1 = ?", sha1).
-		Where("is_tool = ?", isTool).
+		Model(&toolsMarshaled).
+		OrderExpr("tool_id, sha1").
+		DistinctOn("tool_id").
+		Where("is_enabled = ?", true).
 		Scan(ctx)
 	if err != nil {
-		return models.Problem{}, err
+		return map[string]models.Tool{}, err
 	}
 
-	return problemMarshaled.Unmarshal()
+	ret := make(map[string]models.Tool)
+	for _, tool := range toolsMarshaled {
+		ret[tool.SHA1], err = tool.Unmarshal()
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to unmarshal tool",
+					zap.String("tool.sha1", tool.SHA1),
+					zap.Error(err))
+		}
+	}
+	return ret, nil
 }
 
 func (self *BunDatabase) GetProblem(
 	ctx context.Context,
 	sha1 string,
 ) (models.Problem, error) {
-	return self.getProblem(ctx, sha1, false)
-}
-
-func (self *BunDatabase) GetTool(
-	ctx context.Context,
-	sha1 string,
-) (models.Problem, error) {
-	return self.getProblem(ctx, sha1, true)
-}
-
-func (self *BunDatabase) GetProblemOrTool(
-	ctx context.Context,
-	sha1 string,
-) (models.Problem, error) {
 	var problemMarshaled models.ProblemMarshaled
 	err := self.db.NewSelect().
 		Model(&problemMarshaled).
@@ -481,45 +509,29 @@ func (self *BunDatabase) GetProblemOrTool(
 	return problemMarshaled.Unmarshal()
 }
 
-// get problem without check whether it is a tool
-func (self *BunDatabase) getProblemById(
+func (self *BunDatabase) GetTool(
 	ctx context.Context,
-	problemId models.ProblemIdType,
-	isTool bool,
-) (models.Problem, error) {
-	var problemMarshaled models.ProblemMarshaled
-	err := self.db.NewSelect().Model(&problemMarshaled).
-		Where("problem_id = ?", problemId).
-		Where("is_tool = ?", isTool).
-		Where("is_enabled = ?", true).
+	sha1 string,
+) (models.Tool, error) {
+	var toolMarshaled models.ToolMarshaled
+	err := self.db.NewSelect().
+		Model(&toolMarshaled).
+		Where("sha1 = ?", sha1).
 		Scan(ctx)
 	if err != nil {
-		return models.Problem{}, err
+		return models.Tool{}, err
 	}
 
-	return problemMarshaled.Unmarshal()
+	return toolMarshaled.Unmarshal()
 }
 
 func (self *BunDatabase) GetProblemById(
 	ctx context.Context,
-	problemId models.ProblemIdType,
-) (models.Problem, error) {
-	return self.getProblemById(ctx, problemId, false)
-}
-
-func (self *BunDatabase) GetToolById(
-	ctx context.Context,
-	problemId models.ProblemIdType,
-) (models.Problem, error) {
-	return self.getProblemById(ctx, problemId, true)
-}
-
-func (self *BunDatabase) GetProblemOrToolById(
-	ctx context.Context,
-	problemId models.ProblemIdType,
+	problemId int64,
 ) (models.Problem, error) {
 	var problemMarshaled models.ProblemMarshaled
-	err := self.db.NewSelect().Model(&problemMarshaled).
+	err := self.db.NewSelect().
+		Model(&problemMarshaled).
 		Where("problem_id = ?", problemId).
 		Where("is_enabled = ?", true).
 		Scan(ctx)
@@ -530,20 +542,34 @@ func (self *BunDatabase) GetProblemOrToolById(
 	return problemMarshaled.Unmarshal()
 }
 
-func (self *BunDatabase) getAllProblems(
+func (self *BunDatabase) GetToolById(
 	ctx context.Context,
-	isTool bool,
+	toolId int64,
+) (models.Tool, error) {
+	var toolMarshaled models.ToolMarshaled
+	err := self.db.NewSelect().
+		Model(&toolMarshaled).
+		Where("tool_id = ?", toolId).
+		Where("is_enabled = ?", true).
+		Scan(ctx)
+	if err != nil {
+		return models.Tool{}, err
+	}
+	return toolMarshaled.Unmarshal()
+}
+
+func (self *BunDatabase) GetAllProblems(
+	ctx context.Context,
 ) (map[string]models.Problem, error) {
-	ret := make(map[string]models.Problem)
 	var problemsMarshaled []models.ProblemMarshaled
 	err := self.db.NewSelect().
 		Model(&problemsMarshaled).
-		Where("is_tool = ?", isTool).
 		Scan(ctx)
 	if err != nil {
 		return map[string]models.Problem{}, err
 	}
 
+	ret := make(map[string]models.Problem)
 	for _, problem := range problemsMarshaled {
 		ret[problem.SHA1], err = problem.Unmarshal()
 		if err != nil {
@@ -557,16 +583,29 @@ func (self *BunDatabase) getAllProblems(
 	return ret, nil
 }
 
-func (self *BunDatabase) GetAllProblems(
-	ctx context.Context,
-) (map[string]models.Problem, error) {
-	return self.getAllProblems(ctx, false)
-}
-
 func (self *BunDatabase) GetAllTools(
 	ctx context.Context,
 ) (map[string]models.Tool, error) {
-	return self.getAllProblems(ctx, true)
+	var toolsMarshaled []models.ToolMarshaled
+	err := self.db.NewSelect().
+		Model(&toolsMarshaled).
+		Scan(ctx)
+	if err != nil {
+		return map[string]models.Tool{}, err
+	}
+
+	ret := make(map[string]models.Tool)
+	for _, tool := range toolsMarshaled {
+		ret[tool.SHA1], err = tool.Unmarshal()
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to unmarshal tool",
+					zap.String("tool.sha1", tool.SHA1),
+					zap.Error(err))
+			return map[string]models.Tool{}, err
+		}
+	}
+	return ret, nil
 }
 
 func (self *BunDatabase) InsertProblem(
@@ -665,7 +704,20 @@ func (self *BunDatabase) InsertTool(
 	ctx context.Context,
 	tool models.Tool,
 ) error {
-	return self.InsertProblem(ctx, tool)
+	toolMarshaled, err := tool.Marshal()
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal tool",
+				zap.String("tool.name", tool.Name),
+				zap.Error(err))
+		return err
+	}
+
+	_, err = self.db.NewInsert().
+		Model(&toolMarshaled).
+		On("CONFLICT (sha1) DO NOTHING").
+		Exec(ctx)
+	return err
 }
 
 func (self *BunDatabase) UpdateProblem(
@@ -709,7 +761,35 @@ func (self *BunDatabase) UpdateTool(
 	sha1 string,
 	enable bool,
 ) error {
-	return self.UpdateProblem(ctx, sha1, enable)
+	if enable {
+		return self.db.RunInTx(ctx, &sql.TxOptions{},
+			func(ctx context.Context, tx bun.Tx) error {
+				var tool models.ToolMarshaled
+				err := tx.NewSelect().
+					Model(&tool).
+					Where("sha1 = ?", sha1).
+					Scan(ctx)
+				if err != nil {
+					return err
+				}
+				_, err = tx.NewUpdate().
+					Model((*models.ToolMarshaled)(nil)).
+					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
+					Where("tool_id = ?", tool.ToolId).
+					Exec(ctx)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
+	} else {
+		_, err := self.db.NewUpdate().
+			Model((*models.ToolMarshaled)(nil)).
+			Where("sha1 = ?", sha1).
+			Set("is_enabled = ?", false).
+			Exec(ctx)
+		return err
+	}
 }
 
 func (self *BunDatabase) HydrateContentFiles(
@@ -726,6 +806,32 @@ func (self *BunDatabase) HydrateContentFiles(
 		return err
 	}
 	*contentFiles = res
+	return nil
+}
+
+func (self *BunDatabase) HydrateTool(
+	ctx context.Context,
+	tool *models.Tool,
+) error {
+	if err := self.HydrateContentFiles(
+		ctx, &tool.PreScript.Files); err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to hydrate tool prescript",
+				zap.Error(err))
+		return err
+	}
+	if err := self.HydrateContentFiles(
+		ctx, &tool.PostScript.Files); err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to hydrate tool postscript",
+				zap.Error(err))
+	}
+	if err := self.HydrateContentFiles(
+		ctx, &tool.Testcase.Content.Files); err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to hydrate tool testcase content",
+				zap.Error(err))
+	}
 	return nil
 }
 
@@ -804,7 +910,7 @@ func (self *BunDatabase) DeleteProblemAndSubmissions(
 			}
 			_, err = tx.NewDelete().
 				Model((*models.Submission)(nil)).
-				Where("problem_sha1 = ?", sha1).
+				Where("ref_sha1 = ?", sha1).
 				Exec(ctx)
 			if err != nil {
 				return err
@@ -833,4 +939,28 @@ func (self *BunDatabase) DeleteUser(
 		Where("cs_id = ?", csId).
 		Exec(ctx)
 	return err
+}
+
+func (self *BunDatabase) DeleteToolAndSubmissions(
+	ctx context.Context,
+	sha1 string,
+) error {
+	return self.db.RunInTx(ctx, &sql.TxOptions{},
+		func(ctx context.Context, tx bun.Tx) error {
+			_, err := tx.NewDelete().
+				Model((*models.ToolMarshaled)(nil)).
+				Where("sha1 = ?", sha1).
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
+			_, err = tx.NewDelete().
+				Model((*models.Submission)(nil)).
+				Where("ref_sha1 = ?", sha1).
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 }

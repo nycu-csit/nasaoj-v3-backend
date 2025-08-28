@@ -3,16 +3,10 @@ package workflows
 import (
 	"context"
 
-	"github.com/fatih/color"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"go.uber.org/zap"
 )
-
-type jobInType struct {
-	StageName string
-	TestName  string
-}
 
 func WorkerThread(
 	ctx context.Context,
@@ -21,6 +15,7 @@ func WorkerThread(
 ) {
 	tracing.Logger.Ctx(ctx).
 		Info("worker thread is running")
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -31,15 +26,18 @@ func WorkerThread(
 				close(jobOut)
 				return
 			}
-			color.Yellow("%+v\n", jobInType{
-				StageName: job.StageName,
-				TestName:  job.TestName,
-			})
+
+			tracing.Logger.Ctx(ctx).
+				Info("run job",
+					zap.String("stage.name", job.StageName),
+					zap.String("testcase.name", job.TestName))
+
 			retCh := make(chan error, 1)
 			go RunJob(ctx, retCh, &job)
 			ret := <-retCh
+
 			tracing.Logger.Ctx(ctx).
-				Info("RunJob returned",
+				Info("thread returned",
 					zap.Error(ret))
 			jobOut <- job
 		}

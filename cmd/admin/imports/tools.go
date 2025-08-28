@@ -39,9 +39,9 @@ var toolsCmd = &cobra.Command{
 			panic(err)
 		}
 		db := implements.NewBunDatabase(bunDB)
-		problems := implements.NewDBProblemStorage(db)
+		tools := implements.NewDBToolStorage(db)
 
-		err = utils.LoadProblems(ctx, problems,
+		err = utils.LoadTools(ctx, tools,
 			viper.GetString("tools-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
@@ -51,7 +51,7 @@ var toolsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportTools, err := problems.GetAllProblems(ctx)
+		exportTools, err := tools.GetAllTools(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all tools",
@@ -60,11 +60,10 @@ var toolsCmd = &cobra.Command{
 		}
 
 		for sha1, tool := range exportTools {
-			tool.IsTool = true
 			exportTools[sha1] = tool
 		}
 
-		exportContentFiles, err := problems.GetAllContentFiles(ctx)
+		exportContentFiles, err := db.GetAllContentFiles(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all content files",
@@ -90,8 +89,8 @@ var toolsCmd = &cobra.Command{
 			panic(types.ContextNotExistError)
 		}
 
-		problemsURL, err := url.JoinPath(
-			viper.GetString("endpoint"), "/api/admin/problems")
+		toolsURL, err := url.JoinPath(
+			viper.GetString("endpoint"), "/api/admin/tools")
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to construct url",
@@ -100,11 +99,11 @@ var toolsCmd = &cobra.Command{
 		}
 		resp, err := client.R().
 			SetBody(exportTools).
-			Put(problemsURL)
+			Put(toolsURL)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to put tools",
-					zap.String("url", problemsURL),
+					zap.String("url", toolsURL),
 					zap.Error(err))
 			panic(err)
 		}

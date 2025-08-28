@@ -23,7 +23,7 @@ type PutTokenStateInput struct {
 //	@Success	200		{object}	string
 //	@Failure	400		{object}	string
 //	@Failure	401		{object}	string
-//	@Router		/api/admin/token-state [put]
+//	@Router		/api/admin/token/state [put]
 func PutTokenState(
 	tokens interfaces.TokenStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {

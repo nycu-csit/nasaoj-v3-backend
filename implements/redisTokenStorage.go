@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
+const (
 	tokenKey = "token"
 )
 

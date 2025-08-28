@@ -1,14 +1,16 @@
 ---
 name: Generate password
-problemId: 87
+toolId: 87
 description: Generate random string using openssl
 args:
   endpoint: 'http://backend:8080'
-stages:
-  output:
-    testcases:
-      - name: generate
-        files:
-          - test-userargs.sh.tmpl
-        scripts:
-          - bash test-userargs.sh.tmpl
+inputArgs:
+  - test
+testcase:
+  name: generate
+  files:
+    - test-userargs.sh.tmpl
+  scripts:
+    - input=$(</dev/stdin)
+    - echo "$input"
+    - bash test-userargs.sh.tmpl

@@ -16,6 +16,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type toolResult struct {
+	ToolId     int64  `json:"toolId" yaml:"toolId"`
+	SHA1       string `json:"sha1" yaml:"sha1"`
+	ImportedAt string `json:"importedAt" yaml:"importedAt"`
+
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
+	Tag         string `json:"tag" yaml:"tag"`
+	IsEnabled   bool   `json:"isEnabled" yaml:"isEnabled"`
+}
+
 var toolsCmd = &cobra.Command{
 	Use:   "tools",
 	Short: "Get tools",
@@ -38,7 +49,7 @@ var toolsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		var res []apiHandlers.ProblemOutput
+		var res []apiHandlers.ToolOutput
 		resp, err := client.R().
 			SetResult(&res).
 			ForceContentType("application/json").
@@ -57,28 +68,28 @@ var toolsCmd = &cobra.Command{
 			panic(types.HTTPRequestFailedError)
 		}
 
-		var ret []problemResult
-		for _, problem := range res {
-			ret = append(ret, problemResult{
-				ProblemId:   problem.ProblemId,
-				SHA1:        problem.SHA1,
-				ImportedAt:  time.Unix(problem.ImportedAt, 0).String(),
-				Name:        problem.Name,
-				Description: problem.Description,
-				Tag:         problem.Tag,
-				IsEnabled:   problem.IsEnabled,
+		var ret []toolResult
+		for _, tool := range res {
+			ret = append(ret, toolResult{
+				ToolId:      tool.ToolId,
+				SHA1:        tool.SHA1,
+				ImportedAt:  time.Unix(tool.ImportedAt, 0).String(),
+				Name:        tool.Name,
+				Description: tool.Description,
+				Tag:         tool.Tag,
+				IsEnabled:   tool.IsEnabled,
 			})
 		}
 
 		sort.Slice(ret, func(i, j int) bool {
-			return ret[i].ProblemId < ret[j].ProblemId ||
-				(ret[i].ProblemId == ret[j].ProblemId && ret[i].SHA1 < ret[j].SHA1)
+			return ret[i].ToolId < ret[j].ToolId ||
+				(ret[i].ToolId == ret[j].ToolId && ret[i].SHA1 < ret[j].SHA1)
 		})
 
 		b, err := yaml.Marshal(ret)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
-				Panic("failed to marshal problem results to yaml",
+				Panic("failed to marshal tool results to yaml",
 					zap.Error(err))
 			panic(err)
 		}

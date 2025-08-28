@@ -87,7 +87,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/problem-state": {
+        "/api/admin/problem/state": {
             "put": {
                 "consumes": [
                     "application/json"
@@ -275,16 +275,10 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Bad Request"
                     },
                     "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Not Found"
                     }
                 }
             }
@@ -381,8 +375,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Filter by Problem Id",
-                        "name": "problemId",
+                        "description": "Filter by RefId",
+                        "name": "refId",
                         "in": "query"
                     }
                 ],
@@ -481,7 +475,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/token-state": {
+        "/api/admin/token/state": {
             "put": {
                 "consumes": [
                     "application/json"
@@ -543,6 +537,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/tool": {
+            "delete": {
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tool SHA1",
+                        "name": "toolSHA1",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/tool/state": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "tool state",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PutToolStateInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/tools": {
             "get": {
                 "produces": [
@@ -554,12 +619,45 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.ProblemOutput"
+                                "$ref": "#/definitions/api.ToolOutput"
                             }
                         }
                     },
-                    "500": {
-                        "description": "Tool loading error",
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "tool",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/models.Tool"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -682,7 +780,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/worker-statuses": {
+        "/api/admin/worker/state": {
             "get": {
                 "produces": [
                     "application/json"
@@ -693,7 +791,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.GetWorkerStatusesOutput"
+                                "$ref": "#/definitions/api.GetWorkerStatesOutput"
                             }
                         }
                     },
@@ -745,8 +843,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ProblemOutput"
                         }
                     },
-                    "500": {
-                        "description": "Problem loading failed",
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -783,8 +887,18 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Problem Id",
-                        "name": "problemId",
+                        "description": "Ref Id",
+                        "name": "refId",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            0,
+                            1
+                        ],
+                        "type": "integer",
+                        "description": "Submission Type",
+                        "name": "type",
                         "in": "query"
                     },
                     {
@@ -796,28 +910,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Last submission to the problem",
+                        "description": "Last submission to the ref / tool",
                         "schema": {
                             "$ref": "#/definitions/api.resultOutput"
                         }
                     },
                     "400": {
-                        "description": "Problem ID invalid",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Bad Request"
                     },
                     "401": {
-                        "description": "Access token missing",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Unauthorized"
                     },
                     "404": {
-                        "description": "No submission",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Not Found"
                     }
                 }
             }
@@ -885,16 +990,10 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Bad Request"
                     },
                     "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Not Found"
                     }
                 }
             }
@@ -911,8 +1010,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Filter by Problem Id",
-                        "name": "problemId",
+                        "description": "Filter by RefId",
+                        "name": "refId",
                         "in": "query"
                     }
                 ],
@@ -962,22 +1061,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Bad Request"
                     },
                     "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Unauthorized"
                     },
                     "429": {
-                        "description": "Too Many Requests",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Too Many Requests"
                     }
                 }
             }
@@ -990,8 +1080,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "problem sha1",
-                        "name": "problemSHA1",
+                        "description": "tool sha1",
+                        "name": "toolSHA1",
                         "in": "query",
                         "required": true
                     }
@@ -1000,35 +1090,17 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.ProblemOutput"
+                            "$ref": "#/definitions/api.ToolOutput"
                         }
                     },
-                    "500": {
-                        "description": "Problem loading failed",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "string"
                         }
-                    }
-                }
-            }
-        },
-        "/api/tools": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/api.ProblemOutput"
-                            }
-                        }
                     },
-                    "500": {
-                        "description": "Tool loading error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -1142,7 +1214,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.GetWorkerStatusesOutput": {
+        "api.GetWorkerStatesOutput": {
             "type": "object",
             "properties": {
                 "ip": {
@@ -1257,15 +1329,70 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PutToolStateInput": {
+            "type": "object",
+            "properties": {
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "toolSHA1": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ToolOutput": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "importedAt": {
+                    "type": "integer"
+                },
+                "inputArgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "testcase": {
+                    "$ref": "#/definitions/api.toolOutputTestcase"
+                },
+                "toolId": {
+                    "type": "integer"
+                }
+            }
+        },
         "api.adminSubmitInput": {
             "type": "object",
             "properties": {
+                "RefSHA1": {
+                    "description": "Submit problem ID",
+                    "type": "string"
+                },
                 "asCsId": {
                     "type": "string"
                 },
-                "problemSHA1": {
-                    "description": "Submit problem ID",
-                    "type": "string"
+                "inputArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "type": "integer"
                 }
             }
         },
@@ -1300,6 +1427,9 @@ const docTemplate = `{
         "api.resultOutput": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "csId": {
                     "type": "string"
                 },
@@ -1312,19 +1442,13 @@ const docTemplate = `{
                         "$ref": "#/definitions/api.resultOutputJob"
                     }
                 },
-                "problemId": {
+                "refId": {
                     "type": "integer"
                 },
-                "problemName": {
-                    "type": "string"
-                },
-                "problemSHA1": {
+                "refSHA1": {
                     "type": "string"
                 },
                 "score": {
-                    "type": "integer"
-                },
-                "submitAt": {
                     "type": "integer"
                 }
             }
@@ -1369,25 +1493,22 @@ const docTemplate = `{
         "api.submissionsOutputSubmission": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "csId": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "problemId": {
+                "refId": {
                     "type": "integer"
                 },
-                "problemName": {
-                    "type": "string"
-                },
-                "problemSHA1": {
+                "refSHA1": {
                     "type": "string"
                 },
                 "score": {
-                    "type": "integer"
-                },
-                "submitAt": {
                     "type": "integer"
                 }
             }
@@ -1395,32 +1516,52 @@ const docTemplate = `{
         "api.submitInput": {
             "type": "object",
             "properties": {
-                "problemSHA1": {
+                "RefSHA1": {
                     "description": "Submit problem ID",
                     "type": "string"
+                },
+                "inputArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "type": "integer"
                 }
             }
         },
         "api.submitOutput": {
             "type": "object",
             "properties": {
+                "RefId": {
+                    "type": "integer"
+                },
+                "RefSHA1": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "integer"
+                },
                 "csId": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "problemId": {
-                    "type": "integer"
-                },
-                "problemName": {
+                "inputArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "api.toolOutputTestcase": {
+            "type": "object",
+            "properties": {
+                "name": {
                     "type": "string"
-                },
-                "problemSHA1": {
-                    "type": "string"
-                },
-                "submitAt": {
-                    "type": "integer"
                 }
             }
         },
@@ -1578,9 +1719,6 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "isTool": {
-                    "type": "boolean"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -1667,6 +1805,47 @@ const docTemplate = `{
                     }
                 },
                 "softTL": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Tool": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "inputArgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "postScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "preScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "testcase": {
+                    "$ref": "#/definitions/models.Testcase"
+                },
+                "timeout": {
+                    "type": "integer"
+                },
+                "toolId": {
                     "type": "integer"
                 }
             }

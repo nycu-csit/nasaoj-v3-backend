@@ -23,13 +23,9 @@ type Problem struct {
 	PostScript  Content           `json:"postScript"`
 	Timeout     int64             `json:"timeout"`
 
-	IsTool bool `json:"isTool"`
-
 	ImportedAt int64 `json:"-"`
 	IsEnabled  bool  `json:"-"`
 }
-
-type Tool = Problem
 
 type ProblemMarshaled struct {
 	bun.BaseModel `bun:"table:problem"`
@@ -37,7 +33,6 @@ type ProblemMarshaled struct {
 	SHA1       string        `bun:"sha1,pk"`
 	Payload    string        `bun:"payload"`
 	ProblemId  ProblemIdType `bun:"problem_id"`
-	IsTool     bool          `bun:"is_tool"`
 	ImportedAt int64         `bun:"imported_at"`
 	IsEnabled  bool          `bun:"is_enabled"`
 }
@@ -46,7 +41,6 @@ func (self Problem) Marshal() (ProblemMarshaled, error) {
 	ret := ProblemMarshaled{
 		ProblemId:  self.ProblemId,
 		ImportedAt: time.Now().Unix(),
-		IsTool:     self.IsTool,
 		IsEnabled:  false,
 	}
 
@@ -64,9 +58,8 @@ func (self ProblemMarshaled) Unmarshal() (Problem, error) {
 	var ret Problem
 	err := json.Unmarshal([]byte(self.Payload), &ret)
 	if err != nil {
-		return ret, err
+		return Problem{}, err
 	}
-	ret.IsTool = self.IsTool
 	ret.IsEnabled = self.IsEnabled
 	ret.ImportedAt = self.ImportedAt
 	return ret, nil

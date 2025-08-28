@@ -52,7 +52,12 @@ var usersCmd = &cobra.Command{
 			panic(err)
 		}
 
-		input, err := utils.ReadStdin(ctx, "---")
+		input, err := utils.ReadStdin(ctx, `---
+# Example
+# - csId: '111550001'
+#	 args:
+#		 poop: abc
+`)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to read from stdin",
