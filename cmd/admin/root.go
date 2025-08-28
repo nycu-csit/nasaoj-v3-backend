@@ -22,6 +22,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/imports"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.uber.org/zap"
 )
 
@@ -77,9 +78,7 @@ func getLogin(
 			http.SetCookie(w, cookie)
 		}
 
-		w.Header().Set("Location", location)
-		w.WriteHeader(http.StatusFound)
-		return nil
+		return utils.Redirect(w, location)
 	}
 }
 

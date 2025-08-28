@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"slices"
 
 	"github.com/spf13/viper"
@@ -11,6 +9,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type MeOutput struct {
@@ -24,10 +23,6 @@ type MeOutput struct {
 //	@Failure	401	{object}	string	"missing credential"
 //	@Router		/api/me [get]
 func GetMe(w http.ResponseWriter, req bunrouter.Request) error {
-	fmt.Fprintf(os.Stderr, "GET /api/me\n")
-
-	// fmt.Fprintf(os.Stderr, "[INFO] Context: %v\n", req.Context())
-	// fmt.Fprintf(os.Stderr, "[INFO] Claim: %v\n", req.Context().Value(types.AccessToken("")))
 	claim, ok := req.Context().
 		Value(types.AccessToken("")).(models.AccessTokenClaim)
 	if !ok {
@@ -42,5 +37,5 @@ func GetMe(w http.ResponseWriter, req bunrouter.Request) error {
 			claim.Groups, viper.GetString("admin-role")),
 		AccessTokenClaim: claim,
 	})
-	return nil
+	return utils.Success(w)
 }

@@ -1,14 +1,13 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 // DeleteSubmission
@@ -23,7 +22,6 @@ func DeleteSubmission(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "DELETE /api/admin/submission\n")
 
 		subId, err := strconv.ParseInt(req.URL.Query().Get("subId"), 10, 64)
 		if err != nil {
@@ -41,7 +39,6 @@ func DeleteSubmission(
 				OriginError: err,
 			}
 		}
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

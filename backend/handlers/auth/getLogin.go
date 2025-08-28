@@ -4,14 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"golang.org/x/oauth2"
 )
 
@@ -59,7 +58,6 @@ func GetLogin(
 	}
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		fmt.Fprintf(os.Stderr, "GET /auth/login\n")
 		var expire = time.Now().Add(365 * 24 * time.Hour)
 
 		b := make([]byte, 16)
@@ -73,13 +71,9 @@ func GetLogin(
 
 		if req.URL.Query().Get("source") == "cli" {
 			w.Header().Set("Location", cliOAuth2Config.AuthCodeURL(state))
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintf(w, "success")
+			return utils.Success(w)
 		} else {
-			w.Header().Set("Location", webOAuth2Config.AuthCodeURL(state))
-			w.WriteHeader(http.StatusFound)
-			fmt.Fprintf(w, "302 Found")
+			return utils.Redirect(w, webOAuth2Config.AuthCodeURL(state))
 		}
-		return nil
 	}
 }

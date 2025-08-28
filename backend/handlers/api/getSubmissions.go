@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/uptrace/bunrouter"
@@ -58,7 +56,6 @@ func GetSubmissions(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "GET /api/submissions\n")
 
 		queryValues := req.URL.Query()
 		var err error
@@ -140,11 +137,10 @@ func GetSubmissions(
 			}
 			submissions = append(submissions, output)
 		}
-		bunrouter.JSON(w, submissionsOutput{
+		return bunrouter.JSON(w, submissionsOutput{
 			PageSize:    pageSize,
 			TotalRowCnt: count,
 			Submissions: submissions,
 		})
-		return nil
 	}
 }

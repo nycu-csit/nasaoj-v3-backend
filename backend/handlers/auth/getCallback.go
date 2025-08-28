@@ -1,9 +1,7 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/spf13/viper"
@@ -11,6 +9,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 	"golang.org/x/oauth2"
 )
@@ -39,7 +38,6 @@ func GetCallback(
 		ClientID: viper.GetString("cli-oauth-client-id")})
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "GET /auth/callback\n")
 
 		var err error
 		var oauth2Token *oauth2.Token
@@ -150,13 +148,9 @@ func GetCallback(
 		})
 
 		if req.URL.Query().Get("source") == "cli" {
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintf(w, "success")
+			return utils.Success(w)
 		} else {
-			w.Header().Set("Location", "/")
-			w.WriteHeader(http.StatusFound)
-			fmt.Fprintf(w, "302 Found")
+			return utils.Redirect(w, "/")
 		}
-		return nil
 	}
 }

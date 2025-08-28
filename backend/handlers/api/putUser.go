@@ -2,16 +2,15 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 // PutUser
@@ -26,7 +25,6 @@ func PutUser(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "PUT /api/user\n")
 
 		privs, ok := ctx.Value(types.Privileges("")).(models.Privileges)
 		if !ok {
@@ -66,7 +64,6 @@ func PutUser(
 			}
 		}
 
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

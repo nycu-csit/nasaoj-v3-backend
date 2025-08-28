@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 // DeleteProblem
@@ -22,7 +21,6 @@ func DeleteProblem(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "DELETE /api/admin/problem\n")
 
 		problemSHA1 := req.URL.Query().Get("problemSHA1")
 		if err := db.DeleteProblemAndSubmissions(ctx, problemSHA1); err != nil {
@@ -32,7 +30,6 @@ func DeleteProblem(
 				OriginError: err,
 			}
 		}
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

@@ -73,7 +73,6 @@ func GetScheduleJob(
 			}
 		}
 
-		w.WriteHeader(http.StatusOK)
 		return bunrouter.JSON(w, job)
 	}
 }

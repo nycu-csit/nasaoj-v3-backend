@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"slices"
 	"time"
 
@@ -70,12 +69,6 @@ func PostSubmit(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-
-		if isAdmin {
-			fmt.Fprintf(os.Stderr, "POST /api/admin/submit\n")
-		} else {
-			fmt.Fprintf(os.Stderr, "POST /api/submit\n")
-		}
 
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -206,8 +199,7 @@ func PostSubmit(
 			return err
 		}
 
-		w.WriteHeader(http.StatusOK)
-		bunrouter.JSON(w, submitOutput{
+		return bunrouter.JSON(w, submitOutput{
 			Id:          submission.Id,
 			ProblemSHA1: problemSHA1,
 			ProblemId:   submission.ProblemId,
@@ -216,6 +208,5 @@ func PostSubmit(
 			CsId:     submission.CsId,
 			SubmitAt: submission.SubmitAt,
 		})
-		return nil
 	}
 }

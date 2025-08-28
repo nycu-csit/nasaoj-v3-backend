@@ -2,14 +2,13 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type PutProblemStateInput struct {
@@ -30,7 +29,6 @@ func PutProblemState(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "PUT /api/admin/problem-state\n")
 
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -59,7 +57,6 @@ func PutProblemState(
 			}
 		}
 
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

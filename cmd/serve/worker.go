@@ -1,8 +1,6 @@
 package serve
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -11,6 +9,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
+	"go.uber.org/zap"
 )
 
 var workerCmd = &cobra.Command{
@@ -32,7 +31,9 @@ var workerCmd = &cobra.Command{
 				go worker.FetchJob(ctx, retCh, jobIn)
 				ret := <-retCh
 				if ret != nil {
-					fmt.Fprintf(os.Stderr, "fetch thread end with error, %s\n", ret)
+					tracing.Logger.Ctx(ctx).
+						Warn("fetch thread end with error",
+							zap.Error(ret))
 					time.Sleep(time.Duration(
 						viper.GetInt64("thread-backoff")) * time.Second)
 				}
@@ -45,7 +46,9 @@ var workerCmd = &cobra.Command{
 				go worker.PutJob(ctx, retCh, jobOut)
 				ret := <-retCh
 				if ret != nil {
-					fmt.Fprintf(os.Stderr, "put thread end with error, %s\n", ret)
+					tracing.Logger.Ctx(ctx).
+						Error("thread 'PutJob' end with error",
+							zap.Error(ret))
 				}
 			}
 		}()

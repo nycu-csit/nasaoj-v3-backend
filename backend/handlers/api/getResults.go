@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/uptrace/bunrouter"
@@ -61,7 +59,6 @@ func GetResults(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "GET /api/results\n")
 
 		var submission models.Submission
 		if isAdmin {
@@ -170,7 +167,6 @@ func GetResults(
 				ExecAt:  job.ExecAt,
 			})
 		}
-		bunrouter.JSON(w, ret)
-		return nil
+		return bunrouter.JSON(w, ret)
 	}
 }

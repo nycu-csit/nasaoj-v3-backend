@@ -1,15 +1,14 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 // PutLogout
@@ -22,7 +21,6 @@ func PutLogout(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "PUT /auth/logout\n")
 
 		refreshTokenClaim, ok := req.Context().
 			Value(types.RefreshToken("")).(models.RefreshTokenClaim)
@@ -49,8 +47,6 @@ func PutLogout(
 			MaxAge: -1,
 		})
 
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
-		return nil
+		return utils.Redirect(w, "/")
 	}
 }
