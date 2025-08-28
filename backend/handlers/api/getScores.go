@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/uptrace/bunrouter"
@@ -31,7 +29,6 @@ func GetScores(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "GET /api/scores\n")
 
 		problemId, err := strconv.ParseInt(
 			req.URL.Query().Get("problemId"), 10, 64)
@@ -53,8 +50,7 @@ func GetScores(
 				}
 			}
 
-			w.WriteHeader(http.StatusOK)
-			bunrouter.JSON(w, scores)
+			return bunrouter.JSON(w, scores)
 		} else {
 			scores, err := db.GetScores(ctx, problemId)
 			if err != nil {
@@ -65,9 +61,7 @@ func GetScores(
 				}
 			}
 
-			w.WriteHeader(http.StatusOK)
-			bunrouter.JSON(w, scores)
+			return bunrouter.JSON(w, scores)
 		}
-		return nil
 	}
 }

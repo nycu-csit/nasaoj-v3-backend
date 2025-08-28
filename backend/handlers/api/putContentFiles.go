@@ -2,15 +2,14 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type PutContentFilesInput struct {
@@ -32,7 +31,6 @@ func PutContentFiles(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "PUT /api/admin/content-files\n")
 
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -51,7 +49,6 @@ func PutContentFiles(
 				OriginError: err,
 			}
 		}
-		// fmt.Fprintf(os.Stderr, "[DEBUG] %##v\n", inputs)
 
 		var files []models.ContentFile
 		for _, input := range inputs {
@@ -71,7 +68,6 @@ func PutContentFiles(
 			}
 		}
 
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

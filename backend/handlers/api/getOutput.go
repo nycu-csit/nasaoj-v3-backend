@@ -56,8 +56,6 @@ func GetOutput(
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "GET /api/output\n")
-
 		subId, err := strconv.ParseInt(req.URL.Query().Get("subId"), 10, 64)
 		if err != nil {
 			return middlewares.HTTPError{
@@ -121,8 +119,7 @@ func GetOutput(
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprintf(w, "%s\n", string(b[:]))
-
-		return nil
+		_, err = fmt.Fprintf(w, "%s\n", string(b[:]))
+		return err
 	}
 }

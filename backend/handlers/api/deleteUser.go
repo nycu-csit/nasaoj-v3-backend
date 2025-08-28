@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 // DeleteUser
@@ -22,7 +21,6 @@ func DeleteUser(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "DELETE /api/admin/user\n")
 
 		csId := req.URL.Query().Get("csId")
 		if err := db.DeleteUser(ctx, csId); err != nil {
@@ -32,7 +30,6 @@ func DeleteUser(
 				OriginError: err,
 			}
 		}
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

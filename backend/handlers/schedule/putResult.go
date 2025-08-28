@@ -2,10 +2,8 @@ package schedule
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -26,7 +24,6 @@ func PutScheduleResult(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "PUT /schedule/result\n")
 
 		if err := workers.UpdateLastAccess(ctx,
 			utils.GetRemoteAddr(req)); err != nil {
@@ -108,8 +105,6 @@ func PutScheduleResult(
 			}
 		}
 
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

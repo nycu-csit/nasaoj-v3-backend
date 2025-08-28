@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -26,7 +25,6 @@ func PutProblems(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "PUT /api/admin/problems\n")
 
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
@@ -37,9 +35,7 @@ func PutProblems(
 			}
 		}
 
-		// fmt.Fprintf(os.Stderr, "%+v\n", string(b[:]))
 		inputProblems := make(map[string]models.Problem)
-		// fmt.Fprintf(os.Stderr, "%+v\n", inputProblems)
 		if err := json.Unmarshal(b, &inputProblems); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
@@ -56,8 +52,6 @@ func PutProblems(
 					OriginError: err,
 				}
 			}
-			// fmt.Fprintf(os.Stderr, "[INFO] Insert problem '%s' with sha1 '%s'\n",
-			// 	problem.Name, sha1)
 			if err := problems.InsertProblem(ctx, problem); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -67,7 +61,6 @@ func PutProblems(
 			}
 		}
 
-		fmt.Fprintf(w, "success")
-		return nil
+		return utils.Success(w)
 	}
 }

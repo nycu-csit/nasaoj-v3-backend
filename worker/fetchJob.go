@@ -14,6 +14,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// TODO: debug worker error
+// fetch thread end with error, Get "": unsupported protocol scheme ""
+
 func FetchJob(
 	pctx context.Context,
 	retCh chan error,

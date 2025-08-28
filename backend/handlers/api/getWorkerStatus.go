@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -29,7 +27,6 @@ func GetWorkerStatuses(
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
-		fmt.Fprintf(os.Stderr, "GET /api/admin/worker-statuses\n")
 
 		res, err := workers.GetWorkers(ctx)
 		if err != nil {

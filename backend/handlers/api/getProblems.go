@@ -1,9 +1,7 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -69,19 +67,6 @@ func GetProblems(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		if isAdmin {
-			if isTool {
-				fmt.Fprintf(os.Stderr, "GET /api/admin/tools\n")
-			} else {
-				fmt.Fprintf(os.Stderr, "GET /api/admin/problems\n")
-			}
-		} else {
-			if isTool {
-				fmt.Fprintf(os.Stderr, "GET /api/tools\n")
-			} else {
-				fmt.Fprintf(os.Stderr, "GET /api/problems\n")
-			}
-		}
 		ctx := req.Context()
 
 		var resProblems map[string]models.Problem
