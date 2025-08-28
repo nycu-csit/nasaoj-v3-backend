@@ -45,8 +45,10 @@ var backendCmd = &cobra.Command{
 		// Initialize Tracing
 		appname := "nasaoj-backend"
 		tracing.InitTracer(appname)
-		tracing.InitUptrace(appname)
-		defer tracing.DeferUptrace(ctx)
+		if viper.GetString("uptrace-dsn") != "" {
+			tracing.InitUptrace(appname)
+			defer tracing.DeferUptrace(ctx)
+		}
 
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
@@ -309,7 +311,7 @@ func init() {
 
 	// Uptrace
 	backendCmd.Flags().
-		String("uptrace-dsn", "", "Uptrace DSN")
+		String("uptrace-dsn", "", "Uptrace DSN (Disabled by default)")
 
 	// Others
 	backendCmd.Flags().

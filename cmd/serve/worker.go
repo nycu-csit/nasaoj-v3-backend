@@ -20,8 +20,10 @@ var workerCmd = &cobra.Command{
 		// Initialize Tracing
 		appname := "nasaoj-worker"
 		tracing.InitTracer(appname)
-		tracing.InitUptrace(appname)
-		defer tracing.DeferUptrace(ctx)
+		if viper.GetString("uptrace-dsn") != "" {
+			tracing.InitUptrace(appname)
+			defer tracing.DeferUptrace(ctx)
+		}
 
 		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
@@ -81,5 +83,5 @@ func init() {
 	workerCmd.Flags().
 		String("running-dir", "/var/run/nasaoj-worker", "Worker running directory")
 	workerCmd.Flags().
-		String("uptrace-dsn", "", "Uptrace DSN")
+		String("uptrace-dsn", "", "Uptrace DSN (Disabled by default)")
 }
