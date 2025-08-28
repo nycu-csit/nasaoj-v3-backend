@@ -107,7 +107,7 @@ func GetCallback(
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusUnauthorized,
-				Message:     "check exist failed",
+				Message:     "check user exist failed",
 				OriginError: err,
 			}
 		}
