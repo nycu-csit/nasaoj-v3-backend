@@ -9,7 +9,6 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type MeOutput struct {
@@ -32,10 +31,9 @@ func GetMe(w http.ResponseWriter, req bunrouter.Request) error {
 		}
 	}
 
-	bunrouter.JSON(w, MeOutput{
+	return bunrouter.JSON(w, MeOutput{
 		IsAdmin: slices.Contains(
 			claim.Groups, viper.GetString("admin-role")),
 		AccessTokenClaim: claim,
 	})
-	return utils.Success(w)
 }
