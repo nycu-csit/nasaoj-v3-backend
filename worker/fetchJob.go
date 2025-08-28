@@ -49,7 +49,7 @@ func FetchJob(
 
 	if resp.StatusCode() == http.StatusNoContent {
 		tracing.Logger.Ctx(ctx).
-			Error("job not exist")
+			Warn("job not exist")
 		retCh <- types.JobNotExistError
 		return
 	}
