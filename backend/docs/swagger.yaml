@@ -115,15 +115,15 @@ definitions:
     type: object
   api.adminSubmitInput:
     properties:
-      RefSHA1:
-        description: Submit problem ID
-        type: string
       asCsId:
         type: string
       inputArgs:
         additionalProperties:
           type: string
         type: object
+      refSHA1:
+        description: Submit problem ID
+        type: string
       type:
         type: integer
     type: object
@@ -205,22 +205,18 @@ definitions:
     type: object
   api.submitInput:
     properties:
-      RefSHA1:
-        description: Submit problem ID
-        type: string
       inputArgs:
         additionalProperties:
           type: string
         type: object
+      refSHA1:
+        description: Submit problem ID
+        type: string
       type:
         type: integer
     type: object
   api.submitOutput:
     properties:
-      RefId:
-        type: integer
-      RefSHA1:
-        type: string
       createdAt:
         type: integer
       csId:
@@ -231,6 +227,10 @@ definitions:
         additionalProperties:
           type: string
         type: object
+      refId:
+        type: integer
+      refSHA1:
+        type: string
     type: object
   api.toolOutputTestcase:
     properties:
@@ -849,8 +849,6 @@ paths:
             type: array
         "401":
           description: Unauthorized
-          schema:
-            type: string
     put:
       consumes:
       - application/json
@@ -1154,6 +1152,19 @@ paths:
           description: Unauthorized
           schema:
             type: string
+  /api/tools:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.ToolOutput'
+            type: array
+        "401":
+          description: Unauthorized
   /api/user:
     put:
       consumes:

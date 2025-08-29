@@ -26,7 +26,8 @@ func (self *BunDatabase) submissionQueryHook(
 	ctx context.Context,
 	subId int64,
 ) error {
-	_, err := self.db.NewUpdate().Model((*models.Job)(nil)).
+	_, err := self.db.NewUpdate().
+		Model((*models.Job)(nil)).
 		Set("status = ?", models.StatusTimeout).
 		Where("sub_id = ?", subId).
 		Where("deadline < ?", time.Now().Unix()).
@@ -75,8 +76,12 @@ func (self *BunDatabase) GetSubmission(
 	if err := self.submissionQueryHook(ctx, subId); err != nil {
 		return models.Submission{}, err
 	}
-	err := self.db.NewSelect().Model(&ret).
-		WherePK().Relation("Jobs").Scan(ctx)
+
+	err := self.db.NewSelect().
+		Model(&ret).
+		WherePK().
+		Relation("Jobs").
+		Scan(ctx)
 	return ret, err
 }
 
@@ -190,20 +195,28 @@ func (self *BunDatabase) IncreaseScore(
 	stageName string,
 	delta int64,
 ) error {
-	_, err := self.db.NewUpdate().Model((*models.Submission)(nil)).
-		Set("score_score = score_score + ?", delta).
-		Where("id = ?", subId).Exec(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = self.db.NewUpdate().Model((*models.Submission)(nil)).
-		Set("score_stages = score_stages || ?",
-			map[string]int64{stageName: delta}).
-		Where("id = ?", subId).Exec(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		submission := models.Submission{Id: subId}
+		err := self.db.NewSelect().
+			Model(&submission).
+			WherePK().
+			Scan(ctx)
+		if err != nil {
+			return err
+		}
+
+		submission.Score.Score += delta
+		submission.Score.Stages[stageName] = delta
+		_, err = self.db.NewUpdate().
+			Model(&submission).
+			WherePK().
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (self *BunDatabase) GetScoresWithStages(

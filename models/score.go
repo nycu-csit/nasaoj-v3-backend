@@ -2,7 +2,7 @@ package models
 
 type Score struct {
 	Score  int64            `json:"score" bun:"score"`
-	Stages map[string]int64 `json:"stages" bun:"stages"`
+	Stages map[string]int64 `json:"stages" bun:"stages,type:JSONB"`
 }
 
 type UserScore struct {

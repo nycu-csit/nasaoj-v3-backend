@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
+	"github.com/uptrace/bun/extra/bunotel"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
@@ -27,6 +28,10 @@ var problemCmd = &cobra.Command{
 		color.Blue("Start running problem '%d'\n", viper.GetInt64("problem-id"))
 
 		ctx := cmd.Context()
+		if viper.GetString("uptrace-dsn") != "" {
+			tracing.InitUptrace(viper.GetString("uptrace-dsn"))
+			defer tracing.DeferUptrace(ctx)
+		}
 
 		mockArgs := make(map[string]string)
 		for _, arg := range viper.GetStringSlice("arg") {
@@ -48,7 +53,13 @@ var problemCmd = &cobra.Command{
 			panic(err)
 		}
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
-		utils.InitDB(ctx, bunDB)
+		bunDB.AddQueryHook(bunotel.NewQueryHook(bunotel.WithDBName("test")))
+		if err := utils.InitDB(ctx, bunDB); err != nil {
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to init db schema",
+					zap.Error(err))
+			panic(err)
+		}
 
 		db := implements.NewBunDatabase(bunDB)
 		jobQue := implements.NewChanJobQueue()

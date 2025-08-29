@@ -230,6 +230,8 @@ var RootCmd = &cobra.Command{
 				panic(err)
 			}
 		} else {
+			tracing.Logger.Ctx(ctx).
+				Info("use access token")
 			client.SetAuthToken(viper.GetString("access-token"))
 		}
 

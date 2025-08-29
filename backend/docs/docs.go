@@ -624,10 +624,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Unauthorized"
                     }
                 }
             },
@@ -1108,6 +1105,27 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/tools": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.ToolOutput"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
         "/api/user": {
             "put": {
                 "consumes": [
@@ -1378,10 +1396,6 @@ const docTemplate = `{
         "api.adminSubmitInput": {
             "type": "object",
             "properties": {
-                "RefSHA1": {
-                    "description": "Submit problem ID",
-                    "type": "string"
-                },
                 "asCsId": {
                     "type": "string"
                 },
@@ -1390,6 +1404,10 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "refSHA1": {
+                    "description": "Submit problem ID",
+                    "type": "string"
                 },
                 "type": {
                     "type": "integer"
@@ -1516,15 +1534,15 @@ const docTemplate = `{
         "api.submitInput": {
             "type": "object",
             "properties": {
-                "RefSHA1": {
-                    "description": "Submit problem ID",
-                    "type": "string"
-                },
                 "inputArgs": {
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "refSHA1": {
+                    "description": "Submit problem ID",
+                    "type": "string"
                 },
                 "type": {
                     "type": "integer"
@@ -1534,12 +1552,6 @@ const docTemplate = `{
         "api.submitOutput": {
             "type": "object",
             "properties": {
-                "RefId": {
-                    "type": "integer"
-                },
-                "RefSHA1": {
-                    "type": "string"
-                },
                 "createdAt": {
                     "type": "integer"
                 },
@@ -1554,6 +1566,12 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "refId": {
+                    "type": "integer"
+                },
+                "refSHA1": {
+                    "type": "string"
                 }
             }
         },

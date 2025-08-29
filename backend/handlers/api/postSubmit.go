@@ -24,15 +24,15 @@ type adminSubmitInput struct {
 
 type submitInput struct {
 	// Submit problem ID
-	RefSHA1   string            `json:"RefSHA1"`
+	RefSHA1   string            `json:"refSHA1"`
 	Type      int               `json:"type"`
 	InputArgs map[string]string `json:"inputArgs"`
 }
 
 type submitOutput struct {
 	Id        int64             `json:"id"`
-	RefSHA1   string            `json:"RefSHA1"`
-	RefId     int64             `json:"RefId"`
+	RefSHA1   string            `json:"refSHA1"`
+	RefId     int64             `json:"refId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
 	CsId      string `json:"csId"`

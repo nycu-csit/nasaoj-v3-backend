@@ -30,10 +30,16 @@ type ToolOutput struct {
 //
 //	@Produce	json
 //	@Success	200	{object}	[]ToolOutput
-//	@Failure	401	{object}	string
+//	@Failure	401
 //	@Router		/api/admin/tools [get]
 func getAdminToolsPlaceholder() {}
 
+// GetTools
+//
+//	@Produce	json
+//	@Success	200	{object}	[]ToolOutput
+//	@Failure	401
+//	@Router		/api/tools [get]
 func GetTools(
 	tools interfaces.ToolStorage,
 	isAdmin bool,

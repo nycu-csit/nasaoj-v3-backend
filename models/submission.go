@@ -12,10 +12,10 @@ const (
 type Submission struct {
 	bun.BaseModel `bun:"table:submission"`
 
-	Id      int64  `json:"id" bun:"id,pk,autoincrement"`
-	RefSHA1 string `json:"refSHA1" bun:"ref_sha1"`
-	RefId   int64  `json:"refId" bun:"ref_id"`
-	Type    int    `json:"type" bun:"type"`
+	Id      int64          `json:"id" bun:"id,pk,autoincrement"`
+	RefSHA1 string         `json:"refSHA1" bun:"ref_sha1"`
+	RefId   int64          `json:"refId" bun:"ref_id"`
+	Type    SubmissionType `json:"type" bun:"type"`
 
 	CsId      string            `json:"csId" bun:"cs_id"`
 	CreatedAt int64             `json:"createdAt" bun:"created_at"`

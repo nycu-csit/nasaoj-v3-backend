@@ -37,7 +37,7 @@ func (self *ChanJobQueue) GetJob(
 	ret, ok := <-self.data[tag]
 	if !ok {
 		tracing.Logger.Ctx(ctx).
-			Error("channel closed")
+			Warn("channel closed")
 		return models.Job{}, types.ChannelClosedError
 	}
 	return ret, nil

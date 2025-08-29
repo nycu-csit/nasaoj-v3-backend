@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
+	"github.com/uptrace/bun/extra/bunotel"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
@@ -50,6 +51,7 @@ var stageCmd = &cobra.Command{
 			panic(err)
 		}
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
+		bunDB.AddQueryHook(bunotel.NewQueryHook(bunotel.WithDBName("test")))
 		utils.InitDB(ctx, bunDB)
 
 		db := implements.NewBunDatabase(bunDB)
@@ -64,16 +66,6 @@ var stageCmd = &cobra.Command{
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to load problems",
-					zap.Error(err))
-			panic(err)
-		}
-
-		err = utils.LoadProblems(ctx, problems,
-			viper.GetString("tools-dir"),
-			viper.GetString("testcases-dir"))
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Panic("failed to load tools",
 					zap.Error(err))
 			panic(err)
 		}
