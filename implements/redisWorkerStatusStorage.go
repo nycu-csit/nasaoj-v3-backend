@@ -15,7 +15,7 @@ type RedisWorkerStatusStorage struct {
 	rdb *redis.Client
 }
 
-var (
+const (
 	workerTagsKey       = "worker-tags"
 	workerLastAccessKey = "worker-last-access"
 )

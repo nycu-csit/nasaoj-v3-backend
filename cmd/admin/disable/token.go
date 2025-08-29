@@ -28,7 +28,7 @@ var tokenCmd = &cobra.Command{
 		}
 
 		tokenURL, err := url.JoinPath(
-			viper.GetString("endpoint"), "/api/admin/token-state")
+			viper.GetString("endpoint"), "/api/admin/token/state")
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to construct url",

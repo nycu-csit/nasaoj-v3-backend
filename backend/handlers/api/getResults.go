@@ -22,14 +22,13 @@ type resultOutputJob struct {
 }
 
 type resultOutput struct {
-	Id          int64  `json:"id"`
-	ProblemSHA1 string `json:"problemSHA1"`
-	ProblemId   int64  `json:"problemId"`
-	ProblemName string `json:"problemName"`
+	Id      int64  `json:"id"`
+	RefSHA1 string `json:"refSHA1"`
+	RefId   int64  `json:"refId"`
 
-	CsId     string `json:"csId"`
-	SubmitAt int64  `json:"submitAt"`
-	Score    int64  `json:"score"`
+	CsId      string `json:"csId"`
+	CreatedAt int64  `json:"createdAt"`
+	Score     int64  `json:"score"`
 
 	Jobs []resultOutputJob `json:"jobs"`
 }
@@ -46,12 +45,13 @@ func getAdminResultsPlaceholder() {}
 
 // GetResults
 //
-//	@Param		problemId	query		int				false	"Problem Id"	attribute(optional)
-//	@Param		subId		query		int				false	"Submission Id"	attribute(optional)
-//	@Success	200			{object}	resultOutput	"Last submission to the problem"
-//	@Failure	400			{object}	string			"Problem ID invalid"
-//	@Failure	401			{object}	string			"Access token missing"
-//	@Failure	404			{object}	string			"No submission"
+//	@Param		refId	query		int						false	"Ref Id"			attribute(optional)
+//	@Param		type	query		models.SubmissionType	false	"Submission Type"	attribute(optional)
+//	@Param		subId	query		int						false	"Submission Id"		attribute(optional)
+//	@Success	200		{object}	resultOutput			"Last submission to the ref / tool"
+//	@Failure	400
+//	@Failure	401
+//	@Failure	404
 //	@Router		/api/results [get]
 func GetResults(
 	db interfaces.Database,
@@ -81,7 +81,8 @@ func GetResults(
 				}
 			}
 		} else {
-			problemIdRaw := req.URL.Query().Get("problemId")
+			refIdRaw := req.URL.Query().Get("refId")
+			typeRaw := req.URL.Query().Get("type")
 			subIdRaw := req.URL.Query().Get("subId")
 
 			privs, ok := req.Context().
@@ -119,16 +120,25 @@ func GetResults(
 						OriginError: err,
 					}
 				}
-			} else if len(problemIdRaw) > 0 {
-				problemId, err := strconv.ParseInt(problemIdRaw, 10, 64)
+			} else if len(refIdRaw) > 0 && len(typeRaw) > 0 {
+				refId, err := strconv.ParseInt(refIdRaw, 10, 64)
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusBadRequest,
-						Message:     "invalid problem id",
+						Message:     "invalid ref id",
 						OriginError: err,
 					}
 				}
-				submission, err = db.GetLastSubmission(ctx, privs.OwnerCsId, problemId)
+				subType, err := strconv.ParseInt(typeRaw, 10, 32)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusBadRequest,
+						Message:     "invalid submission type",
+						OriginError: err,
+					}
+				}
+				submission, err = db.GetLastSubmission(
+					ctx, privs.OwnerCsId, refId, int(subType))
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusNotFound,
@@ -145,14 +155,13 @@ func GetResults(
 		}
 
 		ret := resultOutput{
-			Id:          submission.Id,
-			ProblemSHA1: submission.ProblemSHA1,
-			ProblemId:   submission.ProblemId,
-			ProblemName: submission.ProblemName,
+			Id:      submission.Id,
+			RefSHA1: submission.RefSHA1,
+			RefId:   submission.RefId,
 
-			CsId:     submission.CsId,
-			SubmitAt: submission.SubmitAt,
-			Score:    submission.Score.Score,
+			CsId:      submission.CsId,
+			CreatedAt: submission.CreatedAt,
+			Score:     submission.Score.Score,
 
 			Jobs: []resultOutputJob{},
 		}

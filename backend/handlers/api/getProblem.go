@@ -6,28 +6,18 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
-
-// GetTool
-//
-//	@Param		problemSHA1	query	string	true	"problem sha1"
-//	@Produce	json
-//	@Success	200	{object}	ProblemOutput
-//	@Failure	500	{object}	string	"Problem loading failed"
-//	@Router		/api/tool [get]
-func getToolPlaceholder() {}
 
 // GetProblem
 //
 //	@Param		problemSHA1	query	string	true	"problem sha1"
 //	@Produce	json
 //	@Success	200	{object}	ProblemOutput
-//	@Failure	500	{object}	string	"Problem loading failed"
+//	@Failure 400 {object} string
+//	@Failure 401 {object} string
 //	@Router		/api/problem [get]
 func GetProblem(
 	problems interfaces.ProblemStorage,
-	isTool bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
@@ -40,13 +30,7 @@ func GetProblem(
 			}
 		}
 
-		var problem models.Problem
-		var err error
-		if isTool {
-			problem, err = problems.GetTool(ctx, problemSHA1)
-		} else {
-			problem, err = problems.GetProblem(ctx, problemSHA1)
-		}
+		problem, err := problems.GetProblem(ctx, problemSHA1)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,

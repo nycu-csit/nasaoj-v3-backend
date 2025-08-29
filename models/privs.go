@@ -3,7 +3,7 @@ package models
 // Split it roughly for now, maybe can fine-grained for
 // other usage afterwards
 
-var (
+const (
 	ScopeNo   = 0
 	ScopeSelf = 1
 	ScopeAll  = 2

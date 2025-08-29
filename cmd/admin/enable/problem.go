@@ -14,10 +14,9 @@ import (
 )
 
 var problemCmd = &cobra.Command{
-	Use:     "problem [problem_sha1]",
-	Aliases: []string{"tool"},
-	Short:   "Enable problem / tool",
-	Args:    cobra.ExactArgs(1),
+	Use:   "problem [problem_sha1]",
+	Short: "Enable problem",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 
@@ -29,7 +28,7 @@ var problemCmd = &cobra.Command{
 		}
 
 		problemURL, err := url.JoinPath(
-			viper.GetString("endpoint"), "/api/admin/problem-state")
+			viper.GetString("endpoint"), "/api/admin/problem/state")
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to construct url",

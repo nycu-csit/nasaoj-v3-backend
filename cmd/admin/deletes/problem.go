@@ -13,10 +13,9 @@ import (
 )
 
 var problemCmd = &cobra.Command{
-	Use:     "problem [problem_sha1]",
-	Short:   "Delete problem and related submissions",
-	Aliases: []string{"tool"},
-	Args:    cobra.ExactArgs(1),
+	Use:   "problem [problem_sha1]",
+	Short: "Delete problem and related submissions",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 

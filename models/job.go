@@ -23,15 +23,16 @@ const (
 type Job struct {
 	bun.BaseModel `bun:"table:job"`
 	// Job Id
-	SubId     int64  `json:"subId" bun:"subid,pk"`
-	StageName string `json:"stageName" bun:"stagename,pk"`
-	TestName  string `json:"testName" bun:"testname,pk"`
+	SubId     int64  `json:"subId" bun:"sub_id,pk"`
+	StageName string `json:"stageName" bun:"stage_name,pk"`
+	TestName  string `json:"testName" bun:"test_name,pk"`
 
 	// Metadata
 	Status JobStatus `json:"status" bun:"status"`
 
 	// On Schedule
 	Script   string `json:"script" bun:"script"`
+	Stdin    string `json:"stdin" bun:"stdin"`
 	Deadline int64  `json:"deadline" bun:"deadline"`
 	FileURL  string `json:"fileurl" bun:"-"`
 	HardTL   int64  `json:"hardtl" bun:"-"`
@@ -40,8 +41,8 @@ type Job struct {
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`
 	Stderr  string `json:"stderr" bun:"-"`
-	RetCode int    `json:"retCode" bun:"retcode"`
-	ExecAt  int64  `json:"execAt" bun:"execat"`
+	RetCode int    `json:"retCode" bun:"ret_code"`
+	ExecAt  int64  `json:"execAt" bun:"exec_at"`
 }
 
 type JobWithFile struct {

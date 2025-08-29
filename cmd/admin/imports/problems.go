@@ -59,7 +59,7 @@ var problemsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportContentFiles, err := problems.GetAllContentFiles(ctx)
+		exportContentFiles, err := db.GetAllContentFiles(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all content files",

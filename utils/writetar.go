@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"go.uber.org/zap"
@@ -13,7 +12,6 @@ import (
 
 func WriteTar(
 	ctx context.Context,
-	problems interfaces.ProblemStorage,
 	tarbuf *bytes.Buffer,
 	contents []models.Content,
 	args map[string]string,

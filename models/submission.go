@@ -2,18 +2,27 @@ package models
 
 import "github.com/uptrace/bun"
 
+type SubmissionType = int
+
+const (
+	SubmissionTypeProblem SubmissionType = 0
+	SubmissionTypeTool    SubmissionType = 1
+)
+
 type Submission struct {
 	bun.BaseModel `bun:"table:submission"`
-	Id            int64  `json:"id" bun:"id,pk,autoincrement"`
-	ProblemSHA1   string `json:"problemSHA1" bun:"problem_sha1"`
-	ProblemId     int64  `json:"problemId" bun:"problem_id"`
-	ProblemName   string `json:"problemName" bun:"problem_name"`
 
-	CsId     string            `json:"csId" bun:"cs_id"`
-	SubmitAt int64             `json:"submitAt" bun:"submit_at"`
-	Args     map[string]string `json:"args" bun:"args"`
+	Id      int64  `json:"id" bun:"id,pk,autoincrement"`
+	RefSHA1 string `json:"refSHA1" bun:"ref_sha1"`
+	RefId   int64  `json:"refId" bun:"ref_id"`
+	Type    int    `json:"type" bun:"type"`
+
+	CsId      string            `json:"csId" bun:"cs_id"`
+	CreatedAt int64             `json:"createdAt" bun:"created_at"`
+	Args      map[string]string `json:"args" bun:"args"`
+	InputArgs map[string]string `json:"inputArgs" bun:"input_args"`
 
 	Score Score `json:",inline" bun:"embed:score_"`
 
-	Jobs []*Job `bun:"rel:has-many,join:id=subid"`
+	Jobs []*Job `bun:"rel:has-many,join:id=sub_id"`
 }

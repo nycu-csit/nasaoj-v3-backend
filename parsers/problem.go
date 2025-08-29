@@ -71,7 +71,6 @@ func (self *Problem) ToModelProblem(
 		PostScript: models.Content{
 			Scripts: self.PostScript.Scripts,
 		},
-		// IsTool: self.IsTool,
 	}
 
 	ret.Timeout = 0
@@ -93,7 +92,7 @@ func (self *Problem) ToModelProblem(
 			retTestcase, err := testcase.ToModelTestcase(ctx, contentFiles)
 			if err != nil {
 				tracing.Logger.Ctx(ctx).
-					Error("testcase extraction failed",
+					Error("failed to extract testcase",
 						zap.Error(err))
 				return models.Problem{}, err
 			}

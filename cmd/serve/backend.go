@@ -100,6 +100,7 @@ var backendCmd = &cobra.Command{
 		tokens := implements.NewRedisTokenStorage(rdb)
 		workers := implements.NewRedisWorkerStatusStorage(rdb)
 		problems := implements.NewDBProblemStorage(db)
+		tools := implements.NewDBToolStorage(db)
 
 		if viper.GetString("admin-token") != "" {
 			if err := tokens.SetAdminToken(
@@ -142,13 +143,13 @@ var backendCmd = &cobra.Command{
 				CanAPIRead: models.ScopeSelf,
 			}))
 		apiReadGroup.GET("/problem",
-			apiHandlers.GetProblem(problems, false))
+			apiHandlers.GetProblem(problems))
 		apiReadGroup.GET("/problems",
-			apiHandlers.GetProblems(problems, false, false))
+			apiHandlers.GetProblems(problems, false))
 		apiReadGroup.GET("/tool",
-			apiHandlers.GetProblem(problems, true))
+			apiHandlers.GetTool(tools))
 		apiReadGroup.GET("/tools",
-			apiHandlers.GetProblems(problems, true, false))
+			apiHandlers.GetTools(tools, false))
 		apiReadGroup.GET("/stdout",
 			apiHandlers.GetOutput(db, mc, "stdout", false))
 		apiReadGroup.GET("/results",
@@ -165,7 +166,8 @@ var backendCmd = &cobra.Command{
 				CanAPIWrite: models.ScopeSelf,
 			}))
 		apiWriteGroup.POST("/submit",
-			apiHandlers.PostSubmit(db, jobQue, s3, problems, tokens, false))
+			apiHandlers.PostSubmit(
+				db, jobQue, s3, problems, tools, tokens, false))
 
 		apiUserArgsGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -194,13 +196,13 @@ var backendCmd = &cobra.Command{
 		apiAdminReadGroup.GET("/results",
 			apiHandlers.GetResults(db, true))
 		apiAdminReadGroup.GET("/problems",
-			apiHandlers.GetProblems(problems, false, true))
+			apiHandlers.GetProblems(problems, true))
 		apiAdminReadGroup.GET("/tools",
-			apiHandlers.GetProblems(problems, true, true))
+			apiHandlers.GetTools(tools, true))
 		apiAdminReadGroup.GET("/tokens",
 			apiHandlers.GetTokens(tokens))
-		apiAdminReadGroup.GET("/worker-statuses",
-			apiHandlers.GetWorkerStatuses(workers))
+		apiAdminReadGroup.GET("/worker/states",
+			apiHandlers.GetWorkerStates(workers))
 
 		apiAdminWriteGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -210,18 +212,25 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PutProblems(problems))
 		apiAdminWriteGroup.PUT("/content-files",
 			apiHandlers.PutContentFiles(problems))
-		apiAdminWriteGroup.PUT("/problem-state",
+		apiAdminWriteGroup.PUT("/problem/state",
 			apiHandlers.PutProblemState(problems))
+		apiAdminWriteGroup.PUT("/tools",
+			apiHandlers.PutTools(tools))
+		apiAdminWriteGroup.PUT("/tool/state",
+			apiHandlers.PutToolState(tools))
 		apiAdminWriteGroup.PUT("/users",
 			apiHandlers.PutUsers(db))
-		apiAdminWriteGroup.PUT("/token-state",
+		apiAdminWriteGroup.PUT("/token/state",
 			apiHandlers.PutTokenState(tokens))
 		apiAdminWriteGroup.POST("/token",
 			apiHandlers.PostToken(tokens))
 		apiAdminWriteGroup.POST("/submit",
-			apiHandlers.PostSubmit(db, jobQue, s3, problems, tokens, true))
+			apiHandlers.PostSubmit(
+				db, jobQue, s3, problems, tools, tokens, true))
 		apiAdminWriteGroup.DELETE("/problem",
 			apiHandlers.DeleteProblem(db))
+		apiAdminWriteGroup.DELETE("/tool",
+			apiHandlers.DeleteTool(db))
 		apiAdminWriteGroup.DELETE("/submission",
 			apiHandlers.DeleteSubmission(db))
 		apiAdminWriteGroup.DELETE("/user",

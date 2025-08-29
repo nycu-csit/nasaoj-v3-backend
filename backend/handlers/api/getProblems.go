@@ -31,22 +31,6 @@ type ProblemOutput struct {
 	IsEnabled   bool                          `json:"isEnabled"`
 }
 
-// GetAdminTools
-//
-//	@Produce	json
-//	@Success	200	{object}	[]ProblemOutput
-//	@Failure	500	{object}	string	"Tool loading error"
-//	@Router		/api/admin/tools [get]
-func getAdminToolsPlaceholder() {}
-
-// GetTools
-//
-//	@Produce	json
-//	@Success	200	{object}	[]ProblemOutput
-//	@Failure	500	{object}	string	"Tool loading error"
-//	@Router		/api/tools [get]
-func getToolsPlaceholder() {}
-
 // GetAdminProblems
 //
 //	@Produce	json
@@ -63,7 +47,6 @@ func getAdminProblemsPlaceholder() {}
 //	@Router		/api/problems [get]
 func GetProblems(
 	problems interfaces.ProblemStorage,
-	isTool bool,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -72,22 +55,14 @@ func GetProblems(
 		var resProblems map[string]models.Problem
 		var err error
 		if isAdmin {
-			if isTool {
-				resProblems, err = problems.GetAllTools(ctx)
-			} else {
-				resProblems, err = problems.GetAllProblems(ctx)
-			}
+			resProblems, err = problems.GetAllProblems(ctx)
 		} else {
-			if isTool {
-				resProblems, err = problems.GetTools(ctx)
-			} else {
-				resProblems, err = problems.GetProblems(ctx)
-			}
+			resProblems, err = problems.GetProblems(ctx)
 		}
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
-				Message:     "get problems failed",
+				Message:     "failed to get problems",
 				OriginError: err,
 			}
 		}

@@ -12,14 +12,13 @@ import (
 )
 
 type submissionsOutputSubmission struct {
-	Id          int64  `json:"id"`
-	ProblemSHA1 string `json:"problemSHA1"`
-	ProblemId   int64  `json:"problemId"`
-	ProblemName string `json:"problemName"`
+	Id      int64  `json:"id"`
+	RefSHA1 string `json:"refSHA1"`
+	RefId   int64  `json:"refId"`
 
-	CsId     string `json:"csId"`
-	SubmitAt int64  `json:"submitAt"`
-	Score    int64  `json:"score"`
+	CsId      string `json:"csId"`
+	CreatedAt int64  `json:"createdAt"`
+	Score     int64  `json:"score"`
 }
 
 type submissionsOutput struct {
@@ -32,23 +31,22 @@ const pageSize int = 20
 
 // GetAdminSubmissions
 //
-//	@Param		pageNum		query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		csId		query		string				false	"Filter by CsId"							attribute(optional)
-//	@Param		problemId	query		int64				false	"Filter by Problem Id"						attribute(optional)
-//
-//	@Success	200			{object}	submissionsOutput	"Submissions"
-//	@Failure	400			{object}	string				"Problem Id invalid"
-//	@Failure	401			{object}	string				"not admin or didn't login"
+//	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
+//	@Param		csId	query		string				false	"Filter by CsId"							attribute(optional)
+//	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
+//	@Success	200		{object}	submissionsOutput	"Submissions"
+//	@Failure	400		{object}	string				"Problem Id invalid"
+//	@Failure	401		{object}	string				"not admin or didn't login"
 //	@Router		/api/admin/submissions [get]
 func getAdminSubmissionsPlaceHolder() {}
 
 // GetSubmissions
 //
-//	@Param		pageNum		query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		problemId	query		int64				false	"Filter by Problem Id"						attribute(optional)
-//	@Success	200			{object}	submissionsOutput	"Submissions"
-//	@Failure	400			{object}	string				"Problem Id invalid"
-//	@Failure	401			{object}	string				"didn't login"
+//	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
+//	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
+//	@Success	200		{object}	submissionsOutput	"Submissions"
+//	@Failure	400		{object}	string				"Problem Id invalid"
+//	@Failure	401		{object}	string				"didn't login"
 //	@Router		/api/submissions [get]
 func GetSubmissions(
 	db interfaces.Database,
@@ -96,25 +94,25 @@ func GetSubmissions(
 			isPageNum = true
 		}
 
-		var problemId int64
-		var isProblemId bool = false
-		if queryValues.Has("problemId") {
-			problemId, err = strconv.ParseInt(
-				queryValues.Get("problemId"), 10, 64)
+		var refId int64
+		var isRefId bool = false
+		if queryValues.Has("refId") {
+			refId, err = strconv.ParseInt(
+				queryValues.Get("refId"), 10, 64)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
-					Message:     "problem id parse failed",
+					Message:     "ref id parse failed",
 					OriginError: err,
 				}
 			}
-			isProblemId = true
+			isRefId = true
 		}
 
 		subs, count, err := db.GetSubmissionsAndCount(ctx,
 			csId, isCsId,
 			pageNum, isPageNum, pageSize,
-			problemId, isProblemId)
+			refId, isRefId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
@@ -126,14 +124,13 @@ func GetSubmissions(
 		submissions := []submissionsOutputSubmission{}
 		for _, sub := range subs {
 			output := submissionsOutputSubmission{
-				Id:          sub.Id,
-				ProblemSHA1: sub.ProblemSHA1,
-				ProblemId:   sub.ProblemId,
-				ProblemName: sub.ProblemName,
+				Id:      sub.Id,
+				RefSHA1: sub.RefSHA1,
+				RefId:   sub.RefId,
 
-				CsId:     sub.CsId,
-				SubmitAt: sub.SubmitAt,
-				Score:    sub.Score.Score,
+				CsId:      sub.CsId,
+				CreatedAt: sub.CreatedAt,
+				Score:     sub.Score.Score,
 			}
 			submissions = append(submissions, output)
 		}

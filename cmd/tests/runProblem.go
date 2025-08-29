@@ -83,7 +83,7 @@ var problemCmd = &cobra.Command{
 			panic(err)
 		}
 
-		problem, err := problems.GetProblemOrToolById(
+		problem, err := problems.GetProblemById(
 			ctx, viper.GetInt64("problem-id"))
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
@@ -128,20 +128,19 @@ var problemCmd = &cobra.Command{
 		}()
 
 		submission := models.Submission{
-			ProblemName: problem.Name,
-			ProblemId:   problem.ProblemId,
-			ProblemSHA1: problemMarshaled.SHA1,
+			RefId:   problem.ProblemId,
+			RefSHA1: problemMarshaled.SHA1,
 
-			CsId:     "114514",
-			SubmitAt: time.Now().Unix(),
-			Args:     mockArgs,
+			CsId:      "114514",
+			CreatedAt: time.Now().Unix(),
+			Args:      mockArgs,
 
 			Score: models.Score{
 				Score:  0,
 				Stages: make(map[string]int64),
 			},
 		}
-		err = db.InsertSubmissionAndJobs(ctx, &submission, problem)
+		err = db.InsertProblemSubmission(ctx, &submission, problem)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to insert submission",

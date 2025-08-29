@@ -12,21 +12,6 @@ type ProblemStorage interface {
 		sha1 string,
 	) (models.Problem, error)
 
-	GetTool(
-		ctx context.Context,
-		sha1 string,
-	) (models.Tool, error)
-
-	GetProblemOrTool(
-		ctx context.Context,
-		sha1 string,
-	) (models.Problem, error)
-
-	GetProblemOrToolById(
-		ctx context.Context,
-		problemId models.ProblemIdType,
-	) (models.Problem, error)
-
 	InsertProblem(
 		ctx context.Context,
 		problem models.Problem,
@@ -36,17 +21,14 @@ type ProblemStorage interface {
 		ctx context.Context,
 	) (map[string]models.Problem, error)
 
-	GetTools(
+	GetProblemById(
 		ctx context.Context,
-	) (map[string]models.Tool, error)
+		problemId int64,
+	) (models.Problem, error)
 
 	GetAllProblems(
 		ctx context.Context,
 	) (map[string]models.Problem, error)
-
-	GetAllTools(
-		ctx context.Context,
-	) (map[string]models.Tool, error)
 
 	PutProblemState(
 		ctx context.Context,
@@ -56,16 +38,12 @@ type ProblemStorage interface {
 
 	InsertContentFiles(
 		ctx context.Context,
-		contentfiles []models.ContentFile,
+		contentFiles []models.ContentFile,
 	) error
 
 	GetContentFiles(
 		ctx context.Context,
 		sha1s []string,
-	) ([]models.ContentFile, error)
-
-	GetAllContentFiles(
-		ctx context.Context,
 	) ([]models.ContentFile, error)
 
 	HydrateProblem(

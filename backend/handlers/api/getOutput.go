@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/minio/minio-go/v7"
@@ -13,7 +12,9 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 // GetAdminStderr
@@ -22,8 +23,8 @@ import (
 //	@Param		stage		query		string	true	"Stage name"
 //	@Param		testcase	query		string	true	"Testcase name"
 //	@Success	200			{string}	string	"Testcase result stderr"
-//	@Failure	400			{string}	string
-//	@Failure	404			{string}	string
+//	@Failure	400
+//	@Failure	404
 //	@Router		/api/admin/stderr [get]
 func getAdminStderrPlaceholder() {}
 
@@ -44,8 +45,8 @@ func getAdminStdoutPlaceholder() {}
 //	@Param		stage		query		string	true	"Stage name"
 //	@Param		testcase	query		string	true	"Testcase name"
 //	@Success	200			{string}	string	"Testcase result stdout"
-//	@Failure	400			{string}	string
-//	@Failure	404			{string}	string
+//	@Failure	400
+//	@Failure	404
 //	@Router		/api/stdout [get]
 func GetOutput(
 	db interfaces.Database,
@@ -95,7 +96,9 @@ func GetOutput(
 		}
 
 		fileName := fmt.Sprintf("%d-%s-%s-%s", subId, stageName, testName, target)
-		fmt.Fprintf(os.Stderr, "fileName: %s\n", fileName)
+		tracing.Logger.Ctx(ctx).
+			Info("get output from minio",
+				zap.String("file.name", fileName))
 
 		output, err := mc.GetObject(ctx, viper.GetString("minio-bucket"), fileName,
 			minio.GetObjectOptions{})

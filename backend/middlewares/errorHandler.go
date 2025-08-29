@@ -43,14 +43,6 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 
 		case HTTPError:
 			httpErr = err
-			if httpErr.OriginError == nil {
-				tracing.Logger.Ctx(ctx).
-					Warn(httpErr.Message)
-			} else {
-				tracing.Logger.Ctx(ctx).
-					Warn(httpErr.Message,
-						zap.Error(httpErr.OriginError))
-			}
 
 		default:
 			tracing.Logger.Ctx(ctx).
@@ -65,10 +57,27 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		span.SetAttributes(
 			attribute.Int("http.response.status_code", httpErr.StatusCode),
 		)
+
 		if 500 <= httpErr.StatusCode && httpErr.StatusCode <= 599 {
 			span.SetStatus(codes.Error, err.Error())
+			if httpErr.OriginError == nil {
+				tracing.Logger.Ctx(ctx).
+					Error(httpErr.Message)
+			} else {
+				tracing.Logger.Ctx(ctx).
+					Error(httpErr.Message,
+						zap.Error(httpErr.OriginError))
+			}
 		} else {
 			span.SetStatus(codes.Ok, "")
+			if httpErr.OriginError == nil {
+				tracing.Logger.Ctx(ctx).
+					Warn(httpErr.Message)
+			} else {
+				tracing.Logger.Ctx(ctx).
+					Warn(httpErr.Message,
+						zap.Error(httpErr.OriginError))
+			}
 		}
 
 		w.WriteHeader(httpErr.StatusCode)

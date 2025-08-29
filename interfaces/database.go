@@ -7,11 +7,11 @@ import (
 )
 
 type Database interface {
-	// Get Operations
 	GetLastSubmission(
 		ctx context.Context,
 		csId string,
-		problemId models.ProblemIdType,
+		refId int64,
+		subType int,
 	) (models.Submission, error)
 
 	GetSubmission(
@@ -41,8 +41,8 @@ type Database interface {
 		pageNum int,
 		isPageNum bool,
 		pageSize int,
-		problemId int64,
-		isProblemId bool,
+		refId int64,
+		isRefId bool,
 	) ([]models.Submission, int, error)
 
 	DeleteSubmission(
@@ -59,22 +59,26 @@ type Database interface {
 		csId string,
 	) error
 
-	// Exist Operation
 	ExistUserResource(
 		ctx context.Context,
 		csId string,
 	) (bool, error)
 
-	// Insert Operation
 	InsertUserResources(
 		ctx context.Context,
 		userResources []models.UserResource,
 	) error
 
-	InsertSubmissionAndJobs(
+	InsertProblemSubmission(
 		ctx context.Context,
 		submission *models.Submission,
 		problem models.Problem,
+	) error
+
+	InsertToolSubmission(
+		ctx context.Context,
+		submission *models.Submission,
+		tool models.Tool,
 	) error
 
 	UpsertUser(
@@ -82,7 +86,6 @@ type Database interface {
 		user models.UserResource,
 	) error
 
-	// Update Operation
 	SkipJobs(
 		ctx context.Context,
 		subId int64,
@@ -130,19 +133,14 @@ type Database interface {
 		problemId models.ProblemIdType,
 	) (models.Problem, error)
 
-	GetProblemOrToolById(
-		ctx context.Context,
-		problemId models.ProblemIdType,
-	) (models.Problem, error)
-
-	GetProblemOrTool(
-		ctx context.Context,
-		sha1 string,
-	) (models.Problem, error)
-
 	HydrateProblem(
 		ctx context.Context,
-		problm *models.Problem,
+		problem *models.Problem,
+	) error
+
+	HydrateTool(
+		ctx context.Context,
+		tool *models.Tool,
 	) error
 
 	GetProblems(
@@ -216,5 +214,10 @@ type Database interface {
 		ctx context.Context,
 		sha1 string,
 		enable bool,
+	) error
+
+	DeleteToolAndSubmissions(
+		ctx context.Context,
+		sha1 string,
 	) error
 }

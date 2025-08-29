@@ -23,11 +23,11 @@ func (self *DBProblemStorage) GetProblem(
 	return self.db.GetProblem(ctx, sha1)
 }
 
-func (self *DBProblemStorage) GetTool(
+func (self *DBProblemStorage) GetProblemById(
 	ctx context.Context,
-	sha1 string,
-) (models.Tool, error) {
-	return self.db.GetTool(ctx, sha1)
+	problemId int64,
+) (models.Problem, error) {
+	return self.db.GetProblemById(ctx, problemId)
 }
 
 func (self *DBProblemStorage) InsertProblem(
@@ -51,48 +51,16 @@ func (self *DBProblemStorage) GetContentFiles(
 	return self.db.GetContentFiles(ctx, sha1s)
 }
 
-func (self *DBProblemStorage) GetAllContentFiles(
-	ctx context.Context,
-) ([]models.ContentFile, error) {
-	return self.db.GetAllContentFiles(ctx)
-}
-
 func (self *DBProblemStorage) GetProblems(
 	ctx context.Context,
 ) (map[string]models.Problem, error) {
 	return self.db.GetProblems(ctx)
 }
 
-func (self *DBProblemStorage) GetTools(
-	ctx context.Context,
-) (map[string]models.Tool, error) {
-	return self.db.GetTools(ctx)
-}
-
-func (self *DBProblemStorage) GetProblemOrTool(
-	ctx context.Context,
-	sha1 string,
-) (models.Problem, error) {
-	return self.db.GetProblemOrTool(ctx, sha1)
-}
-
-func (self *DBProblemStorage) GetProblemOrToolById(
-	ctx context.Context,
-	problemId models.ProblemIdType,
-) (models.Problem, error) {
-	return self.db.GetProblemOrToolById(ctx, problemId)
-}
-
 func (self *DBProblemStorage) GetAllProblems(
 	ctx context.Context,
 ) (map[string]models.Problem, error) {
 	return self.db.GetAllProblems(ctx)
-}
-
-func (self *DBProblemStorage) GetAllTools(
-	ctx context.Context,
-) (map[string]models.Tool, error) {
-	return self.db.GetAllTools(ctx)
 }
 
 func (self *DBProblemStorage) PutProblemState(

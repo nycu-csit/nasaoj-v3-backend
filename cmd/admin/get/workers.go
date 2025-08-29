@@ -36,7 +36,7 @@ var workersCmd = &cobra.Command{
 		}
 
 		workerURL, err := url.JoinPath(
-			viper.GetString("endpoint"), "/api/admin/worker-statuses")
+			viper.GetString("endpoint"), "/api/admin/worker/states")
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to construct url",
@@ -44,14 +44,14 @@ var workersCmd = &cobra.Command{
 			panic(err)
 		}
 
-		var res []apiHandlers.GetWorkerStatusesOutput
+		var res []apiHandlers.GetWorkerStatesOutput
 		resp, err := client.R().
 			SetResult(&res).
 			ForceContentType("application/json").
 			Get(workerURL)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
-				Panic("failed to get worker statuses",
+				Panic("failed to get worker states",
 					zap.String("url", workerURL),
 					zap.Error(err))
 			panic(err)

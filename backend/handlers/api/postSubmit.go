@@ -23,17 +23,19 @@ type adminSubmitInput struct {
 
 type submitInput struct {
 	// Submit problem ID
-	ProblemSHA1 string `json:"problemSHA1"`
+	RefSHA1   string            `json:"RefSHA1"`
+	Type      int               `json:"type"`
+	InputArgs map[string]string `json:"inputArgs"`
 }
 
 type submitOutput struct {
-	Id          int64  `json:"id"`
-	ProblemSHA1 string `json:"problemSHA1"`
-	ProblemId   int64  `json:"problemId"`
-	ProblemName string `json:"problemName"`
+	Id        int64             `json:"id"`
+	RefSHA1   string            `json:"RefSHA1"`
+	RefId     int64             `json:"RefId"`
+	InputArgs map[string]string `json:"inputArgs"`
 
-	CsId     string `json:"csId"`
-	SubmitAt int64  `json:"submitAt"`
+	CsId      string `json:"csId"`
+	CreatedAt int64  `json:"createdAt"`
 }
 
 // PostAdminSubmit
@@ -53,9 +55,9 @@ func putAdminSubmitPlaceholder() {}
 //	@Param		request	body	submitInput	true	"query params"
 //	@Accept		json
 //	@Success	200	{object}	submitOutput
-//	@Failure	400	{object}	string
-//	@Failure	401	{object}	string
-//	@Failure	429	{object}	string
+//	@Failure	400
+//	@Failure	401
+//	@Failure	429
 //
 //	@Router		/api/submit [post]
 func PostSubmit(
@@ -63,6 +65,7 @@ func PostSubmit(
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	tools interfaces.ToolStorage,
 	tokens interfaces.TokenStorage,
 
 	isAdmin bool,
@@ -79,134 +82,218 @@ func PostSubmit(
 			}
 		}
 
-		var problemSHA1 string
-		var problem models.Problem
-		var resource models.UserResource
+		var input submitInput
+		var csId string
 		if isAdmin {
-			var input adminSubmitInput
-			if err := json.Unmarshal(b, &input); err != nil {
+			var adminInput adminSubmitInput
+			if err := json.Unmarshal(b, &adminInput); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
-					Message:     "json unmarshal failed",
+					Message:     "failed to unmarshal json",
 					OriginError: err,
 				}
 			}
-
-			problemSHA1 = input.ProblemSHA1
-			problem, err = problems.GetProblem(ctx, problemSHA1)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusBadRequest,
-					Message:     "get problem failed",
-					OriginError: err,
-				}
-			}
-
-			resource, err = db.GetUserResource(ctx, input.AsCsId)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusBadRequest,
-					Message:     "resource query failed or user not exist",
-					OriginError: err,
-				}
-			}
+			input = adminInput.submitInput
+			csId = adminInput.AsCsId
 		} else {
-			var input submitInput
 			if err := json.Unmarshal(b, &input); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
-					Message:     "json unmarshal failed",
+					Message:     "failed to unmarshal json",
 					OriginError: err,
 				}
 			}
-
-			problemSHA1 = input.ProblemSHA1
-			problem, err = problems.GetProblemOrTool(ctx, problemSHA1)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusBadRequest,
-					Message:     "get problem failed",
-					OriginError: err,
-				}
-			}
-
-			claim, ok := req.Context().Value(
-				types.AccessToken("")).(models.AccessTokenClaim)
+			privs, ok := req.Context().Value(
+				types.Privileges("")).(models.Privileges)
 			if !ok {
 				return middlewares.HTTPError{
-					StatusCode: http.StatusUnauthorized,
-					Message:    "access token missing",
+					StatusCode:  http.StatusBadRequest,
+					Message:     "privs not exist",
+					OriginError: err,
 				}
 			}
-			resource = claim.Resource
+
+			csId = privs.OwnerCsId
 		}
 
-		if !problem.IsEnabled {
+		resource, err := db.GetUserResource(ctx, csId)
+		if err != nil {
 			return middlewares.HTTPError{
-				StatusCode: http.StatusBadRequest,
-				Message:    "problem not enabled",
+				StatusCode:  http.StatusBadRequest,
+				Message:     "resource query failed or user not exist",
+				OriginError: err,
 			}
 		}
 
-		// Check last submission
-		lastSubmit, err := db.GetLastSubmission(ctx,
-			resource.CsId, problem.ProblemId)
-		if err == nil {
-			// Check Job status
-			if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
-				return job.Status == models.StatusPending ||
-					job.Status == models.StatusRunning
-			}) {
-				availableAt := time.Unix(lastSubmit.SubmitAt, 0).
-					Add(time.Duration(problem.Timeout) * time.Second)
-				if time.Now().Unix() < availableAt.Unix() {
-					w.Header().Set("Retry-After", fmt.Sprintf("%d",
-						int64(availableAt.Sub(time.Now()).Seconds())))
-					return middlewares.HTTPError{
-						StatusCode: http.StatusTooManyRequests,
-						Message:    "submit in cooldown",
+		var submission models.Submission
+		switch input.Type {
+		case models.SubmissionTypeProblem:
+			problem, err := problems.GetProblem(ctx, input.RefSHA1)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "problem not exist",
+					OriginError: err,
+				}
+			}
+
+			if !isAdmin && !problem.IsEnabled {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusBadRequest,
+					Message:    "problem not enabled",
+				}
+			}
+
+			if !isAdmin {
+				// Check last submission
+				lastSubmit, err := db.GetLastSubmission(ctx,
+					resource.CsId, problem.ProblemId, models.SubmissionTypeProblem)
+				if err == nil {
+					// Check Job status
+					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
+						return job.Status == models.StatusPending ||
+							job.Status == models.StatusRunning
+					}) {
+						availableAt := time.Unix(lastSubmit.CreatedAt, 0).
+							Add(time.Duration(problem.Timeout) * time.Second)
+						if time.Now().Unix() < availableAt.Unix() {
+							w.Header().Set("Retry-After", fmt.Sprintf("%d",
+								int64(availableAt.Sub(time.Now()).Seconds())))
+							return middlewares.HTTPError{
+								StatusCode: http.StatusTooManyRequests,
+								Message:    "submit in cooldown",
+							}
+						}
 					}
 				}
 			}
-		}
 
-		submission := models.Submission{
-			ProblemSHA1: problemSHA1,
-			ProblemName: problem.Name,
-			ProblemId:   problem.ProblemId,
+			submission = models.Submission{
+				RefSHA1: input.RefSHA1,
+				RefId:   problem.ProblemId,
 
-			CsId:     resource.CsId,
-			SubmitAt: time.Now().Unix(),
-			Args:     make(map[string]string),
+				CsId:      resource.CsId,
+				CreatedAt: time.Now().Unix(),
+				Args:      make(map[string]string),
 
-			Score: models.Score{
-				Score:  0,
-				Stages: make(map[string]int64),
-			},
-		}
+				Score: models.Score{
+					Score:  0,
+					Stages: make(map[string]int64),
+				},
+			}
 
-		for key, val := range resource.Map() {
-			submission.Args[key] = val
-		}
+			for key, val := range resource.Map() {
+				submission.Args[key] = val
+			}
 
-		if err = db.InsertSubmissionAndJobs(ctx, &submission, problem); err != nil {
-			return err
-		}
+			if err := db.InsertProblemSubmission(
+				ctx, &submission, problem); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to insert problem submission",
+					OriginError: err,
+				}
+			}
 
-		if err = workflows.RunProblem(
-			ctx, jobQue, db, s3, problems, tokens, submission,
-		); err != nil {
-			return err
+			if err := workflows.RunProblem(
+				ctx, jobQue, db, s3, problems, tokens, submission); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to run problem",
+					OriginError: err,
+				}
+			}
+
+		case models.SubmissionTypeTool:
+			tool, err := tools.GetTool(ctx, input.RefSHA1)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "tool not exist",
+					OriginError: err,
+				}
+			}
+
+			if !isAdmin && !tool.IsEnabled {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusBadRequest,
+					Message:    "tool not enabled",
+				}
+			}
+
+			if !isAdmin {
+				// Check last submission
+				lastSubmit, err := db.GetLastSubmission(ctx,
+					resource.CsId, tool.ToolId, models.SubmissionTypeTool)
+				if err == nil {
+					// Check Job status
+					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
+						return job.Status == models.StatusPending ||
+							job.Status == models.StatusRunning
+					}) {
+						availableAt := time.Unix(lastSubmit.CreatedAt, 0).
+							Add(time.Duration(tool.Timeout) * time.Second)
+						if time.Now().Unix() < availableAt.Unix() {
+							w.Header().Set("Retry-After", fmt.Sprintf("%d",
+								int64(availableAt.Sub(time.Now()).Seconds())))
+							return middlewares.HTTPError{
+								StatusCode: http.StatusTooManyRequests,
+								Message:    "submit in cooldown",
+							}
+						}
+					}
+				}
+			}
+
+			submission = models.Submission{
+				RefSHA1: input.RefSHA1,
+				RefId:   tool.ToolId,
+
+				CsId:      resource.CsId,
+				CreatedAt: time.Now().Unix(),
+				Args:      make(map[string]string),
+				InputArgs: make(map[string]string),
+
+				Score: models.Score{
+					Score:  0,
+					Stages: make(map[string]int64),
+				},
+			}
+
+			for _, key := range tool.InputArgs {
+				submission.InputArgs[key] = input.InputArgs[key]
+			}
+
+			for key, val := range resource.Map() {
+				submission.Args[key] = val
+			}
+
+			if err := db.InsertToolSubmission(ctx, &submission, tool); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to insert tool submission",
+					OriginError: err,
+				}
+			}
+
+			if err := workflows.RunTool(
+				ctx, jobQue, db, s3, tools, tokens, submission); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to run tool",
+					OriginError: err,
+				}
+			}
 		}
 
 		return bunrouter.JSON(w, submitOutput{
-			Id:          submission.Id,
-			ProblemSHA1: problemSHA1,
-			ProblemId:   submission.ProblemId,
-			ProblemName: submission.ProblemName,
+			Id:        submission.Id,
+			RefSHA1:   submission.RefSHA1,
+			RefId:     submission.RefId,
+			InputArgs: submission.InputArgs,
 
-			CsId:     submission.CsId,
-			SubmitAt: submission.SubmitAt,
+			CsId:      submission.CsId,
+			CreatedAt: submission.CreatedAt,
 		})
 	}
 }
