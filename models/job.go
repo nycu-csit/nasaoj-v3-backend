@@ -32,7 +32,7 @@ type Job struct {
 
 	// On Schedule
 	Script   string `json:"script" bun:"script"`
-	Stdin    string `json:"stdin" bun:"stdin"`
+	Input    string `json:"input" bun:"input"`
 	Deadline int64  `json:"deadline" bun:"deadline"`
 	FileURL  string `json:"fileurl" bun:"-"`
 	HardTL   int64  `json:"hardtl" bun:"-"`

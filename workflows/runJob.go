@@ -40,11 +40,40 @@ func RunJob(
 		retCh <- err
 		return
 	}
-
-	io.WriteString(scriptFile, job.Script)
+	if _, err := io.WriteString(scriptFile, job.Script); err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to write script into file",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
 	if err := scriptFile.Close(); err != nil {
 		tracing.Logger.Ctx(pctx).
-			Error("failed to write script to file",
+			Error("failed to close script file",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
+
+	inputPath := path.Join(basepath, job.Id()+".input")
+	inputFile, err := os.Create(inputPath)
+	if err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to open input file",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
+	if _, err := io.WriteString(inputFile, job.Input); err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to write input into file",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
+	if err := inputFile.Close(); err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to close input file",
 				zap.Error(err))
 		retCh <- err
 		return
@@ -59,19 +88,6 @@ func RunJob(
 	// Run script
 	cmd := exec.CommandContext(ctx, "bash", job.Id()+".bash")
 	cmd.Dir = path.Join(basepath)
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		tracing.Logger.Ctx(pctx).
-			Error("failed to get stdin",
-				zap.Error(err))
-		retCh <- err
-		return
-	}
-
-	go func() {
-		defer stdin.Close()
-		io.WriteString(stdin, job.Stdin)
-	}()
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
@@ -91,6 +107,9 @@ func RunJob(
 		job.Status = models.StatusTimeout
 		if cmd.Process != nil {
 			if err := cmd.Process.Kill(); err != nil {
+				tracing.Logger.Ctx(ctx).
+					Warn("worker thread timeout",
+						zap.Error(err))
 				ret = err
 			}
 		}
@@ -101,6 +120,9 @@ func RunJob(
 				job.RetCode = t.ExitCode()
 				job.Status = models.StatusFailed
 			default:
+				tracing.Logger.Ctx(ctx).
+					Error("worker thread failed to exit with code",
+						zap.Error(err))
 				ret = err
 			}
 		} else {

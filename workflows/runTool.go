@@ -82,7 +82,7 @@ func RunTool(
 
 		Status:   models.StatusPending,
 		Script:   jobScript,
-		Stdin:    string(b[:]),
+		Input:    string(b[:]),
 		Deadline: deadline,
 		HardTL:   tool.Testcase.HardTL,
 		SoftTL:   tool.Testcase.SoftTL,
@@ -100,7 +100,9 @@ func RunTool(
 		tool.Args,
 		tool.Testcase.Args,
 		map[string]string{
-			"jobToken": jobToken,
+			"jobToken":  jobToken,
+			"jobInput":  job.Id() + ".input",
+			"jobScript": job.Id() + ".bash",
 		},
 	)
 

@@ -11,6 +11,4 @@ testcase:
   files:
     - test-userargs.sh.tmpl
   scripts:
-    - input=$(</dev/stdin)
-    - echo "$input"
     - bash test-userargs.sh.tmpl

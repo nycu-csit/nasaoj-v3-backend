@@ -104,7 +104,9 @@ func RunStage(
 			stage.Args,
 			testcase.Args,
 			map[string]string{
-				"jobToken": jobToken,
+				"jobToken":  jobToken,
+				"jobInput":  job.Id() + ".input",
+				"jobScript": job.Id() + ".bash",
 			},
 		)
 

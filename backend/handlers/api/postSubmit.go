@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -165,6 +166,12 @@ func PostSubmit(
 							}
 						}
 					}
+				} else if err != sql.ErrNoRows {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "failed to query last submission",
+						OriginError: err,
+					}
 				}
 			}
 
@@ -241,6 +248,12 @@ func PostSubmit(
 								Message:    "submit in cooldown",
 							}
 						}
+					}
+				} else if err != sql.ErrNoRows {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "failed to query last submission",
+						OriginError: err,
 					}
 				}
 			}

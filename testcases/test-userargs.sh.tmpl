@@ -3,6 +3,16 @@ set -o errexit
 
 ENDPOINT='{{ .endpoint }}'
 JOB_TOKEN='{{ .jobToken }}'
+JOB_INPUT='{{ .jobInput }}'
+JOB_SCRIPT='{{ .jobScript }}'
+
+echo "File JOB_INPUT: $JOB_INPUT"
+cat "$JOB_INPUT"
+echo
+
+echo "File JOB_SCRIPT: $JOB_SCRIPT"
+cat "$JOB_SCRIPT"
+echo
 
 put_args() {
   curl "$ENDPOINT/api/user" -X PUT \
