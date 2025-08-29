@@ -198,6 +198,7 @@ func (self *BunDatabase) IncreaseScore(
 	return self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		submission := models.Submission{Id: subId}
 		err := self.db.NewSelect().
+			Column("id", "score_score", "score_stages").
 			Model(&submission).
 			WherePK().
 			Scan(ctx)
@@ -208,6 +209,7 @@ func (self *BunDatabase) IncreaseScore(
 		submission.Score.Score += delta
 		submission.Score.Stages[stageName] = delta
 		_, err = self.db.NewUpdate().
+			Column("score_score", "score_stages").
 			Model(&submission).
 			WherePK().
 			Exec(ctx)
@@ -741,10 +743,11 @@ func (self *BunDatabase) UpdateProblem(
 	if enable {
 		return self.db.RunInTx(ctx, &sql.TxOptions{},
 			func(ctx context.Context, tx bun.Tx) error {
-				var problem models.ProblemMarshaled
+				problem := models.ProblemMarshaled{SHA1: sha1}
 				err := tx.NewSelect().
+					Column("sha1", "problem_id", "is_enabled").
 					Model(&problem).
-					Where("sha1 = ?", sha1).
+					WherePK().
 					Scan(ctx)
 				if err != nil {
 					return err
