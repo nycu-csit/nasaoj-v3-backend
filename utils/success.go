@@ -8,6 +8,6 @@ import (
 func Success(w http.ResponseWriter) error {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/plain")
-	_, err := fmt.Fprintf(w, "success")
+	_, err := fmt.Fprintf(w, "success\n")
 	return err
 }

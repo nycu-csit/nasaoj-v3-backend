@@ -178,6 +178,7 @@ func PostSubmit(
 			submission = models.Submission{
 				RefSHA1: input.RefSHA1,
 				RefId:   problem.ProblemId,
+				Type:    models.SubmissionTypeProblem,
 
 				CsId:      resource.CsId,
 				CreatedAt: time.Now().Unix(),
@@ -261,6 +262,7 @@ func PostSubmit(
 			submission = models.Submission{
 				RefSHA1: input.RefSHA1,
 				RefId:   tool.ToolId,
+				Type:    models.SubmissionTypeTool,
 
 				CsId:      resource.CsId,
 				CreatedAt: time.Now().Unix(),
