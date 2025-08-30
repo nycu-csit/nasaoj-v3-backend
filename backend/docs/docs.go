@@ -197,7 +197,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Submission",
                         "schema": {
-                            "$ref": "#/definitions/api.resultOutput"
+                            "$ref": "#/definitions/api.ResultOutput"
                         }
                     },
                     "400": {
@@ -414,7 +414,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.adminSubmitInput"
+                            "$ref": "#/definitions/api.AdminSubmitInput"
                         }
                     }
                 ],
@@ -422,7 +422,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.submitOutput"
+                            "$ref": "#/definitions/api.SubmitOutput"
                         }
                     },
                     "400": {
@@ -909,7 +909,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Last submission to the ref / tool",
                         "schema": {
-                            "$ref": "#/definitions/api.resultOutput"
+                            "$ref": "#/definitions/api.ResultOutput"
                         }
                     },
                     "400": {
@@ -1046,7 +1046,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.submitInput"
+                            "$ref": "#/definitions/api.SubmitInput"
                         }
                     }
                 ],
@@ -1054,7 +1054,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.submitOutput"
+                            "$ref": "#/definitions/api.SubmitOutput"
                         }
                     },
                     "400": {
@@ -1218,6 +1218,27 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.AdminSubmitInput": {
+            "type": "object",
+            "properties": {
+                "asCsId": {
+                    "type": "string"
+                },
+                "inputArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "refSHA1": {
+                    "description": "Submit problem ID",
+                    "type": "string"
+                },
+                "type": {
+                    "type": "integer"
+                }
+            }
+        },
         "api.GetTokensOutput": {
             "type": "object",
             "properties": {
@@ -1358,6 +1379,99 @@ const docTemplate = `{
                 }
             }
         },
+        "api.ResultOutput": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
+                "csId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ResultOutputJob"
+                    }
+                },
+                "refId": {
+                    "type": "integer"
+                },
+                "refSHA1": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.ResultOutputJob": {
+            "type": "object",
+            "properties": {
+                "execAt": {
+                    "type": "integer"
+                },
+                "retCode": {
+                    "type": "integer"
+                },
+                "stageName": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.JobStatus"
+                },
+                "testName": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.SubmitInput": {
+            "type": "object",
+            "properties": {
+                "inputArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "refSHA1": {
+                    "description": "Submit problem ID",
+                    "type": "string"
+                },
+                "type": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.SubmitOutput": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
+                "csId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "inputArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "refId": {
+                    "type": "integer"
+                },
+                "refSHA1": {
+                    "type": "string"
+                }
+            }
+        },
         "api.ToolOutput": {
             "type": "object",
             "properties": {
@@ -1393,27 +1507,6 @@ const docTemplate = `{
                 }
             }
         },
-        "api.adminSubmitInput": {
-            "type": "object",
-            "properties": {
-                "asCsId": {
-                    "type": "string"
-                },
-                "inputArgs": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "refSHA1": {
-                    "description": "Submit problem ID",
-                    "type": "string"
-                },
-                "type": {
-                    "type": "integer"
-                }
-            }
-        },
         "api.problemOutputStage": {
             "type": "object",
             "properties": {
@@ -1438,55 +1531,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "api.resultOutput": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "integer"
-                },
-                "csId": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "jobs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/api.resultOutputJob"
-                    }
-                },
-                "refId": {
-                    "type": "integer"
-                },
-                "refSHA1": {
-                    "type": "string"
-                },
-                "score": {
-                    "type": "integer"
-                }
-            }
-        },
-        "api.resultOutputJob": {
-            "type": "object",
-            "properties": {
-                "execAt": {
-                    "type": "integer"
-                },
-                "retCode": {
-                    "type": "integer"
-                },
-                "stageName": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/models.JobStatus"
-                },
-                "testName": {
                     "type": "string"
                 }
             }
@@ -1528,50 +1572,6 @@ const docTemplate = `{
                 },
                 "score": {
                     "type": "integer"
-                }
-            }
-        },
-        "api.submitInput": {
-            "type": "object",
-            "properties": {
-                "inputArgs": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "refSHA1": {
-                    "description": "Submit problem ID",
-                    "type": "string"
-                },
-                "type": {
-                    "type": "integer"
-                }
-            }
-        },
-        "api.submitOutput": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "integer"
-                },
-                "csId": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "inputArgs": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "refId": {
-                    "type": "integer"
-                },
-                "refSHA1": {
-                    "type": "string"
                 }
             }
         },

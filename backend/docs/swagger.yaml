@@ -1,5 +1,19 @@
 basePath: /
 definitions:
+  api.AdminSubmitInput:
+    properties:
+      asCsId:
+        type: string
+      inputArgs:
+        additionalProperties:
+          type: string
+        type: object
+      refSHA1:
+        description: Submit problem ID
+        type: string
+      type:
+        type: integer
+    type: object
   api.GetTokensOutput:
     properties:
       isEnabled:
@@ -90,6 +104,67 @@ definitions:
       toolSHA1:
         type: string
     type: object
+  api.ResultOutput:
+    properties:
+      createdAt:
+        type: integer
+      csId:
+        type: string
+      id:
+        type: integer
+      jobs:
+        items:
+          $ref: '#/definitions/api.ResultOutputJob'
+        type: array
+      refId:
+        type: integer
+      refSHA1:
+        type: string
+      score:
+        type: integer
+    type: object
+  api.ResultOutputJob:
+    properties:
+      execAt:
+        type: integer
+      retCode:
+        type: integer
+      stageName:
+        type: string
+      status:
+        $ref: '#/definitions/models.JobStatus'
+      testName:
+        type: string
+    type: object
+  api.SubmitInput:
+    properties:
+      inputArgs:
+        additionalProperties:
+          type: string
+        type: object
+      refSHA1:
+        description: Submit problem ID
+        type: string
+      type:
+        type: integer
+    type: object
+  api.SubmitOutput:
+    properties:
+      createdAt:
+        type: integer
+      csId:
+        type: string
+      id:
+        type: integer
+      inputArgs:
+        additionalProperties:
+          type: string
+        type: object
+      refId:
+        type: integer
+      refSHA1:
+        type: string
+    type: object
   api.ToolOutput:
     properties:
       description:
@@ -113,20 +188,6 @@ definitions:
       toolId:
         type: integer
     type: object
-  api.adminSubmitInput:
-    properties:
-      asCsId:
-        type: string
-      inputArgs:
-        additionalProperties:
-          type: string
-        type: object
-      refSHA1:
-        description: Submit problem ID
-        type: string
-      type:
-        type: integer
-    type: object
   api.problemOutputStage:
     properties:
       before:
@@ -143,38 +204,6 @@ definitions:
   api.problemOutputStageTestcase:
     properties:
       name:
-        type: string
-    type: object
-  api.resultOutput:
-    properties:
-      createdAt:
-        type: integer
-      csId:
-        type: string
-      id:
-        type: integer
-      jobs:
-        items:
-          $ref: '#/definitions/api.resultOutputJob'
-        type: array
-      refId:
-        type: integer
-      refSHA1:
-        type: string
-      score:
-        type: integer
-    type: object
-  api.resultOutputJob:
-    properties:
-      execAt:
-        type: integer
-      retCode:
-        type: integer
-      stageName:
-        type: string
-      status:
-        $ref: '#/definitions/models.JobStatus'
-      testName:
         type: string
     type: object
   api.submissionsOutput:
@@ -202,35 +231,6 @@ definitions:
         type: string
       score:
         type: integer
-    type: object
-  api.submitInput:
-    properties:
-      inputArgs:
-        additionalProperties:
-          type: string
-        type: object
-      refSHA1:
-        description: Submit problem ID
-        type: string
-      type:
-        type: integer
-    type: object
-  api.submitOutput:
-    properties:
-      createdAt:
-        type: integer
-      csId:
-        type: string
-      id:
-        type: integer
-      inputArgs:
-        additionalProperties:
-          type: string
-        type: object
-      refId:
-        type: integer
-      refSHA1:
-        type: string
     type: object
   api.toolOutputTestcase:
     properties:
@@ -576,7 +576,7 @@ paths:
         "200":
           description: Submission
           schema:
-            $ref: '#/definitions/api.resultOutput'
+            $ref: '#/definitions/api.ResultOutput'
         "400":
           description: Bad Request
         "401":
@@ -716,12 +716,12 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.adminSubmitInput'
+          $ref: '#/definitions/api.AdminSubmitInput'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.submitOutput'
+            $ref: '#/definitions/api.SubmitOutput'
         "400":
           description: Bad Request
         "401":
@@ -1029,7 +1029,7 @@ paths:
         "200":
           description: Last submission to the ref / tool
           schema:
-            $ref: '#/definitions/api.resultOutput'
+            $ref: '#/definitions/api.ResultOutput'
         "400":
           description: Bad Request
         "401":
@@ -1117,12 +1117,12 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.submitInput'
+          $ref: '#/definitions/api.SubmitInput'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.submitOutput'
+            $ref: '#/definitions/api.SubmitOutput'
         "400":
           description: Bad Request
         "401":

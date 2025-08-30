@@ -20,6 +20,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/gen"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/get"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/imports"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin/submit"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
@@ -244,14 +245,15 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().
-		StringP("endpoint", "e",
+		String("endpoint",
 			"http://127.0.0.1:8080",
 			"The endpoint of the backend server")
 	RootCmd.PersistentFlags().
-		String("oauth2-port", "8389", "The port that oauth2 server listens to")
+		String("oauth2-port", "8389",
+			"The port that oauth2 server listens to")
 	RootCmd.PersistentFlags().
-		StringP("access-token", "a",
-			"", "The access token to use instead of oidc")
+		String("access-token", "",
+			"The access token to use instead of oidc")
 
 	RootCmd.AddCommand(imports.RootCmd)
 	RootCmd.AddCommand(exports.RootCmd)
@@ -260,4 +262,5 @@ func init() {
 	RootCmd.AddCommand(get.RootCmd)
 	RootCmd.AddCommand(deletes.RootCmd)
 	RootCmd.AddCommand(gen.RootCmd)
+	RootCmd.AddCommand(submit.RootCmd)
 }

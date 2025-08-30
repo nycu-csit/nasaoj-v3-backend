@@ -17,19 +17,19 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
 
-type adminSubmitInput struct {
-	submitInput `json:",inline"`
+type AdminSubmitInput struct {
+	SubmitInput `json:",inline"`
 	AsCsId      string `json:"asCsId"`
 }
 
-type submitInput struct {
+type SubmitInput struct {
 	// Submit problem ID
 	RefSHA1   string            `json:"refSHA1"`
 	Type      int               `json:"type"`
 	InputArgs map[string]string `json:"inputArgs"`
 }
 
-type submitOutput struct {
+type SubmitOutput struct {
 	Id        int64             `json:"id"`
 	RefSHA1   string            `json:"refSHA1"`
 	RefId     int64             `json:"refId"`
@@ -41,9 +41,9 @@ type submitOutput struct {
 
 // PostAdminSubmit
 //
-//	@Param		request	body	adminSubmitInput	true	"query params"
+//	@Param		request	body	AdminSubmitInput	true	"query params"
 //	@Accept		json
-//	@Success	200	{object}	submitOutput
+//	@Success	200	{object}	SubmitOutput
 //	@Failure	400
 //	@Failure	401
 //	@Failure	429
@@ -53,9 +53,9 @@ func putAdminSubmitPlaceholder() {}
 
 // PostSubmit
 //
-//	@Param		request	body	submitInput	true	"query params"
+//	@Param		request	body	SubmitInput	true	"query params"
 //	@Accept		json
-//	@Success	200	{object}	submitOutput
+//	@Success	200	{object}	SubmitOutput
 //	@Failure	400
 //	@Failure	401
 //	@Failure	429
@@ -83,10 +83,10 @@ func PostSubmit(
 			}
 		}
 
-		var input submitInput
+		var input SubmitInput
 		var csId string
 		if isAdmin {
-			var adminInput adminSubmitInput
+			var adminInput AdminSubmitInput
 			if err := json.Unmarshal(b, &adminInput); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -94,7 +94,7 @@ func PostSubmit(
 					OriginError: err,
 				}
 			}
-			input = adminInput.submitInput
+			input = adminInput.SubmitInput
 			csId = adminInput.AsCsId
 		} else {
 			if err := json.Unmarshal(b, &input); err != nil {
@@ -301,7 +301,7 @@ func PostSubmit(
 			}
 		}
 
-		return bunrouter.JSON(w, submitOutput{
+		return bunrouter.JSON(w, SubmitOutput{
 			Id:        submission.Id,
 			RefSHA1:   submission.RefSHA1,
 			RefId:     submission.RefId,

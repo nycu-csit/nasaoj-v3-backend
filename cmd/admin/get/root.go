@@ -11,6 +11,10 @@ func init() {
 	RootCmd.AddCommand(problemsCmd)
 	RootCmd.AddCommand(toolsCmd)
 	RootCmd.AddCommand(userCmd)
+	RootCmd.AddCommand(usersCmd)
 	RootCmd.AddCommand(tokensCmd)
 	RootCmd.AddCommand(workersCmd)
+	RootCmd.AddCommand(resultsCmd)
+	RootCmd.AddCommand(stdoutCmd)
+	RootCmd.AddCommand(stderrCmd)
 }

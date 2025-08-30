@@ -11,7 +11,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
-type resultOutputJob struct {
+type ResultOutputJob struct {
 	StageName string `json:"stageName"`
 	TestName  string `json:"testName"`
 
@@ -21,7 +21,7 @@ type resultOutputJob struct {
 	ExecAt  int64 `json:"execAt"`
 }
 
-type resultOutput struct {
+type ResultOutput struct {
 	Id      int64  `json:"id"`
 	RefSHA1 string `json:"refSHA1"`
 	RefId   int64  `json:"refId"`
@@ -30,13 +30,13 @@ type resultOutput struct {
 	CreatedAt int64  `json:"createdAt"`
 	Score     int64  `json:"score"`
 
-	Jobs []resultOutputJob `json:"jobs"`
+	Jobs []ResultOutputJob `json:"jobs"`
 }
 
 // GetAdminResults
 //
 //	@Param		subId	query		int				true	"Submission Id"
-//	@Success	200		{object}	resultOutput	"Submission"
+//	@Success	200		{object}	ResultOutput	"Submission"
 //	@Failure	400
 //	@Failure	401
 //	@Failure	404
@@ -48,7 +48,7 @@ func getAdminResultsPlaceholder() {}
 //	@Param		refId	query		int						false	"Ref Id"			attribute(optional)
 //	@Param		type	query		models.SubmissionType	false	"Submission Type"	attribute(optional)
 //	@Param		subId	query		int						false	"Submission Id"		attribute(optional)
-//	@Success	200		{object}	resultOutput			"Last submission to the ref / tool"
+//	@Success	200		{object}	ResultOutput			"Last submission to the ref / tool"
 //	@Failure	400
 //	@Failure	401
 //	@Failure	404
@@ -154,7 +154,7 @@ func GetResults(
 			}
 		}
 
-		ret := resultOutput{
+		ret := ResultOutput{
 			Id:      submission.Id,
 			RefSHA1: submission.RefSHA1,
 			RefId:   submission.RefId,
@@ -163,10 +163,10 @@ func GetResults(
 			CreatedAt: submission.CreatedAt,
 			Score:     submission.Score.Score,
 
-			Jobs: []resultOutputJob{},
+			Jobs: []ResultOutputJob{},
 		}
 		for _, job := range submission.Jobs {
-			ret.Jobs = append(ret.Jobs, resultOutputJob{
+			ret.Jobs = append(ret.Jobs, ResultOutputJob{
 				StageName: job.StageName,
 				TestName:  job.TestName,
 
