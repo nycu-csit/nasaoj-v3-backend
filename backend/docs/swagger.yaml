@@ -122,6 +122,8 @@ definitions:
         type: string
       score:
         type: integer
+      type:
+        $ref: '#/definitions/models.SubmissionType'
     type: object
   api.ResultOutputJob:
     properties:

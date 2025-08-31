@@ -1423,6 +1423,9 @@ const docTemplate = `{
                 },
                 "score": {
                     "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.SubmissionType"
                 }
             }
         },

@@ -22,9 +22,10 @@ type ResultOutputJob struct {
 }
 
 type ResultOutput struct {
-	Id      int64  `json:"id"`
-	RefSHA1 string `json:"refSHA1"`
-	RefId   int64  `json:"refId"`
+	Id      int64                 `json:"id"`
+	RefSHA1 string                `json:"refSHA1"`
+	RefId   int64                 `json:"refId"`
+	Type    models.SubmissionType `json:"type"`
 
 	CsId      string `json:"csId"`
 	CreatedAt int64  `json:"createdAt"`
@@ -158,6 +159,7 @@ func GetResults(
 			Id:      submission.Id,
 			RefSHA1: submission.RefSHA1,
 			RefId:   submission.RefId,
+			Type:    submission.Type,
 
 			CsId:      submission.CsId,
 			CreatedAt: submission.CreatedAt,
