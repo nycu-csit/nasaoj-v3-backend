@@ -26,7 +26,7 @@ go-test:
   stage: test
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
   script:
-    - go test ./...
+    - make test
 
 swag-test:
   stage: test

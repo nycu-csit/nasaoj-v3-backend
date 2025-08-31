@@ -8,6 +8,7 @@ var (
 	StageNotExistError   = fmt.Errorf("stage not exist")
 	TokenNotExistError   = fmt.Errorf("token not exist")
 	JobNotExistError     = fmt.Errorf("job not exist")
+	ProblemNotExistError = fmt.Errorf("problem not exist")
 
 	ProblemContainsCycleError = fmt.Errorf("problem contains cycle")
 	TokenNotEnabledError      = fmt.Errorf("token not enabled")

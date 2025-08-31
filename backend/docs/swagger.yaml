@@ -231,6 +231,8 @@ definitions:
         type: string
       score:
         type: integer
+      type:
+        $ref: '#/definitions/models.SubmissionType'
     type: object
   api.toolOutputTestcase:
     properties:
@@ -378,6 +380,14 @@ definitions:
           $ref: '#/definitions/models.Testcase'
         type: array
     type: object
+  models.SubmissionType:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - SubmissionTypeProblem
+    - SubmissionTypeTool
   models.Testcase:
     properties:
       args:
@@ -878,6 +888,10 @@ paths:
         name: csId
         required: true
         type: string
+      - description: If delete submissions
+        in: query
+        name: prune
+        type: boolean
       responses:
         "200":
           description: OK

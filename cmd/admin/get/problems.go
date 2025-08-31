@@ -33,7 +33,7 @@ var problemsCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var res []api.ProblemOutput
-		utils.RestyBuilder(cmd, "/api/admin/problems",
+		utils.RestyBuilder(ctx, "/api/admin/problems",
 			func(r *resty.Request) *resty.Request {
 				return r.
 					SetResult(&res).

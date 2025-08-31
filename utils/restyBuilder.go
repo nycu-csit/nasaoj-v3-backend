@@ -1,10 +1,10 @@
 package utils
 
 import (
+	"context"
 	"net/url"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
@@ -12,11 +12,10 @@ import (
 )
 
 func RestyBuilder(
-	cmd *cobra.Command,
+	ctx context.Context,
 	path string,
 	reqFunc func(*resty.Request) *resty.Request,
 ) *resty.Response {
-	ctx := cmd.Context()
 	client, ok := ctx.Value(types.RestyClient("")).(*resty.Client)
 	if !ok {
 		tracing.Logger.Ctx(ctx).

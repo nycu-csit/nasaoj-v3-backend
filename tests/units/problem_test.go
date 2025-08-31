@@ -1,8 +1,9 @@
-package parsers
+package units
 
 import (
 	"testing"
 
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/parsers"
 	"gopkg.in/yaml.v3"
 )
 
@@ -14,7 +15,7 @@ func TestProblem(t *testing.T) {
 		"      - name: test1\n" +
 		"        file: poop.sh.tmpl"
 
-	var problem Problem
+	var problem parsers.Problem
 	err := yaml.Unmarshal([]byte(input), &problem)
 	if err != nil {
 		t.Fatalf("expect no error, got %+v", err)

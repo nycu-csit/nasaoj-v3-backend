@@ -194,20 +194,7 @@ var RootCmd = &cobra.Command{
 	Short: "Admin CLI utilities",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
-
-		viper.SetConfigName("config")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath("$HOME/.config/judge")
-		viper.AddConfigPath("/etc/judge")
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-				tracing.Logger.Ctx(ctx).
-					Panic("failed to read config file",
-						zap.Error(err))
-				panic(err)
-			}
-		}
-
+		utils.ReadConfig(ctx)
 		tracing.InitTracer("nasaoj-cli")
 
 		tracing.Logger.Ctx(ctx).

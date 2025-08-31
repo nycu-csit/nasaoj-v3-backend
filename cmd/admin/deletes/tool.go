@@ -14,7 +14,8 @@ var toolCmd = &cobra.Command{
 	Short: "Delete tool and related submissions",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		resp := utils.RestyBuilder(cmd, "/api/admin/tool",
+		ctx := cmd.Context()
+		resp := utils.RestyBuilder(ctx, "/api/admin/tool",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodDelete
 				return r.

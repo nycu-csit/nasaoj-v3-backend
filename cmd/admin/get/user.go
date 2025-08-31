@@ -21,7 +21,7 @@ var userCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var res models.UserResource
-		utils.RestyBuilder(cmd, "/api/admin/user",
+		utils.RestyBuilder(ctx, "/api/admin/user",
 			func(r *resty.Request) *resty.Request {
 				return r.
 					SetResult(&res).

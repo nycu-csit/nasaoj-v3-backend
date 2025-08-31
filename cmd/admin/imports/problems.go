@@ -77,7 +77,7 @@ var problemsCmd = &cobra.Command{
 				})
 		}
 
-		resp := utils.RestyBuilder(cmd, "/api/admin/problems",
+		resp := utils.RestyBuilder(ctx, "/api/admin/problems",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
@@ -86,7 +86,7 @@ var problemsCmd = &cobra.Command{
 
 		io.WriteString(os.Stdout, string(resp.Body()[:]))
 
-		resp = utils.RestyBuilder(cmd, "/api/admin/content-files",
+		resp = utils.RestyBuilder(ctx, "/api/admin/content-files",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.

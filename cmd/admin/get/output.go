@@ -13,13 +13,14 @@ func outputCmd(
 	target string,
 ) func(*cobra.Command, []string) {
 	return func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
 		reqFunc := func(r *resty.Request) *resty.Request {
 			return r.
 				SetQueryParam("subId", args[0]).
 				SetQueryParam("stage", args[1]).
 				SetQueryParam("testcase", args[2])
 		}
-		resp := utils.RestyBuilder(cmd,
+		resp := utils.RestyBuilder(ctx,
 			"/api/admin/"+target, reqFunc)
 		io.WriteString(os.Stdout, string(resp.Body()[:]))
 	}
