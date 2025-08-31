@@ -33,13 +33,12 @@ var problemsCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var res []api.ProblemOutput
-		reqFunc := func(r *resty.Request) *resty.Request {
-			return r.
-				SetResult(&res).
-				ForceContentType("application/json")
-		}
-		utils.RestyBuilder(cmd,
-			"/api/admin/problems", reqFunc)
+		utils.RestyBuilder(cmd, "/api/admin/problems",
+			func(r *resty.Request) *resty.Request {
+				return r.
+					SetResult(&res).
+					ForceContentType("application/json")
+			})
 
 		var ret []problemResult
 		for _, problem := range res {

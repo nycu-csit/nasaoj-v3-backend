@@ -3,12 +3,11 @@ package imports
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/url"
+	"io"
+	"os"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
@@ -36,21 +35,6 @@ var usersCmd = &cobra.Command{
 	Short: "Import users, read from stdin",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
-		client, ok := cmd.Context().Value(types.RestyClient("")).(*resty.Client)
-		if !ok {
-			tracing.Logger.Ctx(ctx).
-				Panic("resty client not exist")
-			panic(types.ContextNotExistError)
-		}
-
-		usersURL, err := url.JoinPath(
-			viper.GetString("endpoint"), "/api/admin/users")
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Panic("failed to construct url",
-					zap.Error(err))
-			panic(err)
-		}
 
 		input, err := utils.ReadStdin(ctx, `---
 # Example
@@ -88,22 +72,13 @@ var usersCmd = &cobra.Command{
 			panic(err)
 		}
 
-		resp, err := client.R().
-			SetBody(string(b[:])).
-			Put(usersURL)
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Panic("failed to put user resources",
-					zap.String("url", usersURL),
-					zap.Error(err))
-			panic(err)
-		}
+		resp := utils.RestyBuilder(cmd, "/api/admin/users",
+			func(r *resty.Request) *resty.Request {
+				r.Method = resty.MethodPut
+				return r.
+					SetBody(string(b[:]))
+			})
 
-		if !resp.IsSuccess() {
-			tracing.Logger.Ctx(ctx).
-				Panic("resp.IsSuccess failed")
-			panic(types.HTTPRequestFailedError)
-		}
-		fmt.Printf("%s", string(resp.Body()[:]))
+		io.WriteString(os.Stdout, string(resp.Body()[:]))
 	},
 }

@@ -14,21 +14,21 @@ import (
 )
 
 var resultsCmd = &cobra.Command{
-	Use:   "results [submission_id]",
-	Short: "Get results",
-	Args:  cobra.ExactArgs(1),
+	Use:     "results [submission_id]",
+	Aliases: []string{"result"},
+	Short:   "Get results",
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 
 		var output api.ResultOutput
-		reqFunc := func(r *resty.Request) *resty.Request {
-			return r.
-				SetQueryParam("subId", args[0]).
-				SetResult(&output).
-				ForceContentType("application/json")
-		}
-		utils.RestyBuilder(cmd,
-			"/api/admin/results", reqFunc)
+		utils.RestyBuilder(cmd, "/api/admin/results",
+			func(r *resty.Request) *resty.Request {
+				return r.
+					SetQueryParam("subId", args[0]).
+					SetResult(&output).
+					ForceContentType("application/json")
+			})
 
 		b, err := yaml.Marshal(output)
 		if err != nil {

@@ -18,14 +18,14 @@ var usersCmd = &cobra.Command{
 	Short: "Get users with args",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
+
 		var users []models.UserResource
-		reqFunc := func(r *resty.Request) *resty.Request {
-			return r.
-				SetResult(&users).
-				ForceContentType("application/json")
-		}
-		utils.RestyBuilder(cmd,
-			"/api/admin/users", reqFunc)
+		utils.RestyBuilder(cmd, "/api/admin/users",
+			func(r *resty.Request) *resty.Request {
+				return r.
+					SetResult(&users).
+					ForceContentType("application/json")
+			})
 
 		b, err := yaml.Marshal(users)
 		if err != nil {

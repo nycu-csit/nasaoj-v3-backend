@@ -2,8 +2,8 @@ package imports
 
 import (
 	"database/sql"
-	"fmt"
-	"net/url"
+	"io"
+	"os"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
@@ -11,10 +11,9 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
-	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.uber.org/zap"
 )
@@ -67,10 +66,10 @@ var problemsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		var contentFilesPayload []apiHandlers.PutContentFilesInput
+		var contentFilesPayload []api.PutContentFilesInput
 		for _, file := range exportContentFiles {
 			contentFilesPayload = append(contentFilesPayload,
-				apiHandlers.PutContentFilesInput{
+				api.PutContentFilesInput{
 					SHA1:       file.SHA1,
 					Name:       file.Name,
 					Payload:    file.Payload,
@@ -78,64 +77,23 @@ var problemsCmd = &cobra.Command{
 				})
 		}
 
-		client, ok := ctx.Value(types.RestyClient("")).(*resty.Client)
-		if !ok {
-			tracing.Logger.Ctx(ctx).
-				Panic("resty client not exist")
-			panic(types.ContextNotExistError)
-		}
+		resp := utils.RestyBuilder(cmd, "/api/admin/problems",
+			func(r *resty.Request) *resty.Request {
+				r.Method = resty.MethodPut
+				return r.
+					SetBody(exportProblems)
+			})
 
-		problemsURL, err := url.JoinPath(
-			viper.GetString("endpoint"), "/api/admin/problems")
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Panic("failed to construct url",
-					zap.Error(err))
-			panic(err)
-		}
-		resp, err := client.R().
-			SetBody(exportProblems).
-			Put(problemsURL)
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Panic("failed to put problems",
-					zap.String("url", problemsURL),
-					zap.Error(err))
-			panic(err)
-		}
+		io.WriteString(os.Stdout, string(resp.Body()[:]))
 
-		if !resp.IsSuccess() {
-			tracing.Logger.Ctx(ctx).
-				Panic("resp.IsSuccess failed")
-			panic(types.HTTPRequestFailedError)
-		}
-		fmt.Printf("%v\n", string(resp.Body()[:]))
+		resp = utils.RestyBuilder(cmd, "/api/admin/content-files",
+			func(r *resty.Request) *resty.Request {
+				r.Method = resty.MethodPut
+				return r.
+					SetBody(contentFilesPayload)
+			})
 
-		contentFilesURL, err := url.JoinPath(
-			viper.GetString("endpoint"), "/api/admin/content-files")
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Panic("failed to construct url",
-					zap.Error(err))
-			panic(err)
-		}
-		resp, err = client.R().
-			SetBody(contentFilesPayload).
-			Put(contentFilesURL)
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Panic("failed to put content files",
-					zap.String("url", contentFilesURL),
-					zap.Error(err))
-			panic(err)
-		}
-
-		if !resp.IsSuccess() {
-			tracing.Logger.Ctx(ctx).
-				Panic("resp.IsSuccess failed")
-			panic(types.HTTPRequestFailedError)
-		}
-		fmt.Printf("%v\n", string(resp.Body()[:]))
+		io.WriteString(os.Stdout, string(resp.Body()[:]))
 	},
 }
 

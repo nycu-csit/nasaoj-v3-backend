@@ -23,21 +23,20 @@ var problemCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var output api.SubmitOutput
-		reqFunc := func(r *resty.Request) *resty.Request {
-			r.Method = resty.MethodPost
-			return r.
-				SetBody(api.AdminSubmitInput{
-					AsCsId: viper.GetString("csid"),
-					SubmitInput: api.SubmitInput{
-						RefSHA1: args[0],
-						Type:    models.SubmissionTypeProblem,
-					},
-				}).
-				SetResult(&output).
-				ForceContentType("application/json")
-		}
-		utils.RestyBuilder(cmd,
-			"/api/admin/submit", reqFunc)
+		utils.RestyBuilder(cmd, "/api/admin/submit",
+			func(r *resty.Request) *resty.Request {
+				r.Method = resty.MethodPost
+				return r.
+					SetBody(api.AdminSubmitInput{
+						AsCsId: viper.GetString("csid"),
+						SubmitInput: api.SubmitInput{
+							RefSHA1: args[0],
+							Type:    models.SubmissionTypeProblem,
+						},
+					}).
+					SetResult(&output).
+					ForceContentType("application/json")
+			})
 
 		b, err := yaml.Marshal(output)
 		if err != nil {
