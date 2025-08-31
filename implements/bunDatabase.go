@@ -223,7 +223,7 @@ func (self *BunDatabase) IncreaseScore(
 
 func (self *BunDatabase) GetScoresWithStages(
 	ctx context.Context,
-	problemId int64,
+	refId int64,
 ) ([]models.UserScoreWithStages, error) {
 	ret := []models.UserScoreWithStages{}
 	var submissions []models.Submission
@@ -231,7 +231,7 @@ func (self *BunDatabase) GetScoresWithStages(
 		DistinctOn("cs_id").
 		Model(&submissions).
 		Column("cs_id", "score_score", "score_stages").
-		Where("problem_id = ?", problemId).
+		Where("ref_id = ?", refId).
 		OrderExpr("cs_id, id DESC").
 		Scan(ctx)
 	if err != nil {
@@ -251,13 +251,13 @@ func (self *BunDatabase) GetScoresWithStages(
 
 func (self *BunDatabase) GetScores(
 	ctx context.Context,
-	problemId int64,
+	refId int64,
 ) ([]models.UserScore, error) {
 	ret := []models.UserScore{}
 	var submissions []models.Submission
 	err := self.db.NewSelect().DistinctOn("cs_id").Model(&submissions).
 		Column("cs_id", "score_score").
-		Where("problem_id = ?", problemId).
+		Where("ref_id = ?", refId).
 		OrderExpr("cs_id, id DESC").
 		Scan(ctx)
 	if err != nil {

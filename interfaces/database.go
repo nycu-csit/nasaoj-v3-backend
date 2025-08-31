@@ -21,12 +21,12 @@ type Database interface {
 
 	GetScores(
 		ctx context.Context,
-		problemId int64,
+		refId int64,
 	) ([]models.UserScore, error)
 
 	GetScoresWithStages(
 		ctx context.Context,
-		problemId int64,
+		refId int64,
 	) ([]models.UserScoreWithStages, error)
 
 	GetUserResource(
