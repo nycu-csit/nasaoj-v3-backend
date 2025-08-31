@@ -72,7 +72,7 @@ var usersCmd = &cobra.Command{
 			panic(err)
 		}
 
-		resp := utils.RestyBuilder(cmd, "/api/admin/users",
+		resp := utils.RestyBuilder(ctx, "/api/admin/users",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.

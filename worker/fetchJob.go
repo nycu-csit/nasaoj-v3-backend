@@ -64,8 +64,8 @@ func FetchJob(
 	span := trace.SpanFromContext(ctx)
 	span.SetAttributes(
 		attribute.Int64("submission.id", job.SubId),
-		attribute.String("job.stage", job.StageName),
-		attribute.String("job.test", job.TestName))
+		attribute.String("stage.name", job.StageName),
+		attribute.String("testcase.name", job.TestName))
 
 	fileURL, err := url.Parse(job.FileURL)
 	if err != nil {

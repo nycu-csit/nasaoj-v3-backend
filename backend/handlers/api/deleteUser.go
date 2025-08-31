@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -12,6 +13,7 @@ import (
 // DeleteUser
 //
 //	@Param		csId	query		string	true	"User CsId"
+//	@Param		prune	query		bool	false	"If delete submissions"	attribute(optional)
 //	@Success	200		{object}	string
 //	@Failure	400		{object}	string
 //	@Failure	401		{object}	string
@@ -23,11 +25,30 @@ func DeleteUser(
 		ctx := req.Context()
 
 		csId := req.URL.Query().Get("csId")
-		if err := db.DeleteUser(ctx, csId); err != nil {
+		prune, err := strconv.ParseBool(req.URL.Query().Get("prune"))
+		if err != nil {
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "user delete failed",
+				StatusCode:  http.StatusBadRequest,
+				Message:     "failed to parse param 'prune'",
 				OriginError: err,
+			}
+		}
+
+		if prune {
+			if err := db.DeleteUserAndSubmissions(ctx, csId); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to delete user and submissions",
+					OriginError: err,
+				}
+			}
+		} else {
+			if err := db.DeleteUser(ctx, csId); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to delete user",
+					OriginError: err,
+				}
 			}
 		}
 		return utils.Success(w)

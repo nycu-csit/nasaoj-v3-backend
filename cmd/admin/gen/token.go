@@ -13,8 +13,9 @@ func tokenCmdHandler(
 	tokenType string,
 ) func(*cobra.Command, []string) {
 	return func(cmd *cobra.Command, args []string) {
+		ctx := cmd.Context()
 		var res api.PostTokenOutput
-		utils.RestyBuilder(cmd, "/api/admin/token",
+		utils.RestyBuilder(ctx, "/api/admin/token",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPost
 				return r.

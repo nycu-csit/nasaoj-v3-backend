@@ -220,4 +220,9 @@ type Database interface {
 		ctx context.Context,
 		sha1 string,
 	) error
+
+	DeleteUserAndSubmissions(
+		ctx context.Context,
+		csId string,
+	) error
 }

@@ -957,6 +957,30 @@ func (self *BunDatabase) DeleteUser(
 	return err
 }
 
+func (self *BunDatabase) DeleteUserAndSubmissions(
+	ctx context.Context,
+	csId string,
+) error {
+	return self.db.RunInTx(ctx, &sql.TxOptions{},
+		func(ctx context.Context, tx bun.Tx) error {
+			_, err := tx.NewDelete().
+				Model((*models.UserResource)(nil)).
+				Where("cs_id = ?", csId).
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
+			_, err = tx.NewDelete().
+				Model((*models.Submission)(nil)).
+				Where("cs_id = ?", csId).
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+}
+
 func (self *BunDatabase) DeleteToolAndSubmissions(
 	ctx context.Context,
 	sha1 string,

@@ -20,7 +20,7 @@ var tokensCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var res []api.GetTokensOutput
-		utils.RestyBuilder(cmd, "/api/admin/tokens",
+		utils.RestyBuilder(ctx, "/api/admin/tokens",
 			func(r *resty.Request) *resty.Request {
 				return r.
 					SetResult(&res).

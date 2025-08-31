@@ -28,7 +28,7 @@ var workersCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var res []api.GetWorkerStatesOutput
-		utils.RestyBuilder(cmd, "/api/admin/worker/states",
+		utils.RestyBuilder(ctx, "/api/admin/worker/states",
 			func(r *resty.Request) *resty.Request {
 				return r.
 					SetResult(&res).

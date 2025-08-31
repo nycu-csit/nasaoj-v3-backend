@@ -15,7 +15,8 @@ var tokenCmd = &cobra.Command{
 	Short: "Disable token",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		resp := utils.RestyBuilder(cmd, "/api/admin/token/state",
+		ctx := cmd.Context()
+		resp := utils.RestyBuilder(ctx, "/api/admin/token/state",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.

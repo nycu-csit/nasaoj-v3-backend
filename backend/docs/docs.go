@@ -699,6 +699,12 @@ const docTemplate = `{
                         "name": "csId",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "If delete submissions",
+                        "name": "prune",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1572,6 +1578,9 @@ const docTemplate = `{
                 },
                 "score": {
                     "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.SubmissionType"
                 }
             }
         },
@@ -1794,6 +1803,17 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "models.SubmissionType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "SubmissionTypeProblem",
+                "SubmissionTypeTool"
+            ]
         },
         "models.Testcase": {
             "type": "object",

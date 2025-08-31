@@ -37,7 +37,7 @@ var toolCmd = &cobra.Command{
 		}
 
 		var output api.SubmitOutput
-		utils.RestyBuilder(cmd, "/api/admin/submit",
+		utils.RestyBuilder(ctx, "/api/admin/submit",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPost
 				return r.

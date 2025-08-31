@@ -33,7 +33,7 @@ var toolsCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var res []apiHandlers.ToolOutput
-		utils.RestyBuilder(cmd, "/api/admin/tools",
+		utils.RestyBuilder(ctx, "/api/admin/tools",
 			func(r *resty.Request) *resty.Request {
 				return r.
 					SetResult(&res).

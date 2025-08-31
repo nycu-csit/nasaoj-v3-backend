@@ -15,7 +15,8 @@ var toolCmd = &cobra.Command{
 	Short: "Enable tool",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		resp := utils.RestyBuilder(cmd, "/api/admin/tool/state",
+		ctx := cmd.Context()
+		resp := utils.RestyBuilder(ctx, "/api/admin/tool/state",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.

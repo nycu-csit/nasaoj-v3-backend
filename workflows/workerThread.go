@@ -28,7 +28,8 @@ func WorkerThread(
 			}
 
 			tracing.Logger.Ctx(ctx).
-				Info("run job",
+				Debug("run job",
+					zap.Int64("submission.id", job.SubId),
 					zap.String("stage.name", job.StageName),
 					zap.String("testcase.name", job.TestName))
 
@@ -37,7 +38,7 @@ func WorkerThread(
 			ret := <-retCh
 
 			tracing.Logger.Ctx(ctx).
-				Info("thread returned",
+				Debug("thread returned",
 					zap.Error(ret))
 			jobOut <- job
 		}

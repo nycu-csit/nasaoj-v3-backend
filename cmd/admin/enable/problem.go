@@ -15,7 +15,8 @@ var problemCmd = &cobra.Command{
 	Short: "Enable problem",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		resp := utils.RestyBuilder(cmd, "/api/admin/problem/state",
+		ctx := cmd.Context()
+		resp := utils.RestyBuilder(ctx, "/api/admin/problem/state",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.

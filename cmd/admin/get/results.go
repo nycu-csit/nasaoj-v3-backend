@@ -22,7 +22,7 @@ var resultsCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var output api.ResultOutput
-		utils.RestyBuilder(cmd, "/api/admin/results",
+		utils.RestyBuilder(ctx, "/api/admin/results",
 			func(r *resty.Request) *resty.Request {
 				return r.
 					SetQueryParam("subId", args[0]).
