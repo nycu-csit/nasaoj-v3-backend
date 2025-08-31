@@ -1417,7 +1417,7 @@
                     "type": "integer"
                 },
                 "type": {
-                    "$ref": "#/definitions/models.SubmissionType"
+                    "$ref": "#/definitions/models.RefType"
                 }
             }
         },
@@ -1587,7 +1587,7 @@
                     "type": "integer"
                 },
                 "type": {
-                    "$ref": "#/definitions/models.SubmissionType"
+                    "$ref": "#/definitions/models.RefType"
                 }
             }
         },
@@ -1779,6 +1779,17 @@
                 }
             }
         },
+        "models.RefType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "RefTypeProblem",
+                "RefTypeTool"
+            ]
+        },
         "models.Stage": {
             "type": "object",
             "properties": {
@@ -1810,17 +1821,6 @@
                     }
                 }
             }
-        },
-        "models.SubmissionType": {
-            "type": "integer",
-            "enum": [
-                0,
-                1
-            ],
-            "x-enum-varnames": [
-                "SubmissionTypeProblem",
-                "SubmissionTypeTool"
-            ]
         },
         "models.Testcase": {
             "type": "object",

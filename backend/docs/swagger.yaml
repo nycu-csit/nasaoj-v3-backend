@@ -123,7 +123,7 @@ definitions:
       score:
         type: integer
       type:
-        $ref: '#/definitions/models.SubmissionType'
+        $ref: '#/definitions/models.RefType'
     type: object
   api.ResultOutputJob:
     properties:
@@ -234,7 +234,7 @@ definitions:
       score:
         type: integer
       type:
-        $ref: '#/definitions/models.SubmissionType'
+        $ref: '#/definitions/models.RefType'
     type: object
   api.toolOutputTestcase:
     properties:
@@ -361,6 +361,14 @@ definitions:
       timeout:
         type: integer
     type: object
+  models.RefType:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - RefTypeProblem
+    - RefTypeTool
   models.Stage:
     properties:
       args:
@@ -382,14 +390,6 @@ definitions:
           $ref: '#/definitions/models.Testcase'
         type: array
     type: object
-  models.SubmissionType:
-    enum:
-    - 0
-    - 1
-    type: integer
-    x-enum-varnames:
-    - SubmissionTypeProblem
-    - SubmissionTypeTool
   models.Testcase:
     properties:
       args:

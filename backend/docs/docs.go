@@ -1425,7 +1425,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "type": {
-                    "$ref": "#/definitions/models.SubmissionType"
+                    "$ref": "#/definitions/models.RefType"
                 }
             }
         },
@@ -1595,7 +1595,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "type": {
-                    "$ref": "#/definitions/models.SubmissionType"
+                    "$ref": "#/definitions/models.RefType"
                 }
             }
         },
@@ -1787,6 +1787,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.RefType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "RefTypeProblem",
+                "RefTypeTool"
+            ]
+        },
         "models.Stage": {
             "type": "object",
             "properties": {
@@ -1818,17 +1829,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "models.SubmissionType": {
-            "type": "integer",
-            "enum": [
-                0,
-                1
-            ],
-            "x-enum-varnames": [
-                "SubmissionTypeProblem",
-                "SubmissionTypeTool"
-            ]
         },
         "models.Testcase": {
             "type": "object",

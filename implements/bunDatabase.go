@@ -366,7 +366,7 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 	pageSize int,
 	refId int64,
 	isRefId bool,
-	refType models.SubmissionType,
+	refType models.RefType,
 	isRefType bool,
 ) ([]models.Submission, int, error) {
 	query := self.db.NewSelect().

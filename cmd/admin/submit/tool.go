@@ -45,7 +45,7 @@ var toolCmd = &cobra.Command{
 						AsCsId: viper.GetString("csid"),
 						SubmitInput: api.SubmitInput{
 							RefSHA1:   args[0],
-							Type:      models.SubmissionTypeTool,
+							Type:      models.RefTypeTool,
 							InputArgs: inputArgs,
 						},
 					}).

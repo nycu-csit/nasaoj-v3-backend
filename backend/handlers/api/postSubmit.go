@@ -128,7 +128,7 @@ func PostSubmit(
 
 		var submission models.Submission
 		switch input.Type {
-		case models.SubmissionTypeProblem:
+		case models.RefTypeProblem:
 			problem, err := problems.GetProblem(ctx, input.RefSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
@@ -148,7 +148,7 @@ func PostSubmit(
 			if !isAdmin {
 				// Check last submission
 				lastSubmit, err := db.GetLastSubmission(ctx,
-					resource.CsId, problem.ProblemId, models.SubmissionTypeProblem)
+					resource.CsId, problem.ProblemId, models.RefTypeProblem)
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
@@ -178,7 +178,7 @@ func PostSubmit(
 			submission = models.Submission{
 				RefSHA1: input.RefSHA1,
 				RefId:   problem.ProblemId,
-				Type:    models.SubmissionTypeProblem,
+				Type:    models.RefTypeProblem,
 
 				CsId:      resource.CsId,
 				CreatedAt: time.Now().Unix(),
@@ -212,7 +212,7 @@ func PostSubmit(
 				}
 			}
 
-		case models.SubmissionTypeTool:
+		case models.RefTypeTool:
 			tool, err := tools.GetTool(ctx, input.RefSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
@@ -232,7 +232,7 @@ func PostSubmit(
 			if !isAdmin {
 				// Check last submission
 				lastSubmit, err := db.GetLastSubmission(ctx,
-					resource.CsId, tool.ToolId, models.SubmissionTypeTool)
+					resource.CsId, tool.ToolId, models.RefTypeTool)
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
@@ -262,7 +262,7 @@ func PostSubmit(
 			submission = models.Submission{
 				RefSHA1: input.RefSHA1,
 				RefId:   tool.ToolId,
-				Type:    models.SubmissionTypeTool,
+				Type:    models.RefTypeTool,
 
 				CsId:      resource.CsId,
 				CreatedAt: time.Now().Unix(),

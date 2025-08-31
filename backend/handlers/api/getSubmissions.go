@@ -12,10 +12,10 @@ import (
 )
 
 type submissionsOutputSubmission struct {
-	Id      int64                 `json:"id"`
-	RefSHA1 string                `json:"refSHA1"`
-	RefId   int64                 `json:"refId"`
-	Type    models.SubmissionType `json:"type"`
+	Id      int64          `json:"id"`
+	RefSHA1 string         `json:"refSHA1"`
+	RefId   int64          `json:"refId"`
+	Type    models.RefType `json:"type"`
 
 	CsId      string `json:"csId"`
 	CreatedAt int64  `json:"createdAt"`
@@ -97,7 +97,7 @@ func GetSubmissions(
 			isPageNum = true
 		}
 
-		var refType models.SubmissionType
+		var refType models.RefType
 		var isRefType bool = false
 		if queryValues.Has("type") {
 			refType64, err := strconv.ParseInt(

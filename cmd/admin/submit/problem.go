@@ -31,7 +31,7 @@ var problemCmd = &cobra.Command{
 						AsCsId: viper.GetString("csid"),
 						SubmitInput: api.SubmitInput{
 							RefSHA1: args[0],
-							Type:    models.SubmissionTypeProblem,
+							Type:    models.RefTypeProblem,
 						},
 					}).
 					SetResult(&output).
