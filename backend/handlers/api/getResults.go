@@ -27,9 +27,11 @@ type ResultOutput struct {
 	RefId   int64          `json:"refId"`
 	Type    models.RefType `json:"type"`
 
-	CsId      string `json:"csId"`
-	CreatedAt int64  `json:"createdAt"`
-	Score     int64  `json:"score"`
+	CsId      string            `json:"csId"`
+	InputArgs map[string]string `json:"inputArgs"`
+
+	CreatedAt int64 `json:"createdAt"`
+	Score     int64 `json:"score"`
 
 	Jobs []ResultOutputJob `json:"jobs"`
 }
@@ -162,6 +164,8 @@ func GetResults(
 			Type:    submission.Type,
 
 			CsId:      submission.CsId,
+			InputArgs: submission.InputArgs,
+
 			CreatedAt: submission.CreatedAt,
 			Score:     submission.Score.Score,
 

@@ -112,6 +112,10 @@ definitions:
         type: string
       id:
         type: integer
+      inputArgs:
+        additionalProperties:
+          type: string
+        type: object
       jobs:
         items:
           $ref: '#/definitions/api.ResultOutputJob'

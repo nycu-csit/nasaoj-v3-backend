@@ -1409,6 +1409,12 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "inputArgs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "jobs": {
                     "type": "array",
                     "items": {
