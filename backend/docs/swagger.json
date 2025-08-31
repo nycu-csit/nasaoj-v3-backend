@@ -370,6 +370,12 @@
                         "description": "Filter by RefId",
                         "name": "refId",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by Type",
+                        "name": "type",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1007,6 +1013,12 @@
                         "type": "integer",
                         "description": "Filter by RefId",
                         "name": "refId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by Type",
+                        "name": "type",
                         "in": "query"
                     }
                 ],

@@ -378,6 +378,12 @@ const docTemplate = `{
                         "description": "Filter by RefId",
                         "name": "refId",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by Type",
+                        "name": "type",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1015,6 +1021,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Filter by RefId",
                         "name": "refId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by Type",
+                        "name": "type",
                         "in": "query"
                     }
                 ],

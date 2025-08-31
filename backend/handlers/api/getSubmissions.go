@@ -35,6 +35,7 @@ const pageSize int = 20
 //	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
 //	@Param		csId	query		string				false	"Filter by CsId"							attribute(optional)
 //	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
+//	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
 //	@Success	200		{object}	submissionsOutput	"Submissions"
 //	@Failure	400		{object}	string				"Problem Id invalid"
 //	@Failure	401		{object}	string				"not admin or didn't login"
@@ -45,6 +46,7 @@ func getAdminSubmissionsPlaceHolder() {}
 //
 //	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
 //	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
+//	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
 //	@Success	200		{object}	submissionsOutput	"Submissions"
 //	@Failure	400		{object}	string				"Problem Id invalid"
 //	@Failure	401		{object}	string				"didn't login"
@@ -95,6 +97,22 @@ func GetSubmissions(
 			isPageNum = true
 		}
 
+		var refType models.SubmissionType
+		var isRefType bool = false
+		if queryValues.Has("type") {
+			refType64, err := strconv.ParseInt(
+				queryValues.Get("type"), 10, 32)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     "failed to parse 'type'",
+					OriginError: err,
+				}
+			}
+			refType = int(refType64)
+			isRefType = true
+		}
+
 		var refId int64
 		var isRefId bool = false
 		if queryValues.Has("refId") {
@@ -113,7 +131,8 @@ func GetSubmissions(
 		subs, count, err := db.GetSubmissionsAndCount(ctx,
 			csId, isCsId,
 			pageNum, isPageNum, pageSize,
-			refId, isRefId)
+			refId, isRefId,
+			refType, isRefType)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,

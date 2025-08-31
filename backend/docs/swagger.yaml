@@ -703,6 +703,10 @@ paths:
         in: query
         name: refId
         type: integer
+      - description: Filter by Type
+        in: query
+        name: type
+        type: integer
       responses:
         "200":
           description: Submissions
@@ -1107,6 +1111,10 @@ paths:
       - description: Filter by RefId
         in: query
         name: refId
+        type: integer
+      - description: Filter by Type
+        in: query
+        name: type
         type: integer
       responses:
         "200":

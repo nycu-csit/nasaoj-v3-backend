@@ -43,6 +43,8 @@ type Database interface {
 		pageSize int,
 		refId int64,
 		isRefId bool,
+		refType models.SubmissionType,
+		isRefType bool,
 	) ([]models.Submission, int, error)
 
 	DeleteSubmission(
