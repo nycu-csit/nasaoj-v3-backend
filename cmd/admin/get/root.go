@@ -17,4 +17,5 @@ func init() {
 	RootCmd.AddCommand(resultsCmd)
 	RootCmd.AddCommand(stdoutCmd)
 	RootCmd.AddCommand(stderrCmd)
+	RootCmd.AddCommand(submissionsCmd)
 }

@@ -142,6 +142,34 @@ definitions:
       testName:
         type: string
     type: object
+  api.SubmissionsOutput:
+    properties:
+      pageSize:
+        type: integer
+      submissions:
+        items:
+          $ref: '#/definitions/api.SubmissionsOutputSubmission'
+        type: array
+      totalRowCnt:
+        type: integer
+    type: object
+  api.SubmissionsOutputSubmission:
+    properties:
+      createdAt:
+        type: integer
+      csId:
+        type: string
+      id:
+        type: integer
+      refId:
+        type: integer
+      refSHA1:
+        type: string
+      score:
+        type: integer
+      type:
+        $ref: '#/definitions/models.RefType'
+    type: object
   api.SubmitInput:
     properties:
       inputArgs:
@@ -211,34 +239,6 @@ definitions:
     properties:
       name:
         type: string
-    type: object
-  api.submissionsOutput:
-    properties:
-      pageSize:
-        type: integer
-      submissions:
-        items:
-          $ref: '#/definitions/api.submissionsOutputSubmission'
-        type: array
-      totalRowCnt:
-        type: integer
-    type: object
-  api.submissionsOutputSubmission:
-    properties:
-      createdAt:
-        type: integer
-      csId:
-        type: string
-      id:
-        type: integer
-      refId:
-        type: integer
-      refSHA1:
-        type: string
-      score:
-        type: integer
-      type:
-        $ref: '#/definitions/models.RefType'
     type: object
   api.toolOutputTestcase:
     properties:
@@ -717,7 +717,7 @@ paths:
         "200":
           description: Submissions
           schema:
-            $ref: '#/definitions/api.submissionsOutput'
+            $ref: '#/definitions/api.SubmissionsOutput'
         "400":
           description: Problem Id invalid
           schema:
@@ -1126,7 +1126,7 @@ paths:
         "200":
           description: Submissions
           schema:
-            $ref: '#/definitions/api.submissionsOutput'
+            $ref: '#/definitions/api.SubmissionsOutput'
         "400":
           description: Problem Id invalid
           schema:

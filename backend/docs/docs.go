@@ -390,7 +390,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Submissions",
                         "schema": {
-                            "$ref": "#/definitions/api.submissionsOutput"
+                            "$ref": "#/definitions/api.SubmissionsOutput"
                         }
                     },
                     "400": {
@@ -1034,7 +1034,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Submissions",
                         "schema": {
-                            "$ref": "#/definitions/api.submissionsOutput"
+                            "$ref": "#/definitions/api.SubmissionsOutput"
                         }
                     },
                     "400": {
@@ -1455,6 +1455,49 @@ const docTemplate = `{
                 }
             }
         },
+        "api.SubmissionsOutput": {
+            "type": "object",
+            "properties": {
+                "pageSize": {
+                    "type": "integer"
+                },
+                "submissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.SubmissionsOutputSubmission"
+                    }
+                },
+                "totalRowCnt": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.SubmissionsOutputSubmission": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
+                "csId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "refId": {
+                    "type": "integer"
+                },
+                "refSHA1": {
+                    "type": "string"
+                },
+                "score": {
+                    "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.RefType"
+                }
+            }
+        },
         "api.SubmitInput": {
             "type": "object",
             "properties": {
@@ -1559,49 +1602,6 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "api.submissionsOutput": {
-            "type": "object",
-            "properties": {
-                "pageSize": {
-                    "type": "integer"
-                },
-                "submissions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/api.submissionsOutputSubmission"
-                    }
-                },
-                "totalRowCnt": {
-                    "type": "integer"
-                }
-            }
-        },
-        "api.submissionsOutputSubmission": {
-            "type": "object",
-            "properties": {
-                "createdAt": {
-                    "type": "integer"
-                },
-                "csId": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "refId": {
-                    "type": "integer"
-                },
-                "refSHA1": {
-                    "type": "string"
-                },
-                "score": {
-                    "type": "integer"
-                },
-                "type": {
-                    "$ref": "#/definitions/models.RefType"
                 }
             }
         },

@@ -11,7 +11,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
-type submissionsOutputSubmission struct {
+type SubmissionsOutputSubmission struct {
 	Id      int64          `json:"id"`
 	RefSHA1 string         `json:"refSHA1"`
 	RefId   int64          `json:"refId"`
@@ -22,10 +22,10 @@ type submissionsOutputSubmission struct {
 	Score     int64  `json:"score"`
 }
 
-type submissionsOutput struct {
+type SubmissionsOutput struct {
 	PageSize    int                           `json:"pageSize"`
 	TotalRowCnt int                           `json:"totalRowCnt"`
-	Submissions []submissionsOutputSubmission `json:"submissions"`
+	Submissions []SubmissionsOutputSubmission `json:"submissions"`
 }
 
 const pageSize int = 20
@@ -36,7 +36,7 @@ const pageSize int = 20
 //	@Param		csId	query		string				false	"Filter by CsId"							attribute(optional)
 //	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
 //	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
-//	@Success	200		{object}	submissionsOutput	"Submissions"
+//	@Success	200		{object}	SubmissionsOutput	"Submissions"
 //	@Failure	400		{object}	string				"Problem Id invalid"
 //	@Failure	401		{object}	string				"not admin or didn't login"
 //	@Router		/api/admin/submissions [get]
@@ -47,7 +47,7 @@ func getAdminSubmissionsPlaceHolder() {}
 //	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
 //	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
 //	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
-//	@Success	200		{object}	submissionsOutput	"Submissions"
+//	@Success	200		{object}	SubmissionsOutput	"Submissions"
 //	@Failure	400		{object}	string				"Problem Id invalid"
 //	@Failure	401		{object}	string				"didn't login"
 //	@Router		/api/submissions [get]
@@ -141,9 +141,9 @@ func GetSubmissions(
 			}
 		}
 
-		submissions := []submissionsOutputSubmission{}
+		submissions := []SubmissionsOutputSubmission{}
 		for _, sub := range subs {
-			output := submissionsOutputSubmission{
+			output := SubmissionsOutputSubmission{
 				Id:      sub.Id,
 				RefSHA1: sub.RefSHA1,
 				RefId:   sub.RefId,
@@ -155,7 +155,7 @@ func GetSubmissions(
 			}
 			submissions = append(submissions, output)
 		}
-		return bunrouter.JSON(w, submissionsOutput{
+		return bunrouter.JSON(w, SubmissionsOutput{
 			PageSize:    pageSize,
 			TotalRowCnt: count,
 			Submissions: submissions,
