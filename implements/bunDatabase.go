@@ -349,11 +349,11 @@ func (self *BunDatabase) UpsertUser(
 	ctx context.Context,
 	user models.UserResource,
 ) error {
-	err := self.db.NewInsert().
+	_, err := self.db.NewInsert().
 		Model(&user).
-		On("CONFLICT (args) DO UPDATE").
+		On("CONFLICT (cs_id) DO UPDATE").
 		Set("args = EXCLUDED.args").
-		Scan(ctx)
+		Exec(ctx)
 	return err
 }
 

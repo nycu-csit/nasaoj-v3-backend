@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -95,7 +96,7 @@ func GetCallback(
 			IsValid: true,
 		}
 		err = session.RotateRefreshToken()
-		if err != nil {
+		if err != nil && err != sql.ErrNoRows {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusUnauthorized,
 				Message:     "rotate refresh token failed",
