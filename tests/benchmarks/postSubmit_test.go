@@ -55,7 +55,7 @@ func BenchmarkPostSubmitParallel(b *testing.B) {
 							AsCsId: "test",
 							SubmitInput: api.SubmitInput{
 								RefSHA1: problem.SHA1,
-								Type:    models.SubmissionTypeProblem,
+								Type:    models.RefTypeProblem,
 							},
 						})
 				})
