@@ -237,7 +237,7 @@ func (self *BunDatabase) GetScoresWithStages(
 	err := self.db.NewSelect().
 		DistinctOn("cs_id").
 		Model(&submissions).
-		Column("cs_id", "score_score", "score_stages").
+		Column("cs_id", "score_score", "score_stages", "problem_id").
 		OrderExpr("cs_id, id DESC").
 		Where("problem_id = ?", refId).
 		Scan(ctx)
@@ -262,9 +262,11 @@ func (self *BunDatabase) GetScores(
 ) ([]models.UserScore, error) {
 	ret := []models.UserScore{}
 	var submissions []models.Submission
-	err := self.db.NewSelect().DistinctOn("cs_id").Model(&submissions).
-		Column("cs_id", "score_score").
-		Where("ref_id = ?", refId).
+	err := self.db.NewSelect().
+		DistinctOn("cs_id").
+		Model(&submissions).
+		Column("cs_id", "score_score", "problem_id").
+		Where("problem_id = ?", refId).
 		OrderExpr("cs_id, id DESC").
 		Scan(ctx)
 	if err != nil {
