@@ -43,14 +43,21 @@ func (self *BunDatabase) GetLastSubmission(
 	subType int,
 ) (models.Submission, error) {
 	var ret models.Submission
-	err := self.db.NewSelect().
+	query := self.db.NewSelect().
 		Model(&ret).
 		Where("cs_id = ?", csId).
-		Where("ref_id = ?", refId).
 		Where("type = ?", subType).
 		Order("id DESC").
-		Limit(1).
-		Scan(ctx)
+		Limit(1)
+
+	switch subType {
+	case models.RefTypeProblem:
+		query = query.Where("problem_id = ?", refId)
+	case models.RefTypeTool:
+		query = query.Where("tool_id = ?", refId)
+	}
+
+	err := query.Scan(ctx)
 	if err != nil {
 		return models.Submission{}, err
 	}
@@ -231,8 +238,8 @@ func (self *BunDatabase) GetScoresWithStages(
 		DistinctOn("cs_id").
 		Model(&submissions).
 		Column("cs_id", "score_score", "score_stages").
-		Where("ref_id = ?", refId).
 		OrderExpr("cs_id, id DESC").
+		Where("problem_id = ?", refId).
 		Scan(ctx)
 	if err != nil {
 		return []models.UserScoreWithStages{}, err

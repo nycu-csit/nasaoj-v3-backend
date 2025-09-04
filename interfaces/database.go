@@ -11,7 +11,7 @@ type Database interface {
 		ctx context.Context,
 		csId string,
 		refId int64,
-		subType int,
+		subType models.RefType,
 	) (models.Submission, error)
 
 	GetSubmission(
