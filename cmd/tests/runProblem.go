@@ -139,8 +139,8 @@ var problemCmd = &cobra.Command{
 		}()
 
 		submission := models.Submission{
-			RefId:   problem.ProblemId,
-			RefSHA1: problemMarshaled.SHA1,
+			ProblemId:   problem.ProblemId,
+			ProblemSHA1: problemMarshaled.SHA1,
 
 			CsId:      "114514",
 			CreatedAt: time.Now().Unix(),

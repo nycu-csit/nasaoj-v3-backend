@@ -65,12 +65,24 @@ func (self *Problem) ToModelProblem(
 		Stages:      make(map[string]models.Stage),
 		Args:        self.Args,
 		Tag:         self.Tag,
-		PreScript: models.Content{
-			Scripts: self.PreScript.Scripts,
-		},
-		PostScript: models.Content{
-			Scripts: self.PostScript.Scripts,
-		},
+	}
+
+	if res, err := self.PreScript.ToModelContent(ctx, contentFiles); err == nil {
+		ret.PreScript = res
+	} else {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to transform content",
+				zap.Error(err))
+		return models.Problem{}, err
+	}
+
+	if res, err := self.PostScript.ToModelContent(ctx, contentFiles); err == nil {
+		ret.PostScript = res
+	} else {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to transform content",
+				zap.Error(err))
+		return models.Problem{}, err
 	}
 
 	ret.Timeout = 0
@@ -78,14 +90,29 @@ func (self *Problem) ToModelProblem(
 		retStage := models.Stage{
 			Before: stage.Before,
 			Args:   stage.Args,
-			PreScript: models.Content{
-				Scripts: stage.PreScript.Scripts,
-			},
-			PostScript: models.Content{
-				Scripts: stage.PostScript.Scripts,
-			},
-			Score: stage.Score,
+			Score:  stage.Score,
 		}
+
+		if res, err := stage.PreScript.
+			ToModelContent(ctx, contentFiles); err == nil {
+			retStage.PreScript = res
+		} else {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to transform content",
+					zap.Error(err))
+			return models.Problem{}, err
+		}
+
+		if res, err := stage.PostScript.
+			ToModelContent(ctx, contentFiles); err == nil {
+			retStage.PostScript = res
+		} else {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to transform content",
+					zap.Error(err))
+			return models.Problem{}, err
+		}
+
 		maxTL := int64(0)
 		for _, testcase := range stage.Testcases {
 			maxTL = max(maxTL, testcase.HardTL)

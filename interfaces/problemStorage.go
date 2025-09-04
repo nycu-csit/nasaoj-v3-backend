@@ -50,4 +50,9 @@ type ProblemStorage interface {
 		ctx context.Context,
 		problem *models.Problem,
 	) error
+
+	GetProblemScores(
+		ctx context.Context,
+		sha1s []string,
+	) (map[string]int64, error)
 }

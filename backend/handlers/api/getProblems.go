@@ -28,6 +28,7 @@ type ProblemOutput struct {
 	Description string                        `json:"description"`
 	Stages      map[string]problemOutputStage `json:"stages"`
 	Tag         string                        `json:"tag"`
+	TotalScore  int64                         `json:"totalScore"`
 	IsEnabled   bool                          `json:"isEnabled"`
 }
 
@@ -77,6 +78,7 @@ func GetProblems(
 				Description: problem.Description,
 				Stages:      make(map[string]problemOutputStage),
 				Tag:         problem.Tag,
+				TotalScore:  problem.TotalScore,
 				IsEnabled:   problem.IsEnabled,
 			}
 			for stageName, stage := range problem.Stages {

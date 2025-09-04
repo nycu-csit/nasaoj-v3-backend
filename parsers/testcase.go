@@ -57,6 +57,29 @@ func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
 	return nil
 }
 
+func (self *Content) ToModelContent(
+	ctx context.Context,
+	contentFiles map[string]models.ContentFile,
+) (models.Content, error) {
+	ret := models.Content{
+		Scripts: self.Scripts,
+	}
+
+	for _, file := range self.Files {
+		contentFile, ok := contentFiles[file]
+		if !ok {
+			tracing.Logger.Ctx(ctx).
+				Error("file not exist",
+					zap.String("file.path", file))
+			return models.Content{},
+				types.FileNotExistError
+		}
+		ret.Files = append(ret.Files, contentFile)
+	}
+
+	return ret, nil
+}
+
 func (self *Testcase) ToModelTestcase(
 	ctx context.Context,
 	contentFiles map[string]models.ContentFile,
@@ -66,20 +89,16 @@ func (self *Testcase) ToModelTestcase(
 		Args:   self.Args,
 		SoftTL: self.SoftTL,
 		HardTL: self.HardTL,
-		Content: models.Content{
-			Scripts: self.Content.Scripts,
-		},
 	}
 
-	for _, file := range self.Content.Files {
-		contentFile, ok := contentFiles[file]
-		if !ok {
-			tracing.Logger.Ctx(ctx).
-				Error("file not exist",
-					zap.String("file.path", file))
-			return ret, types.FileNotExistError
-		}
-		ret.Content.Files = append(ret.Content.Files, contentFile)
+	if res, err := self.Content.ToModelContent(ctx, contentFiles); err == nil {
+		ret.Content = res
+	} else {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to transform content",
+				zap.Error(err))
+		return models.Testcase{}, err
 	}
+
 	return ret, nil
 }

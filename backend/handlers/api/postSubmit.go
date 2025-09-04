@@ -176,9 +176,9 @@ func PostSubmit(
 			}
 
 			submission = models.Submission{
-				RefSHA1: input.RefSHA1,
-				RefId:   problem.ProblemId,
-				Type:    models.RefTypeProblem,
+				ProblemSHA1: input.RefSHA1,
+				ProblemId:   problem.ProblemId,
+				Type:        models.RefTypeProblem,
 
 				CsId:      resource.CsId,
 				CreatedAt: time.Now().Unix(),
@@ -260,9 +260,9 @@ func PostSubmit(
 			}
 
 			submission = models.Submission{
-				RefSHA1: input.RefSHA1,
-				RefId:   tool.ToolId,
-				Type:    models.RefTypeTool,
+				ToolSHA1: input.RefSHA1,
+				ToolId:   tool.ToolId,
+				Type:     models.RefTypeTool,
 
 				CsId:      resource.CsId,
 				CreatedAt: time.Now().Unix(),
@@ -301,14 +301,32 @@ func PostSubmit(
 			}
 		}
 
-		return bunrouter.JSON(w, SubmitOutput{
-			Id:        submission.Id,
-			RefSHA1:   submission.RefSHA1,
-			RefId:     submission.RefId,
-			InputArgs: submission.InputArgs,
+		switch submission.Type {
+		case models.RefTypeProblem:
+			return bunrouter.JSON(w, SubmitOutput{
+				Id:        submission.Id,
+				RefSHA1:   submission.ProblemSHA1,
+				RefId:     submission.ProblemId,
+				InputArgs: submission.InputArgs,
 
-			CsId:      submission.CsId,
-			CreatedAt: submission.CreatedAt,
-		})
+				CsId:      submission.CsId,
+				CreatedAt: submission.CreatedAt,
+			})
+		case models.RefTypeTool:
+			return bunrouter.JSON(w, SubmitOutput{
+				Id:        submission.Id,
+				RefSHA1:   submission.ToolSHA1,
+				RefId:     submission.ToolId,
+				InputArgs: submission.InputArgs,
+
+				CsId:      submission.CsId,
+				CreatedAt: submission.CreatedAt,
+			})
+		default:
+			return middlewares.HTTPError{
+				StatusCode: http.StatusInternalServerError,
+				Message:    "unhandled case",
+			}
+		}
 	}
 }

@@ -23,6 +23,7 @@ type problemResult struct {
 	Name        string `json:"name" yaml:"name"`
 	Description string `json:"description" yaml:"description"`
 	Tag         string `json:"tag" yaml:"tag"`
+	TotalScore  int64  `json:"totalScore" yaml:"totalScore"`
 	IsEnabled   bool   `json:"isEnabled" yaml:"isEnabled"`
 }
 
@@ -49,13 +50,15 @@ var problemsCmd = &cobra.Command{
 				Name:        problem.Name,
 				Description: problem.Description,
 				Tag:         problem.Tag,
+				TotalScore:  problem.TotalScore,
 				IsEnabled:   problem.IsEnabled,
 			})
 		}
 
 		sort.Slice(ret, func(i, j int) bool {
 			return ret[i].ProblemId < ret[j].ProblemId ||
-				(ret[i].ProblemId == ret[j].ProblemId && ret[i].SHA1 < ret[j].SHA1)
+				(ret[i].ProblemId == ret[j].ProblemId &&
+					ret[i].ImportedAt < ret[j].ImportedAt)
 		})
 
 		b, err := yaml.Marshal(ret)

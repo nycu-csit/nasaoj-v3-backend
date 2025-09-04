@@ -24,11 +24,11 @@ func RunStage(
 	submission models.Submission,
 	stageName string,
 ) error {
-	problem, err := problems.GetProblem(ctx, submission.RefSHA1)
+	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("problem not exist",
-				zap.String("problem.sha1", submission.RefSHA1),
+				zap.String("problem.sha1", submission.ProblemSHA1),
 				zap.Error(err))
 		return err
 	}
@@ -50,7 +50,7 @@ func RunStage(
 	tracing.Logger.Ctx(ctx).
 		Info("run stage",
 			zap.String("problem.name", problem.Name),
-			zap.String("problem.sha1", submission.RefSHA1),
+			zap.String("problem.sha1", submission.ProblemSHA1),
 			zap.String("stage.name", stageName))
 
 	for _, testcase := range stage.Testcases {

@@ -153,13 +153,13 @@ var backendCmd = &cobra.Command{
 		apiReadGroup.GET("/stdout",
 			apiHandlers.GetOutput(db, mc, "stdout", false))
 		apiReadGroup.GET("/results",
-			apiHandlers.GetResults(db, false))
+			apiHandlers.GetResults(db, problems, false))
 		apiReadGroup.GET("/scores",
 			apiHandlers.GetScores(db, false))
 		apiReadGroup.GET("/me",
 			apiHandlers.GetMe)
 		apiReadGroup.GET("/submissions",
-			apiHandlers.GetSubmissions(db, false))
+			apiHandlers.GetSubmissions(db, problems, false))
 
 		apiWriteGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -192,9 +192,9 @@ var backendCmd = &cobra.Command{
 		apiAdminReadGroup.GET("/users",
 			apiHandlers.GetUsers(db))
 		apiAdminReadGroup.GET("/submissions",
-			apiHandlers.GetSubmissions(db, true))
+			apiHandlers.GetSubmissions(db, problems, true))
 		apiAdminReadGroup.GET("/results",
-			apiHandlers.GetResults(db, true))
+			apiHandlers.GetResults(db, problems, true))
 		apiAdminReadGroup.GET("/problems",
 			apiHandlers.GetProblems(problems, true))
 		apiAdminReadGroup.GET("/tools",

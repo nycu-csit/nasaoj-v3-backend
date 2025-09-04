@@ -23,7 +23,7 @@ var (
 
 // GetLogin godoc
 //
-//	@Param			source	query	string false	"Login source"	attribute(optional)
+//	@Param			source	query	string	false	"Login source"	attribute(optional)
 //	@Description	OAuth login endpoint
 //	@Header			302	{}	string	"AuthCodeURL(state)"
 //	@Response		302	{}	string	"302 Found"

@@ -9,32 +9,30 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type ProblemIdType = int64
-type TagType = string
 type Problem struct {
-	ProblemId ProblemIdType `json:"problemId"`
-
+	ProblemId   int64             `json:"problemId"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	Stages      map[string]Stage  `json:"stages"`
 	Args        map[string]string `json:"args"`
-	Tag         TagType           `json:"tag"`
+	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
 	Timeout     int64             `json:"timeout"`
 
 	ImportedAt int64 `json:"-"`
 	IsEnabled  bool  `json:"-"`
+	TotalScore int64 `json:"-"`
 }
 
 type ProblemMarshaled struct {
 	bun.BaseModel `bun:"table:problem"`
 
-	SHA1       string        `bun:"sha1,pk"`
-	Payload    string        `bun:"payload"`
-	ProblemId  ProblemIdType `bun:"problem_id"`
-	ImportedAt int64         `bun:"imported_at"`
-	IsEnabled  bool          `bun:"is_enabled"`
+	SHA1       string `bun:"sha1,pk"`
+	Payload    string `bun:"payload"`
+	ProblemId  int64  `bun:"problem_id"`
+	ImportedAt int64  `bun:"imported_at"`
+	IsEnabled  bool   `bun:"is_enabled"`
 }
 
 func (self Problem) Marshal() (ProblemMarshaled, error) {
@@ -62,5 +60,9 @@ func (self ProblemMarshaled) Unmarshal() (Problem, error) {
 	}
 	ret.IsEnabled = self.IsEnabled
 	ret.ImportedAt = self.ImportedAt
+	ret.TotalScore = 0
+	for _, stage := range ret.Stages {
+		ret.TotalScore += stage.Score
+	}
 	return ret, nil
 }

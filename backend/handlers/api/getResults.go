@@ -30,8 +30,9 @@ type ResultOutput struct {
 	CsId      string            `json:"csId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
-	CreatedAt int64 `json:"createdAt"`
-	Score     int64 `json:"score"`
+	CreatedAt  int64 `json:"createdAt"`
+	Score      int64 `json:"score"`
+	TotalScore int64 `json:"totalScore"`
 
 	Jobs []ResultOutputJob `json:"jobs"`
 }
@@ -58,6 +59,7 @@ func getAdminResultsPlaceholder() {}
 //	@Router		/api/results [get]
 func GetResults(
 	db interfaces.Database,
+	problems interfaces.ProblemStorage,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -158,10 +160,8 @@ func GetResults(
 		}
 
 		ret := ResultOutput{
-			Id:      submission.Id,
-			RefSHA1: submission.RefSHA1,
-			RefId:   submission.RefId,
-			Type:    submission.Type,
+			Id:   submission.Id,
+			Type: submission.Type,
 
 			CsId:      submission.CsId,
 			InputArgs: submission.InputArgs,
@@ -170,6 +170,24 @@ func GetResults(
 			Score:     submission.Score.Score,
 
 			Jobs: []ResultOutputJob{},
+		}
+
+		switch ret.Type {
+		case models.RefTypeProblem:
+			ret.RefSHA1 = submission.ProblemSHA1
+			ret.RefId = submission.ProblemId
+			problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to get problem",
+					OriginError: err,
+				}
+			}
+			ret.TotalScore = problem.TotalScore
+		case models.RefTypeTool:
+			ret.RefSHA1 = submission.ToolSHA1
+			ret.RefId = submission.ToolId
 		}
 		for _, job := range submission.Jobs {
 			ret.Jobs = append(ret.Jobs, ResultOutputJob{

@@ -102,10 +102,10 @@ var stageCmd = &cobra.Command{
 
 		err = workflows.RunStage(ctx, jobQue, db, s3, problems, tokens,
 			models.Submission{
-				Id:      114514,
-				RefId:   problem.ProblemId,
-				RefSHA1: problemMarshaled.SHA1,
-				Args:    mockArgs,
+				Id:          114514,
+				ProblemId:   problem.ProblemId,
+				ProblemSHA1: problemMarshaled.SHA1,
+				Args:        mockArgs,
 			},
 			viper.GetString("stage"),
 		)

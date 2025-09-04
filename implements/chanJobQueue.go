@@ -10,26 +10,26 @@ import (
 )
 
 type ChanJobQueue struct {
-	data   map[models.TagType]chan models.Job
+	data   map[string]chan models.Job
 	jobCnt map[string]int
 	jobDep map[string]int
 }
 
 func NewChanJobQueue() *ChanJobQueue {
 	return &ChanJobQueue{
-		data:   make(map[models.TagType]chan models.Job),
+		data:   make(map[string]chan models.Job),
 		jobCnt: make(map[string]int),
 		jobDep: make(map[string]int),
 	}
 }
 
-func (self *ChanJobQueue) QueueKey(tag models.TagType) string {
+func (self *ChanJobQueue) QueueKey(tag string) string {
 	return "queue-" + tag
 }
 
 func (self *ChanJobQueue) GetJob(
 	ctx context.Context,
-	tag models.TagType,
+	tag string,
 ) (models.Job, error) {
 	if _, exist := self.data[tag]; !exist {
 		self.data[tag] = make(chan models.Job, viper.GetInt64("buffer-size"))
@@ -46,7 +46,7 @@ func (self *ChanJobQueue) GetJob(
 func (self *ChanJobQueue) PutJob(
 	_ context.Context,
 	job models.Job,
-	tag models.TagType,
+	tag string,
 ) error {
 	if _, exist := self.data[tag]; !exist {
 		self.data[tag] = make(chan models.Job, viper.GetInt64("buffer-size"))
@@ -91,10 +91,10 @@ func (self *ChanJobQueue) StageDone(
 }
 
 // Custom functions
-func (self *ChanJobQueue) Size(tag models.TagType) int {
+func (self *ChanJobQueue) Size(tag string) int {
 	return len(self.data[tag])
 }
 
-func (self *ChanJobQueue) Close(tag models.TagType) {
+func (self *ChanJobQueue) Close(tag string) {
 	close(self.data[tag])
 }

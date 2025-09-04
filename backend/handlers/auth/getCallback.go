@@ -26,7 +26,7 @@ type Claim struct {
 
 // GetCallback
 //
-//	@Param			source	query	string false "Login source"	attribute(optional)
+//	@Param			source	query	string	false	"Login source"	attribute(optional)
 //	@Description	Oauth callback endpoint
 //	@Response		302	{}	string	"302 Found"
 //	@Router			/auth/callback [get]

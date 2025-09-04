@@ -321,6 +321,7 @@
                 "parameters": [
                     {
                         "type": "integer",
+                        "format": "int64",
                         "description": "Submission Id",
                         "name": "subId",
                         "in": "query",
@@ -354,6 +355,7 @@
                 "parameters": [
                     {
                         "type": "integer",
+                        "format": "int64",
                         "default": 0,
                         "description": "Page number, one page is 20 submissions",
                         "name": "pageNum",
@@ -367,6 +369,7 @@
                     },
                     {
                         "type": "integer",
+                        "format": "int64",
                         "description": "Filter by RefId",
                         "name": "refId",
                         "in": "query"
@@ -1004,6 +1007,7 @@
                 "parameters": [
                     {
                         "type": "integer",
+                        "format": "int64",
                         "default": 0,
                         "description": "Page number, one page is 20 submissions",
                         "name": "pageNum",
@@ -1011,6 +1015,7 @@
                     },
                     {
                         "type": "integer",
+                        "format": "int64",
                         "description": "Filter by RefId",
                         "name": "refId",
                         "in": "query"
@@ -1336,6 +1341,9 @@
                 },
                 "tag": {
                     "type": "string"
+                },
+                "totalScore": {
+                    "type": "integer"
                 }
             }
         },
@@ -1422,6 +1430,9 @@
                 "score": {
                     "type": "integer"
                 },
+                "totalScore": {
+                    "type": "integer"
+                },
                 "type": {
                     "$ref": "#/definitions/models.RefType"
                 }
@@ -1483,6 +1494,9 @@
                     "type": "string"
                 },
                 "score": {
+                    "type": "integer"
+                },
+                "totalScore": {
                     "type": "integer"
                 },
                 "type": {
@@ -1706,6 +1720,7 @@
         },
         "models.JobStatus": {
             "type": "integer",
+            "format": "int64",
             "enum": [
                 260,
                 261,
@@ -1938,7 +1953,8 @@
                 "stages": {
                     "type": "object",
                     "additionalProperties": {
-                        "type": "integer"
+                        "type": "integer",
+                        "format": "int64"
                     }
                 }
             }
