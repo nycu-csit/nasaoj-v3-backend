@@ -12,10 +12,12 @@ const (
 type Submission struct {
 	bun.BaseModel `bun:"table:submission"`
 
-	Id      int64   `json:"id" bun:"id,pk,autoincrement"`
-	RefSHA1 string  `json:"refSHA1" bun:"ref_sha1"`
-	RefId   int64   `json:"refId" bun:"ref_id"`
-	Type    RefType `json:"type" bun:"type"`
+	Id          int64   `json:"id" bun:"id,pk,autoincrement"`
+	ProblemSHA1 string  `json:"problemSHA1" bun:"problem_sha1"`
+	ProblemId   int64   `json:"problemId" bun:"problem_id"`
+	ToolSHA1    string  `json:"toolSHA1" bun:"tool_sha1"`
+	ToolId      int64   `json:"toolId" bun:"tool_id"`
+	Type        RefType `json:"type" bun:"type"`
 
 	CsId      string            `json:"csId" bun:"cs_id"`
 	CreatedAt int64             `json:"createdAt" bun:"created_at"`
@@ -24,5 +26,7 @@ type Submission struct {
 
 	Score Score `json:",inline" bun:"embed:score_"`
 
+	// Problem *ProblemMarshaled `bun:"rel:belongs-to,join:problem_sha1=sha1"`
+	// Tool    *ToolMarshaled    `bun:"rel:belongs-to,join:tool_sha1=sha1`
 	Jobs []*Job `bun:"rel:has-many,join:id=sub_id"`
 }

@@ -329,6 +329,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
+                        "format": "int64",
                         "description": "Submission Id",
                         "name": "subId",
                         "in": "query",
@@ -362,6 +363,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
+                        "format": "int64",
                         "default": 0,
                         "description": "Page number, one page is 20 submissions",
                         "name": "pageNum",
@@ -375,6 +377,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
+                        "format": "int64",
                         "description": "Filter by RefId",
                         "name": "refId",
                         "in": "query"
@@ -1012,6 +1015,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
+                        "format": "int64",
                         "default": 0,
                         "description": "Page number, one page is 20 submissions",
                         "name": "pageNum",
@@ -1019,6 +1023,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
+                        "format": "int64",
                         "description": "Filter by RefId",
                         "name": "refId",
                         "in": "query"
@@ -1344,6 +1349,9 @@ const docTemplate = `{
                 },
                 "tag": {
                     "type": "string"
+                },
+                "totalScore": {
+                    "type": "integer"
                 }
             }
         },
@@ -1430,6 +1438,9 @@ const docTemplate = `{
                 "score": {
                     "type": "integer"
                 },
+                "totalScore": {
+                    "type": "integer"
+                },
                 "type": {
                     "$ref": "#/definitions/models.RefType"
                 }
@@ -1491,6 +1502,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "score": {
+                    "type": "integer"
+                },
+                "totalScore": {
                     "type": "integer"
                 },
                 "type": {
@@ -1714,6 +1728,7 @@ const docTemplate = `{
         },
         "models.JobStatus": {
             "type": "integer",
+            "format": "int64",
             "enum": [
                 260,
                 261,
@@ -1946,7 +1961,8 @@ const docTemplate = `{
                 "stages": {
                     "type": "object",
                     "additionalProperties": {
-                        "type": "integer"
+                        "type": "integer",
+                        "format": "int64"
                     }
                 }
             }

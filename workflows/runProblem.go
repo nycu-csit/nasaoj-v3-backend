@@ -21,11 +21,11 @@ func RunProblem(
 
 	submission models.Submission,
 ) error {
-	problem, err := problems.GetProblem(ctx, submission.RefSHA1)
+	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("problem not exist",
-				zap.String("problem", submission.RefSHA1),
+				zap.String("problem", submission.ProblemSHA1),
 				zap.Error(err))
 		return err
 	}
@@ -33,7 +33,7 @@ func RunProblem(
 	tracing.Logger.Ctx(ctx).
 		Info("run problem",
 			zap.String("problem.name", problem.Name),
-			zap.String("problem.sha1", submission.RefSHA1))
+			zap.String("problem.sha1", submission.ProblemSHA1))
 
 	// Calc dependency count (indegree of the stages)
 	stageDeps := make(map[string]int)
@@ -59,7 +59,7 @@ func RunProblem(
 			if err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to run stage",
-						zap.String("problem.sha1", submission.RefSHA1),
+						zap.String("problem.sha1", submission.ProblemSHA1),
 						zap.String("stage.name", stageName),
 						zap.Error(err))
 				return err

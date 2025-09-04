@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -8,7 +9,9 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
 )
 
 type SubmissionsOutputSubmission struct {
@@ -17,9 +20,10 @@ type SubmissionsOutputSubmission struct {
 	RefId   int64          `json:"refId"`
 	Type    models.RefType `json:"type"`
 
-	CsId      string `json:"csId"`
-	CreatedAt int64  `json:"createdAt"`
-	Score     int64  `json:"score"`
+	CsId       string `json:"csId"`
+	CreatedAt  int64  `json:"createdAt"`
+	Score      int64  `json:"score"`
+	TotalScore int64  `json:"totalScore"`
 }
 
 type SubmissionsOutput struct {
@@ -53,6 +57,7 @@ func getAdminSubmissionsPlaceHolder() {}
 //	@Router		/api/submissions [get]
 func GetSubmissions(
 	db interfaces.Database,
+	problems interfaces.ProblemStorage,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -142,18 +147,51 @@ func GetSubmissions(
 		}
 
 		submissions := []SubmissionsOutputSubmission{}
+		sha1s := []string{}
 		for _, sub := range subs {
 			output := SubmissionsOutputSubmission{
-				Id:      sub.Id,
-				RefSHA1: sub.RefSHA1,
-				RefId:   sub.RefId,
-				Type:    sub.Type,
+				Id:   sub.Id,
+				Type: sub.Type,
 
 				CsId:      sub.CsId,
 				CreatedAt: sub.CreatedAt,
 				Score:     sub.Score.Score,
 			}
+			switch sub.Type {
+			case models.RefTypeProblem:
+				output.RefSHA1 = sub.ProblemSHA1
+				output.RefId = sub.ProblemId
+				sha1s = append(sha1s, output.RefSHA1)
+			case models.RefTypeTool:
+				output.RefSHA1 = sub.ToolSHA1
+				output.RefId = sub.ToolId
+			}
 			submissions = append(submissions, output)
+		}
+
+		scores, err := problems.GetProblemScores(ctx, sha1s)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to query problem scores",
+				OriginError: err,
+			}
+		}
+
+		tracing.Logger.Ctx(ctx).
+			Info("nmsl",
+				zap.String("scores", fmt.Sprintf("%+##v", scores)))
+		for i, submission := range submissions {
+			if submission.Type == models.RefTypeProblem {
+				score, ok := scores[submission.RefSHA1]
+				if !ok {
+					return middlewares.HTTPError{
+						StatusCode: http.StatusInternalServerError,
+						Message:    "failed to find total score",
+					}
+				}
+				submissions[i].TotalScore = score
+			}
 		}
 		return bunrouter.JSON(w, SubmissionsOutput{
 			PageSize:    pageSize,

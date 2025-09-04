@@ -71,6 +71,8 @@ definitions:
         type: object
       tag:
         type: string
+      totalScore:
+        type: integer
     type: object
   api.PutContentFilesInput:
     properties:
@@ -126,6 +128,8 @@ definitions:
         type: string
       score:
         type: integer
+      totalScore:
+        type: integer
       type:
         $ref: '#/definitions/models.RefType'
     type: object
@@ -166,6 +170,8 @@ definitions:
       refSHA1:
         type: string
       score:
+        type: integer
+      totalScore:
         type: integer
       type:
         $ref: '#/definitions/models.RefType'
@@ -317,6 +323,7 @@ definitions:
     - 461
     - 462
     - 560
+    format: int64
     type: integer
     x-enum-varnames:
     - StatusPending
@@ -466,6 +473,7 @@ definitions:
         type: integer
       stages:
         additionalProperties:
+          format: int64
           type: integer
         type: object
     type: object
@@ -676,6 +684,7 @@ paths:
     delete:
       parameters:
       - description: Submission Id
+        format: int64
         in: query
         name: subId
         required: true
@@ -698,6 +707,7 @@ paths:
       parameters:
       - default: 0
         description: Page number, one page is 20 submissions
+        format: int64
         in: query
         name: pageNum
         type: integer
@@ -706,6 +716,7 @@ paths:
         name: csId
         type: string
       - description: Filter by RefId
+        format: int64
         in: query
         name: refId
         type: integer
@@ -1111,10 +1122,12 @@ paths:
       parameters:
       - default: 0
         description: Page number, one page is 20 submissions
+        format: int64
         in: query
         name: pageNum
         type: integer
       - description: Filter by RefId
+        format: int64
         in: query
         name: refId
         type: integer

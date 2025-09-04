@@ -132,7 +132,7 @@ type Database interface {
 
 	GetProblemById(
 		ctx context.Context,
-		problemId models.ProblemIdType,
+		problemId int64,
 	) (models.Problem, error)
 
 	HydrateProblem(
@@ -148,6 +148,11 @@ type Database interface {
 	GetProblems(
 		ctx context.Context,
 	) (map[string]models.Problem, error)
+
+	GetProblemScores(
+		ctx context.Context,
+		sha1s []string,
+	) (map[string]int64, error)
 
 	GetAllProblems(
 		ctx context.Context,
@@ -196,7 +201,7 @@ type Database interface {
 
 	GetToolById(
 		ctx context.Context,
-		problemId models.ProblemIdType,
+		problemId int64,
 	) (models.Tool, error)
 
 	GetTools(

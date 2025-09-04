@@ -9,13 +9,13 @@ import (
 type JobQueue interface {
 	GetJob(
 		ctx context.Context,
-		tag models.TagType,
+		tag string,
 	) (models.Job, error)
 
 	PutJob(
 		ctx context.Context,
 		job models.Job,
-		tag models.TagType,
+		tag string,
 	) error
 
 	SetJobCnt(

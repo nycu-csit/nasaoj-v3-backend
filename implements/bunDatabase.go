@@ -378,11 +378,16 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 	if isPageNum {
 		query = query.Offset(pageNum * pageSize)
 	}
-	if isRefId {
-		query = query.Where("ref_id = ?", refId)
-	}
 	if isRefType {
 		query = query.Where("type = ?", refType)
+		if isRefId {
+			switch refType {
+			case models.RefTypeProblem:
+				query = query.Where("problem_id = ?", refId)
+			case models.RefTypeTool:
+				query = query.Where("tool_id = ?", refId)
+			}
+		}
 	}
 
 	var ret []models.Submission
@@ -390,6 +395,43 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 		Model(&ret).
 		ScanAndCount(ctx)
 	return ret, count, err
+}
+
+func (self *BunDatabase) GetProblemScores(
+	ctx context.Context,
+	sha1s []string,
+) (map[string]int64, error) {
+	ret := make(map[string]int64)
+	err := self.db.RunInTx(ctx, &sql.TxOptions{},
+		func(ctx context.Context, tx bun.Tx) error {
+			for _, sha1 := range sha1s {
+				problemMarshaled := models.ProblemMarshaled{
+					SHA1: sha1,
+				}
+				err := tx.NewSelect().
+					Model(&problemMarshaled).
+					Column("payload").
+					WherePK().
+					Scan(ctx)
+				if err != nil {
+					return err
+				}
+
+				problem, err := problemMarshaled.Unmarshal()
+				if err != nil {
+					tracing.Logger.Ctx(ctx).
+						Error("failed to unmarshal json to problem",
+							zap.Error(err))
+					return err
+				}
+				ret[sha1] = problem.TotalScore
+			}
+			return nil
+		})
+	if err != nil {
+		return map[string]int64{}, err
+	}
+	return ret, nil
 }
 
 func (self *BunDatabase) GetUsers(

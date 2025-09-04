@@ -53,8 +53,9 @@ var submissionsCmd = &cobra.Command{
 		}
 
 		io.WriteString(os.Stdout, string(b[:]))
-		fmt.Printf("page: %d/%d\n", pageNum+1,
-			((output.PageSize-1)+output.TotalRowCnt)/output.PageSize)
+		totalPage := int64(
+			((output.PageSize - 1) + output.TotalRowCnt) / output.PageSize)
+		fmt.Printf("page: %d/%d\n", min(pageNum+1, totalPage), totalPage)
 	},
 }
 

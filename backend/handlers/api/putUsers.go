@@ -14,7 +14,7 @@ import (
 
 // PutUsers
 //
-//	@Param		request	body []models.UserResource true "User resources"
+//	@Param		request	body	[]models.UserResource	true	"User resources"
 //	@Accept		json
 //	@Success	200	{object}	string	"success"
 //	@Failure	401	{object}	string

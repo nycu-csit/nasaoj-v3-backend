@@ -77,3 +77,10 @@ func (self *DBProblemStorage) HydrateProblem(
 ) error {
 	return self.db.HydrateProblem(ctx, problem)
 }
+
+func (self *DBProblemStorage) GetProblemScores(
+	ctx context.Context,
+	sha1s []string,
+) (map[string]int64, error) {
+	return self.db.GetProblemScores(ctx, sha1s)
+}

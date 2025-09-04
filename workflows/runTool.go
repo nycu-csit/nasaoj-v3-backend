@@ -23,11 +23,11 @@ func RunTool(
 
 	submission models.Submission,
 ) error {
-	tool, err := tools.GetTool(ctx, submission.RefSHA1)
+	tool, err := tools.GetTool(ctx, submission.ToolSHA1)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("tool not exist",
-				zap.String("tool.sha1", submission.RefSHA1),
+				zap.String("tool.sha1", submission.ToolSHA1),
 				zap.Error(err))
 		return err
 	}
@@ -42,7 +42,7 @@ func RunTool(
 	tracing.Logger.Ctx(ctx).
 		Info("run tool",
 			zap.String("tool.name", tool.Name),
-			zap.String("tool.sha1", submission.RefSHA1))
+			zap.String("tool.sha1", submission.ToolSHA1))
 
 	contents := []models.Content{
 		tool.PreScript,

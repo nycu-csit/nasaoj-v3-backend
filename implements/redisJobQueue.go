@@ -18,13 +18,13 @@ func NewRedisJobQueue(rdb *redis.Client) *RedisJobQueue {
 	return &RedisJobQueue{rdb: rdb}
 }
 
-func (self *RedisJobQueue) QueueKey(tag models.TagType) string {
+func (self *RedisJobQueue) QueueKey(tag string) string {
 	return "queue-" + tag
 }
 
 func (self *RedisJobQueue) GetJob(
 	ctx context.Context,
-	tag models.TagType,
+	tag string,
 ) (models.Job, error) {
 	jobkey, err := self.rdb.RPop(ctx, self.QueueKey(tag)).Result()
 	if err != nil {
@@ -51,7 +51,7 @@ func (self *RedisJobQueue) GetJob(
 func (self *RedisJobQueue) PutJob(
 	ctx context.Context,
 	job models.Job,
-	tag models.TagType,
+	tag string,
 ) error {
 	b, err := json.Marshal(job)
 	if err != nil {

@@ -13,8 +13,8 @@ import (
 //	@Param		problemSHA1	query	string	true	"problem sha1"
 //	@Produce	json
 //	@Success	200	{object}	ProblemOutput
-//	@Failure 400 {object} string
-//	@Failure 401 {object} string
+//	@Failure	400	{object}	string
+//	@Failure	401	{object}	string
 //	@Router		/api/problem [get]
 func GetProblem(
 	problems interfaces.ProblemStorage,
@@ -47,6 +47,7 @@ func GetProblem(
 			Description: problem.Description,
 			Stages:      make(map[string]problemOutputStage),
 			Tag:         problem.Tag,
+			TotalScore:  problem.TotalScore,
 			IsEnabled:   problem.IsEnabled,
 		}
 		for stageName, stage := range problem.Stages {
