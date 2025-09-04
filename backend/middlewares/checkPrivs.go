@@ -38,7 +38,7 @@ func CheckPrivs(
 				if reflect.ValueOf(reqPrivs).Field(i).Interface().(int) >
 					reflect.ValueOf(privs).Field(i).Interface().(int) {
 					return HTTPError{
-						StatusCode: http.StatusUnauthorized,
+						StatusCode: http.StatusForbidden,
 						Message:    fmt.Sprintf("privs '%s' not met", field.Name),
 					}
 				}
