@@ -16,12 +16,13 @@ type problem struct {
 
 	Name        string            `yaml:"name"`
 	Description string            `yaml:"description"`
+	PdfUrl      string            `yaml:"pdfUrl"`
 	Stages      map[string]Stage  `yaml:"stages"`
 	Args        map[string]string `yaml:"args"`
 	Tag         TagType           `yaml:"tag"`
 	PreScript   Content           `yaml:"preScript"`
 	PostScript  Content           `yaml:"postScript"`
-	// IsTool      bool              `yaml:"isTool"`
+	Deadline    int64             `yaml:"deadline"`
 }
 
 type Problem struct {
@@ -62,9 +63,11 @@ func (self *Problem) ToModelProblem(
 
 		Name:        self.Name,
 		Description: self.Description,
+		PdfUrl:      self.PdfUrl,
 		Stages:      make(map[string]models.Stage),
 		Args:        self.Args,
 		Tag:         self.Tag,
+		Deadline:    self.Deadline,
 	}
 
 	if res, err := self.PreScript.ToModelContent(ctx, contentFiles); err == nil {

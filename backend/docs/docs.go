@@ -1323,6 +1323,9 @@ const docTemplate = `{
         "api.ProblemOutput": {
             "type": "object",
             "properties": {
+                "deadline": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -1333,6 +1336,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "pdfUrl": {
                     "type": "string"
                 },
                 "problemId": {
@@ -1779,10 +1785,16 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "deadline": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "pdfUrl": {
                     "type": "string"
                 },
                 "postScript": {

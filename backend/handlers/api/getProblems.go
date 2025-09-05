@@ -26,10 +26,12 @@ type ProblemOutput struct {
 
 	Name        string                        `json:"name"`
 	Description string                        `json:"description"`
+	PdfUrl      string                        `json:"pdfUrl"`
 	Stages      map[string]problemOutputStage `json:"stages"`
 	Tag         string                        `json:"tag"`
 	TotalScore  int64                         `json:"totalScore"`
 	IsEnabled   bool                          `json:"isEnabled"`
+	Deadline    int64                         `json:"deadline"`
 }
 
 // GetAdminProblems
@@ -76,10 +78,12 @@ func GetProblems(
 				ImportedAt:  problem.ImportedAt,
 				ProblemId:   problem.ProblemId,
 				Description: problem.Description,
+				PdfUrl:      problem.PdfUrl,
 				Stages:      make(map[string]problemOutputStage),
 				Tag:         problem.Tag,
 				TotalScore:  problem.TotalScore,
 				IsEnabled:   problem.IsEnabled,
+				Deadline:    problem.Deadline,
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{
