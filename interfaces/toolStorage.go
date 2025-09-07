@@ -30,24 +30,14 @@ type ToolStorage interface {
 		ctx context.Context,
 	) (map[string]models.Tool, error)
 
-	PutToolState(
+	UpdateToolState(
 		ctx context.Context,
 		sha1 string,
 		isEnabled bool,
 	) error
 
-	InsertContentFiles(
+	DeleteToolAndSubmissions(
 		ctx context.Context,
-		contentFiles []models.ContentFile,
-	) error
-
-	GetContentFiles(
-		ctx context.Context,
-		sha1s []string,
-	) ([]models.ContentFile, error)
-
-	HydrateTool(
-		ctx context.Context,
-		tool *models.Tool,
+		sha1 string,
 	) error
 }

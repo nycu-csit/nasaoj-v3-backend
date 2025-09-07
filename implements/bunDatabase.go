@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"text/template"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -116,7 +115,7 @@ func (self *BunDatabase) UpdateJob(
 	return err
 }
 
-func (self *BunDatabase) InsertProblemSubmission(
+func (self *BunDatabase) InsertSubmissionByProblem(
 	ctx context.Context,
 	submission *models.Submission,
 	problem models.Problem,
@@ -139,14 +138,19 @@ func (self *BunDatabase) InsertProblemSubmission(
 					Status: models.StatusBlocked,
 				}
 
-				_, err = tx.NewInsert().Model(&job).Exec(ctx)
+				_, err = tx.NewInsert().
+					Model(&job).
+					Exec(ctx)
 				if err != nil {
 					return err
 				}
 			}
 		}
 
-		_, err = tx.NewUpdate().Model(submission).WherePK().Exec(ctx)
+		_, err = tx.NewUpdate().
+			Model(submission).
+			WherePK().
+			Exec(ctx)
 		if err != nil {
 			return err
 		}
@@ -155,7 +159,7 @@ func (self *BunDatabase) InsertProblemSubmission(
 	})
 }
 
-func (self *BunDatabase) InsertToolSubmission(
+func (self *BunDatabase) InsertSubmissionByTool(
 	ctx context.Context,
 	submission *models.Submission,
 	tool models.Tool,
@@ -406,43 +410,6 @@ func (self *BunDatabase) GetSubmissionsAndCount(
 	return ret, count, err
 }
 
-func (self *BunDatabase) GetProblemScores(
-	ctx context.Context,
-	sha1s []string,
-) (map[string]int64, error) {
-	ret := make(map[string]int64)
-	err := self.db.RunInTx(ctx, &sql.TxOptions{},
-		func(ctx context.Context, tx bun.Tx) error {
-			for _, sha1 := range sha1s {
-				problemMarshaled := models.ProblemMarshaled{
-					SHA1: sha1,
-				}
-				err := tx.NewSelect().
-					Model(&problemMarshaled).
-					Column("payload").
-					WherePK().
-					Scan(ctx)
-				if err != nil {
-					return err
-				}
-
-				problem, err := problemMarshaled.Unmarshal()
-				if err != nil {
-					tracing.Logger.Ctx(ctx).
-						Error("failed to unmarshal json to problem",
-							zap.Error(err))
-					return err
-				}
-				ret[sha1] = problem.TotalScore
-			}
-			return nil
-		})
-	if err != nil {
-		return map[string]int64{}, err
-	}
-	return ret, nil
-}
-
 func (self *BunDatabase) GetUsers(
 	ctx context.Context,
 ) ([]models.UserResource, error) {
@@ -537,460 +504,6 @@ func (self *BunDatabase) GetProblems(
 	return ret, nil
 }
 
-func (self *BunDatabase) GetTools(
-	ctx context.Context,
-) (map[string]models.Tool, error) {
-	var toolsMarshaled []models.ToolMarshaled
-	err := self.db.NewSelect().
-		Model(&toolsMarshaled).
-		OrderExpr("tool_id, sha1").
-		DistinctOn("tool_id").
-		Where("is_enabled = ?", true).
-		Scan(ctx)
-	if err != nil {
-		return map[string]models.Tool{}, err
-	}
-
-	ret := make(map[string]models.Tool)
-	for _, tool := range toolsMarshaled {
-		ret[tool.SHA1], err = tool.Unmarshal()
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to unmarshal tool",
-					zap.String("tool.sha1", tool.SHA1),
-					zap.Error(err))
-		}
-	}
-	return ret, nil
-}
-
-func (self *BunDatabase) GetProblem(
-	ctx context.Context,
-	sha1 string,
-) (models.Problem, error) {
-	var problemMarshaled models.ProblemMarshaled
-	err := self.db.NewSelect().
-		Model(&problemMarshaled).
-		Where("sha1 = ?", sha1).
-		Scan(ctx)
-	if err != nil {
-		return models.Problem{}, err
-	}
-
-	return problemMarshaled.Unmarshal()
-}
-
-func (self *BunDatabase) GetTool(
-	ctx context.Context,
-	sha1 string,
-) (models.Tool, error) {
-	var toolMarshaled models.ToolMarshaled
-	err := self.db.NewSelect().
-		Model(&toolMarshaled).
-		Where("sha1 = ?", sha1).
-		Scan(ctx)
-	if err != nil {
-		return models.Tool{}, err
-	}
-
-	return toolMarshaled.Unmarshal()
-}
-
-func (self *BunDatabase) GetProblemById(
-	ctx context.Context,
-	problemId int64,
-) (models.Problem, error) {
-	var problemMarshaled models.ProblemMarshaled
-	err := self.db.NewSelect().
-		Model(&problemMarshaled).
-		Where("problem_id = ?", problemId).
-		Where("is_enabled = ?", true).
-		Scan(ctx)
-	if err != nil {
-		return models.Problem{}, err
-	}
-
-	return problemMarshaled.Unmarshal()
-}
-
-func (self *BunDatabase) GetToolById(
-	ctx context.Context,
-	toolId int64,
-) (models.Tool, error) {
-	var toolMarshaled models.ToolMarshaled
-	err := self.db.NewSelect().
-		Model(&toolMarshaled).
-		Where("tool_id = ?", toolId).
-		Where("is_enabled = ?", true).
-		Scan(ctx)
-	if err != nil {
-		return models.Tool{}, err
-	}
-	return toolMarshaled.Unmarshal()
-}
-
-func (self *BunDatabase) GetAllProblems(
-	ctx context.Context,
-) (map[string]models.Problem, error) {
-	var problemsMarshaled []models.ProblemMarshaled
-	err := self.db.NewSelect().
-		Model(&problemsMarshaled).
-		Scan(ctx)
-	if err != nil {
-		return map[string]models.Problem{}, err
-	}
-
-	ret := make(map[string]models.Problem)
-	for _, problem := range problemsMarshaled {
-		ret[problem.SHA1], err = problem.Unmarshal()
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to unmarshal problem",
-					zap.String("problem.sha1", problem.SHA1),
-					zap.Error(err))
-			return map[string]models.Problem{}, err
-		}
-	}
-	return ret, nil
-}
-
-func (self *BunDatabase) GetAllTools(
-	ctx context.Context,
-) (map[string]models.Tool, error) {
-	var toolsMarshaled []models.ToolMarshaled
-	err := self.db.NewSelect().
-		Model(&toolsMarshaled).
-		Scan(ctx)
-	if err != nil {
-		return map[string]models.Tool{}, err
-	}
-
-	ret := make(map[string]models.Tool)
-	for _, tool := range toolsMarshaled {
-		ret[tool.SHA1], err = tool.Unmarshal()
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to unmarshal tool",
-					zap.String("tool.sha1", tool.SHA1),
-					zap.Error(err))
-			return map[string]models.Tool{}, err
-		}
-	}
-	return ret, nil
-}
-
-func (self *BunDatabase) InsertProblem(
-	ctx context.Context,
-	problem models.Problem,
-) error {
-	problemMarshaled, err := problem.Marshal()
-	if err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to marshal problem",
-				zap.String("problem.name", problem.Name),
-				zap.Error(err))
-		return err
-	}
-
-	_, err = self.db.NewInsert().
-		Model(&problemMarshaled).
-		On("CONFLICT (sha1) DO NOTHING").
-		Exec(ctx)
-	return err
-}
-
-func (self *BunDatabase) InsertContentFiles(
-	ctx context.Context,
-	contentFiles []models.ContentFile,
-) error {
-	if contentFiles == nil {
-		return nil
-	}
-	_, err := self.db.NewInsert().
-		Model(&contentFiles).
-		On("CONFLICT (sha1) DO NOTHING").
-		Exec(ctx)
-	return err
-}
-
-func (self *BunDatabase) GetContentFiles(
-	ctx context.Context,
-	sha1s []string,
-) ([]models.ContentFile, error) {
-	var res []models.ContentFile
-	err := self.db.NewSelect().
-		Model(&res).
-		Where("sha1 IN (?)", bun.In(sha1s)).
-		Scan(ctx)
-	if err != nil {
-		return []models.ContentFile{}, err
-	}
-
-	var ret []models.ContentFile
-	for _, contentFile := range res {
-		if contentFile.IsTemplate {
-			contentFile.Template, err = template.New(contentFile.Name).
-				Parse(contentFile.Payload)
-			if err != nil {
-				tracing.Logger.Ctx(ctx).
-					Error("failed to template file",
-						zap.String("file.name", contentFile.Name),
-						zap.Error(err))
-				return []models.ContentFile{}, err
-			}
-		}
-		ret = append(ret, contentFile)
-	}
-	return ret, nil
-}
-
-func (self *BunDatabase) GetAllContentFiles(
-	ctx context.Context,
-) ([]models.ContentFile, error) {
-	var ret []models.ContentFile
-	err := self.db.NewSelect().
-		Model(&ret).
-		Scan(ctx)
-	if err != nil {
-		return []models.ContentFile{}, err
-	}
-
-	for i, contentFile := range ret {
-		if contentFile.IsTemplate {
-			ret[i].Template, err = template.New(contentFile.Name).
-				Parse(contentFile.Payload)
-			if err != nil {
-				tracing.Logger.Ctx(ctx).
-					Error("failed to template file",
-						zap.String("file.name", contentFile.Name),
-						zap.Error(err))
-				return []models.ContentFile{}, err
-			}
-		}
-	}
-	return ret, nil
-}
-
-func (self *BunDatabase) InsertTool(
-	ctx context.Context,
-	tool models.Tool,
-) error {
-	toolMarshaled, err := tool.Marshal()
-	if err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to marshal tool",
-				zap.String("tool.name", tool.Name),
-				zap.Error(err))
-		return err
-	}
-
-	_, err = self.db.NewInsert().
-		Model(&toolMarshaled).
-		On("CONFLICT (sha1) DO NOTHING").
-		Exec(ctx)
-	return err
-}
-
-func (self *BunDatabase) UpdateProblem(
-	ctx context.Context,
-	sha1 string,
-	enable bool,
-) error {
-	if enable {
-		return self.db.RunInTx(ctx, &sql.TxOptions{},
-			func(ctx context.Context, tx bun.Tx) error {
-				problem := models.ProblemMarshaled{SHA1: sha1}
-				err := tx.NewSelect().
-					Column("sha1", "problem_id", "is_enabled").
-					Model(&problem).
-					WherePK().
-					Scan(ctx)
-				if err != nil {
-					return err
-				}
-				_, err = tx.NewUpdate().
-					Model((*models.ProblemMarshaled)(nil)).
-					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
-					Where("problem_id = ?", problem.ProblemId).
-					Exec(ctx)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
-	} else {
-		_, err := self.db.NewUpdate().
-			Model((*models.ProblemMarshaled)(nil)).
-			Where("sha1 = ?", sha1).
-			Set("is_enabled = ?", false).
-			Exec(ctx)
-		return err
-	}
-}
-
-func (self *BunDatabase) UpdateTool(
-	ctx context.Context,
-	sha1 string,
-	enable bool,
-) error {
-	if enable {
-		return self.db.RunInTx(ctx, &sql.TxOptions{},
-			func(ctx context.Context, tx bun.Tx) error {
-				var tool models.ToolMarshaled
-				err := tx.NewSelect().
-					Model(&tool).
-					Where("sha1 = ?", sha1).
-					Scan(ctx)
-				if err != nil {
-					return err
-				}
-				_, err = tx.NewUpdate().
-					Model((*models.ToolMarshaled)(nil)).
-					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
-					Where("tool_id = ?", tool.ToolId).
-					Exec(ctx)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
-	} else {
-		_, err := self.db.NewUpdate().
-			Model((*models.ToolMarshaled)(nil)).
-			Where("sha1 = ?", sha1).
-			Set("is_enabled = ?", false).
-			Exec(ctx)
-		return err
-	}
-}
-
-func (self *BunDatabase) HydrateContentFiles(
-	ctx context.Context,
-	contentFiles *[]models.ContentFile,
-) error {
-	var sha1s []string
-	for _, file := range *contentFiles {
-		sha1s = append(sha1s, file.SHA1)
-	}
-
-	res, err := self.GetContentFiles(ctx, sha1s)
-	if err != nil {
-		return err
-	}
-	*contentFiles = res
-	return nil
-}
-
-func (self *BunDatabase) HydrateTool(
-	ctx context.Context,
-	tool *models.Tool,
-) error {
-	if err := self.HydrateContentFiles(
-		ctx, &tool.PreScript.Files); err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to hydrate tool prescript",
-				zap.Error(err))
-		return err
-	}
-	if err := self.HydrateContentFiles(
-		ctx, &tool.PostScript.Files); err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to hydrate tool postscript",
-				zap.Error(err))
-	}
-	if err := self.HydrateContentFiles(
-		ctx, &tool.Testcase.Content.Files); err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to hydrate tool testcase content",
-				zap.Error(err))
-	}
-	return nil
-}
-
-func (self *BunDatabase) HydrateProblem(
-	ctx context.Context,
-	problem *models.Problem,
-) error {
-	if err := self.HydrateContentFiles(
-		ctx, &problem.PreScript.Files); err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to hydrate problem prescript",
-				zap.Error(err))
-		return err
-	}
-	if err := self.HydrateContentFiles(
-		ctx, &problem.PostScript.Files); err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to hydrate problem postscript",
-				zap.Error(err))
-		return err
-	}
-
-	for stageName, stage := range problem.Stages {
-		if err := self.HydrateContentFiles(
-			ctx, &stage.PreScript.Files); err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to hydrate stage prescript",
-					zap.Error(err))
-			return err
-		}
-		if err := self.HydrateContentFiles(
-			ctx, &stage.PostScript.Files); err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to hydrate stage postscript",
-					zap.Error(err))
-			return err
-		}
-
-		for i := range stage.Testcases {
-			if err := self.HydrateContentFiles(ctx,
-				&stage.Testcases[i].Content.Files); err != nil {
-				tracing.Logger.Ctx(ctx).
-					Error("failed to hydrate content files",
-						zap.Error(err))
-				return err
-			}
-		}
-		problem.Stages[stageName] = stage
-	}
-	return nil
-}
-
-func (self *BunDatabase) EnableAllProblem(
-	ctx context.Context,
-) error {
-	_, err := self.db.NewUpdate().
-		Model((*models.ProblemMarshaled)(nil)).
-		Set("is_enabled = ?", true).
-		Where("is_enabled = ?", false).
-		Exec(ctx)
-	return err
-}
-
-func (self *BunDatabase) DeleteProblemAndSubmissions(
-	ctx context.Context,
-	sha1 string,
-) error {
-	return self.db.RunInTx(ctx, &sql.TxOptions{},
-		func(ctx context.Context, tx bun.Tx) error {
-			_, err := tx.NewDelete().
-				Model((*models.ProblemMarshaled)(nil)).
-				Where("sha1 = ?", sha1).
-				Exec(ctx)
-			if err != nil {
-				return err
-			}
-			_, err = tx.NewDelete().
-				Model((*models.Submission)(nil)).
-				Where("ref_sha1 = ?", sha1).
-				Exec(ctx)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-}
-
 func (self *BunDatabase) DeleteSubmission(
 	ctx context.Context,
 	subId int64,
@@ -1029,30 +542,6 @@ func (self *BunDatabase) DeleteUserAndSubmissions(
 			_, err = tx.NewDelete().
 				Model((*models.Submission)(nil)).
 				Where("cs_id = ?", csId).
-				Exec(ctx)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-}
-
-func (self *BunDatabase) DeleteToolAndSubmissions(
-	ctx context.Context,
-	sha1 string,
-) error {
-	return self.db.RunInTx(ctx, &sql.TxOptions{},
-		func(ctx context.Context, tx bun.Tx) error {
-			_, err := tx.NewDelete().
-				Model((*models.ToolMarshaled)(nil)).
-				Where("sha1 = ?", sha1).
-				Exec(ctx)
-			if err != nil {
-				return err
-			}
-			_, err = tx.NewDelete().
-				Model((*models.Submission)(nil)).
-				Where("ref_sha1 = ?", sha1).
 				Exec(ctx)
 			if err != nil {
 				return err

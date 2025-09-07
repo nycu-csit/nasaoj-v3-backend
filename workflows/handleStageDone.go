@@ -17,6 +17,7 @@ func HandleStageDone(
 	jobQue interfaces.JobQueue,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	contents interfaces.ContentFileStorage,
 	tokens interfaces.TokenStorage,
 
 	job models.Job,
@@ -76,7 +77,8 @@ func HandleStageDone(
 		}
 
 		if jobdep <= 0 {
-			err = RunStage(ctx, jobQue, db, s3, problems, tokens, submission, next)
+			err = RunStage(ctx, jobQue, db, s3, problems, contents, tokens,
+				submission, next)
 			if err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to run stage",

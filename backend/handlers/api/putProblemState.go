@@ -54,7 +54,7 @@ func PutProblemState(
 		span.SetAttributes(
 			attribute.String("problem.sha1", input.ProblemSHA1))
 
-		if err = problems.PutProblemState(
+		if err = problems.UpdateProblemState(
 			ctx, input.ProblemSHA1, input.IsEnabled); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,

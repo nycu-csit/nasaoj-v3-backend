@@ -22,6 +22,7 @@ func PutScheduleResult(
 	workers interfaces.WorkerStatusStorage,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	contents interfaces.ContentFileStorage,
 	tokens interfaces.TokenStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -101,7 +102,7 @@ func PutScheduleResult(
 
 		if job.Status == models.StatusSuccess {
 			err = workflows.HandleStageDone(
-				ctx, db, jobQue, s3, problems, tokens, job)
+				ctx, db, jobQue, s3, problems, contents, tokens, job)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,

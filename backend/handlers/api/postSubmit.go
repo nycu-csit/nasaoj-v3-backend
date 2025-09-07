@@ -67,6 +67,7 @@ func PostSubmit(
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
 	tools interfaces.ToolStorage,
+	contents interfaces.ContentFileStorage,
 	tokens interfaces.TokenStorage,
 
 	isAdmin bool,
@@ -194,7 +195,7 @@ func PostSubmit(
 				submission.Args[key] = val
 			}
 
-			if err := db.InsertProblemSubmission(
+			if err := db.InsertSubmissionByProblem(
 				ctx, &submission, problem); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -203,8 +204,8 @@ func PostSubmit(
 				}
 			}
 
-			if err := workflows.RunProblem(
-				ctx, jobQue, db, s3, problems, tokens, submission); err != nil {
+			if err := workflows.RunProblem(ctx, jobQue, db, s3, problems, contents,
+				tokens, submission); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to run problem",
@@ -283,7 +284,7 @@ func PostSubmit(
 				submission.Args[key] = val
 			}
 
-			if err := db.InsertToolSubmission(ctx, &submission, tool); err != nil {
+			if err := db.InsertSubmissionByTool(ctx, &submission, tool); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to insert tool submission",
@@ -291,8 +292,8 @@ func PostSubmit(
 				}
 			}
 
-			if err := workflows.RunTool(
-				ctx, jobQue, db, s3, tools, tokens, submission); err != nil {
+			if err := workflows.RunTool(ctx, jobQue, db, s3, tools, contents, tokens,
+				submission); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to run tool",

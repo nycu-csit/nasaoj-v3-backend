@@ -20,7 +20,7 @@ import (
 //	@Failure	401			{object}	string
 //	@Router		/api/admin/problem [delete]
 func DeleteProblem(
-	db interfaces.Database,
+	problems interfaces.ProblemStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
@@ -39,7 +39,7 @@ func DeleteProblem(
 		span.SetAttributes(
 			attribute.String("problem.sha1", problemSHA1))
 
-		if err := db.DeleteProblemAndSubmissions(ctx, problemSHA1); err != nil {
+		if err := problems.DeleteProblemAndSubmissions(ctx, problemSHA1); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "problem delete failed",

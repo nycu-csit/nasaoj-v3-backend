@@ -19,6 +19,7 @@ func RunStage(
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
+	contents interfaces.ContentFileStorage,
 	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
@@ -32,7 +33,7 @@ func RunStage(
 				zap.Error(err))
 		return err
 	}
-	if err := problems.HydrateProblem(ctx, &problem); err != nil {
+	if err := contents.HydrateProblem(ctx, &problem); err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to hydrate problem",
 				zap.Error(err))

@@ -19,6 +19,7 @@ func RunTool(
 	db interfaces.Database,
 	s3 interfaces.ObjectStorage,
 	tools interfaces.ToolStorage,
+	contentFiles interfaces.ContentFileStorage,
 	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
@@ -32,7 +33,7 @@ func RunTool(
 		return err
 	}
 
-	if err := tools.HydrateTool(ctx, &tool); err != nil {
+	if err := contentFiles.HydrateTool(ctx, &tool); err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to hydrate tool",
 				zap.Error(err))
