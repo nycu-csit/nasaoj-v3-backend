@@ -71,13 +71,13 @@ type Database interface {
 		userResources []models.UserResource,
 	) error
 
-	InsertProblemSubmission(
+	InsertSubmissionByProblem(
 		ctx context.Context,
 		submission *models.Submission,
 		problem models.Problem,
 	) error
 
-	InsertToolSubmission(
+	InsertSubmissionByTool(
 		ctx context.Context,
 		submission *models.Submission,
 		tool models.Tool,
@@ -123,109 +123,6 @@ type Database interface {
 	InvalidateSession(
 		ctx context.Context,
 		csId string,
-	) error
-
-	GetProblem(
-		ctx context.Context,
-		sha1 string,
-	) (models.Problem, error)
-
-	GetProblemById(
-		ctx context.Context,
-		problemId int64,
-	) (models.Problem, error)
-
-	HydrateProblem(
-		ctx context.Context,
-		problem *models.Problem,
-	) error
-
-	HydrateTool(
-		ctx context.Context,
-		tool *models.Tool,
-	) error
-
-	GetProblems(
-		ctx context.Context,
-	) (map[string]models.Problem, error)
-
-	GetProblemScores(
-		ctx context.Context,
-		sha1s []string,
-	) (map[string]int64, error)
-
-	GetAllProblems(
-		ctx context.Context,
-	) (map[string]models.Problem, error)
-
-	InsertProblem(
-		ctx context.Context,
-		problem models.Problem,
-	) error
-
-	DeleteProblemAndSubmissions(
-		ctx context.Context,
-		sha1 string,
-	) error
-
-	InsertContentFiles(
-		ctx context.Context,
-		contentFiles []models.ContentFile,
-	) error
-
-	GetContentFiles(
-		ctx context.Context,
-		sha1s []string,
-	) ([]models.ContentFile, error)
-
-	GetAllContentFiles(
-		ctx context.Context,
-	) ([]models.ContentFile, error)
-
-	// Update state of is_enabled
-	UpdateProblem(
-		ctx context.Context,
-		sha1 string,
-		enable bool,
-	) error
-
-	// For testing purpose
-	EnableAllProblem(
-		ctx context.Context,
-	) error
-
-	GetTool(
-		ctx context.Context,
-		sha1 string,
-	) (models.Tool, error)
-
-	GetToolById(
-		ctx context.Context,
-		problemId int64,
-	) (models.Tool, error)
-
-	GetTools(
-		ctx context.Context,
-	) (map[string]models.Tool, error)
-
-	GetAllTools(
-		ctx context.Context,
-	) (map[string]models.Tool, error)
-
-	InsertTool(
-		ctx context.Context,
-		tool models.Tool,
-	) error
-
-	UpdateTool(
-		ctx context.Context,
-		sha1 string,
-		enable bool,
-	) error
-
-	DeleteToolAndSubmissions(
-		ctx context.Context,
-		sha1 string,
 	) error
 
 	DeleteUserAndSubmissions(

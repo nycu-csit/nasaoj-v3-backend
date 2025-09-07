@@ -57,10 +57,11 @@ var stageCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
-		problems := implements.NewDBProblemStorage(db)
+		problems := implements.NewDBProblemStorage(bunDB, nil)
+		contents := implements.NewDBContentFileStorage(bunDB, nil)
 		tokens := implements.NewMapTokenStorage()
 
-		err = utils.LoadProblems(ctx, problems,
+		err = utils.LoadProblems(ctx, problems, contents,
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
@@ -70,7 +71,12 @@ var stageCmd = &cobra.Command{
 			panic(err)
 		}
 
-		if err := db.EnableAllProblem(ctx); err != nil {
+		_, err = bunDB.NewUpdate().
+			Model((*models.ProblemMarshaled)(nil)).
+			Set("is_enabled = ?", true).
+			Where("is_enabled = ?", false).
+			Exec(ctx)
+		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to enable problems",
 					zap.Error(err))
@@ -100,7 +106,7 @@ var stageCmd = &cobra.Command{
 		go workflows.WorkerThread(ctx, jobIn, jobOut)
 		go workflows.OutputThread(ctx, jobOut, jobDone)
 
-		err = workflows.RunStage(ctx, jobQue, db, s3, problems, tokens,
+		err = workflows.RunStage(ctx, jobQue, db, s3, problems, contents, tokens,
 			models.Submission{
 				Id:          114514,
 				ProblemId:   problem.ProblemId,

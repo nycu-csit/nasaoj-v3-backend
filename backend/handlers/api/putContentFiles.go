@@ -27,7 +27,7 @@ type PutContentFilesInput struct {
 //	@Failure	401	{object}	string
 //	@Router		/api/admin/content-files [put]
 func PutContentFiles(
-	problems interfaces.ProblemStorage,
+	contents interfaces.ContentFileStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
@@ -60,7 +60,7 @@ func PutContentFiles(
 			})
 		}
 
-		if err := problems.InsertContentFiles(ctx, files); err != nil {
+		if err := contents.InsertContentFiles(ctx, files); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "insert content files failed",

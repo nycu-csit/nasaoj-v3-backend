@@ -12,11 +12,6 @@ type ProblemStorage interface {
 		sha1 string,
 	) (models.Problem, error)
 
-	InsertProblem(
-		ctx context.Context,
-		problem models.Problem,
-	) error
-
 	GetProblems(
 		ctx context.Context,
 	) (map[string]models.Problem, error)
@@ -30,29 +25,24 @@ type ProblemStorage interface {
 		ctx context.Context,
 	) (map[string]models.Problem, error)
 
-	PutProblemState(
+	GetProblemScores(
+		ctx context.Context,
+		sha1s []string,
+	) (map[string]int64, error)
+
+	InsertProblem(
+		ctx context.Context,
+		problem models.Problem,
+	) error
+
+	UpdateProblemState(
 		ctx context.Context,
 		sha1 string,
 		isEnabled bool,
 	) error
 
-	InsertContentFiles(
+	DeleteProblemAndSubmissions(
 		ctx context.Context,
-		contentFiles []models.ContentFile,
+		sha1 string,
 	) error
-
-	GetContentFiles(
-		ctx context.Context,
-		sha1s []string,
-	) ([]models.ContentFile, error)
-
-	HydrateProblem(
-		ctx context.Context,
-		problem *models.Problem,
-	) error
-
-	GetProblemScores(
-		ctx context.Context,
-		sha1s []string,
-	) (map[string]int64, error)
 }

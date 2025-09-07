@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -9,9 +8,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"go.uber.org/zap"
 )
 
 type SubmissionsOutputSubmission struct {
@@ -178,9 +175,6 @@ func GetSubmissions(
 			}
 		}
 
-		tracing.Logger.Ctx(ctx).
-			Info("nmsl",
-				zap.String("scores", fmt.Sprintf("%+##v", scores)))
 		for i, submission := range submissions {
 			if submission.Type == models.RefTypeProblem {
 				score, ok := scores[submission.RefSHA1]

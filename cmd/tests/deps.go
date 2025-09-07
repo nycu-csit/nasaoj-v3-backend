@@ -29,10 +29,10 @@ var problemsCmd = &cobra.Command{
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
 		utils.InitDB(ctx, bunDB)
 
-		db := implements.NewBunDatabase(bunDB)
-		problems := implements.NewDBProblemStorage(db)
+		problems := implements.NewDBProblemStorage(bunDB, nil)
+		contents := implements.NewDBContentFileStorage(bunDB, nil)
 
-		err = utils.LoadProblems(ctx, problems,
+		err = utils.LoadProblems(ctx, problems, contents,
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
@@ -59,10 +59,10 @@ var toolsCmd = &cobra.Command{
 		bunDB := bun.NewDB(sqldb, sqlitedialect.New())
 		utils.InitDB(ctx, bunDB)
 
-		db := implements.NewBunDatabase(bunDB)
-		tools := implements.NewDBProblemStorage(db)
+		tools := implements.NewDBProblemStorage(bunDB, nil)
+		contents := implements.NewDBContentFileStorage(bunDB, nil)
 
-		err = utils.LoadProblems(ctx, tools,
+		err = utils.LoadProblems(ctx, tools, contents,
 			viper.GetString("tools-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {

@@ -20,7 +20,7 @@ import (
 //	@Failure	401			{object}	string
 //	@Router		/api/admin/tool [delete]
 func DeleteTool(
-	db interfaces.Database,
+	tools interfaces.ToolStorage,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
@@ -39,7 +39,7 @@ func DeleteTool(
 		span.SetAttributes(
 			attribute.String("tool.sha1", toolSHA1))
 
-		if err := db.DeleteToolAndSubmissions(ctx, toolSHA1); err != nil {
+		if err := tools.DeleteToolAndSubmissions(ctx, toolSHA1); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "failed to delete tool and submissions",

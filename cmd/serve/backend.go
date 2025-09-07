@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-redis/cache/v9"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/redis/go-redis/extra/redisotel/v9"
@@ -99,8 +100,12 @@ var backendCmd = &cobra.Command{
 		jobQue := implements.NewRedisJobQueue(rdb)
 		tokens := implements.NewRedisTokenStorage(rdb)
 		workers := implements.NewRedisWorkerStatusStorage(rdb)
-		problems := implements.NewDBProblemStorage(db)
-		tools := implements.NewDBToolStorage(db)
+		problems := implements.NewDBProblemStorage(bunDB,
+			&cache.Options{Redis: rdb})
+		tools := implements.NewDBToolStorage(bunDB,
+			&cache.Options{Redis: rdb})
+		contents := implements.NewDBContentFileStorage(bunDB,
+			&cache.Options{Redis: rdb})
 
 		if viper.GetString("admin-token") != "" {
 			if err := tokens.SetAdminToken(
@@ -167,7 +172,7 @@ var backendCmd = &cobra.Command{
 			}))
 		apiWriteGroup.POST("/submit",
 			apiHandlers.PostSubmit(
-				db, jobQue, s3, problems, tools, tokens, false))
+				db, jobQue, s3, problems, tools, contents, tokens, false))
 
 		apiUserArgsGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -211,7 +216,7 @@ var backendCmd = &cobra.Command{
 		apiAdminWriteGroup.PUT("/problems",
 			apiHandlers.PutProblems(problems))
 		apiAdminWriteGroup.PUT("/content-files",
-			apiHandlers.PutContentFiles(problems))
+			apiHandlers.PutContentFiles(contents))
 		apiAdminWriteGroup.PUT("/problem/state",
 			apiHandlers.PutProblemState(problems))
 		apiAdminWriteGroup.PUT("/tools",
@@ -226,11 +231,11 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PostToken(tokens))
 		apiAdminWriteGroup.POST("/submit",
 			apiHandlers.PostSubmit(
-				db, jobQue, s3, problems, tools, tokens, true))
+				db, jobQue, s3, problems, tools, contents, tokens, true))
 		apiAdminWriteGroup.DELETE("/problem",
-			apiHandlers.DeleteProblem(db))
+			apiHandlers.DeleteProblem(problems))
 		apiAdminWriteGroup.DELETE("/tool",
-			apiHandlers.DeleteTool(db))
+			apiHandlers.DeleteTool(tools))
 		apiAdminWriteGroup.DELETE("/submission",
 			apiHandlers.DeleteSubmission(db))
 		apiAdminWriteGroup.DELETE("/user",
@@ -245,7 +250,7 @@ var backendCmd = &cobra.Command{
 			scheduleHandlers.GetScheduleJob(db, jobQue, workers, s3))
 		scheduleGroup.PUT("/result",
 			scheduleHandlers.PutScheduleResult(
-				db, jobQue, workers, s3, problems, tokens))
+				db, jobQue, workers, s3, problems, contents, tokens))
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"),

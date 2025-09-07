@@ -64,10 +64,11 @@ var problemCmd = &cobra.Command{
 		db := implements.NewBunDatabase(bunDB)
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
-		problems := implements.NewDBProblemStorage(db)
+		problems := implements.NewDBProblemStorage(bunDB, nil)
+		contents := implements.NewDBContentFileStorage(bunDB, nil)
 		tokens := implements.NewMapTokenStorage()
 
-		err = utils.LoadProblems(ctx, problems,
+		err = utils.LoadProblems(ctx, problems, contents,
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
@@ -77,7 +78,7 @@ var problemCmd = &cobra.Command{
 			panic(err)
 		}
 
-		err = utils.LoadProblems(ctx, problems,
+		err = utils.LoadProblems(ctx, problems, contents,
 			viper.GetString("tools-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
@@ -87,7 +88,12 @@ var problemCmd = &cobra.Command{
 			panic(err)
 		}
 
-		if err := db.EnableAllProblem(ctx); err != nil {
+		_, err = bunDB.NewUpdate().
+			Model((*models.ProblemMarshaled)(nil)).
+			Set("is_enabled = ?", true).
+			Where("is_enabled = ?", false).
+			Exec(ctx)
+		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to enable problems",
 					zap.Error(err))
@@ -151,7 +157,7 @@ var problemCmd = &cobra.Command{
 				Stages: make(map[string]int64),
 			},
 		}
-		err = db.InsertProblemSubmission(ctx, &submission, problem)
+		err = db.InsertSubmissionByProblem(ctx, &submission, problem)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to insert submission",
@@ -159,8 +165,8 @@ var problemCmd = &cobra.Command{
 			panic(err)
 		}
 
-		err = workflows.RunProblem(
-			ctx, jobQue, db, s3, problems, tokens, submission)
+		err = workflows.RunProblem(ctx, jobQue, db, s3, problems, contents, tokens,
+			submission)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to run problem",
@@ -187,8 +193,8 @@ var problemCmd = &cobra.Command{
 			}
 
 			if job.Status == models.StatusSuccess {
-				err = workflows.HandleStageDone(
-					ctx, db, jobQue, s3, problems, tokens, job)
+				err = workflows.HandleStageDone(ctx, db, jobQue, s3, problems,
+					contents, tokens, job)
 				if err != nil {
 					tracing.Logger.Ctx(ctx).
 						Panic("failed to handle job done",

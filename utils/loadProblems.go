@@ -16,6 +16,7 @@ import (
 func LoadProblems(
 	ctx context.Context,
 	problems interfaces.ProblemStorage,
+	contents interfaces.ContentFileStorage,
 	problemDir, testcaseDir string,
 ) error {
 	contentFiles, err := LoadTestcases(ctx, testcaseDir)
@@ -75,7 +76,7 @@ func LoadProblems(
 				return err
 			}
 
-			if err := problems.InsertContentFiles(
+			if err := contents.InsertContentFiles(
 				ctx, problem.PreScript.Files); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to insert problem prescript",
@@ -83,7 +84,7 @@ func LoadProblems(
 				return err
 			}
 
-			if err := problems.InsertContentFiles(
+			if err := contents.InsertContentFiles(
 				ctx, problem.PostScript.Files); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to insert problem postscript",
@@ -92,7 +93,7 @@ func LoadProblems(
 			}
 
 			for _, stage := range problem.Stages {
-				if err := problems.InsertContentFiles(
+				if err := contents.InsertContentFiles(
 					ctx, stage.PreScript.Files); err != nil {
 					tracing.Logger.Ctx(ctx).
 						Error("failed to insert stage prescript",
@@ -100,7 +101,7 @@ func LoadProblems(
 					return err
 				}
 
-				if err := problems.InsertContentFiles(
+				if err := contents.InsertContentFiles(
 					ctx, stage.PostScript.Files); err != nil {
 					tracing.Logger.Ctx(ctx).
 						Error("failed to insert stage postscript",
@@ -109,7 +110,7 @@ func LoadProblems(
 				}
 
 				for _, testcase := range stage.Testcases {
-					if err := problems.InsertContentFiles(
+					if err := contents.InsertContentFiles(
 						ctx, testcase.Content.Files); err != nil {
 						tracing.Logger.Ctx(ctx).
 							Error("failed to insert content files",

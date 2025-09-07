@@ -54,7 +54,7 @@ func PutToolState(
 		span.SetAttributes(
 			attribute.String("tool.sha1", input.ToolSHA1))
 
-		if err = tools.PutToolState(
+		if err = tools.UpdateToolState(
 			ctx, input.ToolSHA1, input.IsEnabled); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,

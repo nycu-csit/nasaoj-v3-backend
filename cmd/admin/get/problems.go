@@ -12,7 +12,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type problemResult struct {
@@ -23,6 +23,8 @@ type problemResult struct {
 	Name        string `json:"name" yaml:"name"`
 	Description string `json:"description" yaml:"description"`
 	Tag         string `json:"tag" yaml:"tag"`
+	PdfUrl      string `json:"pdfUrl" yaml:"pdfUrl"`
+	Deadline    string `json:"deadline" yaml:"deadline"`
 	TotalScore  int64  `json:"totalScore" yaml:"totalScore"`
 	IsEnabled   bool   `json:"isEnabled" yaml:"isEnabled"`
 }
@@ -50,6 +52,8 @@ var problemsCmd = &cobra.Command{
 				Name:        problem.Name,
 				Description: problem.Description,
 				Tag:         problem.Tag,
+				PdfUrl:      problem.PdfUrl,
+				Deadline:    time.Unix(problem.Deadline, 0).String(),
 				TotalScore:  problem.TotalScore,
 				IsEnabled:   problem.IsEnabled,
 			})

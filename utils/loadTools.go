@@ -16,6 +16,7 @@ import (
 func LoadTools(
 	ctx context.Context,
 	tools interfaces.ToolStorage,
+	contents interfaces.ContentFileStorage,
 	toolDir, testcaseDir string,
 ) error {
 	contentFiles, err := LoadTestcases(ctx, testcaseDir)
@@ -68,7 +69,7 @@ func LoadTools(
 				return err
 			}
 
-			if err := tools.InsertContentFiles(
+			if err := contents.InsertContentFiles(
 				ctx, tool.PreScript.Files); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to insert tool prescript",
@@ -76,7 +77,7 @@ func LoadTools(
 				return err
 			}
 
-			if err := tools.InsertContentFiles(
+			if err := contents.InsertContentFiles(
 				ctx, tool.PostScript.Files); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to insert tool postscript",
@@ -84,7 +85,7 @@ func LoadTools(
 				return err
 			}
 
-			if err := tools.InsertContentFiles(
+			if err := contents.InsertContentFiles(
 				ctx, tool.Testcase.Content.Files); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to insert testcase content files",
