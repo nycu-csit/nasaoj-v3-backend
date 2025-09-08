@@ -476,34 +476,6 @@ func (self *BunDatabase) InvalidateSession(
 	return err
 }
 
-func (self *BunDatabase) GetProblems(
-	ctx context.Context,
-) (map[string]models.Problem, error) {
-	var problemsMarshaled []models.ProblemMarshaled
-	err := self.db.NewSelect().
-		Model(&problemsMarshaled).
-		OrderExpr("problem_id, sha1").
-		DistinctOn("problem_id").
-		Where("is_enabled = ?", true).
-		Scan(ctx)
-	if err != nil {
-		return map[string]models.Problem{}, err
-	}
-
-	ret := make(map[string]models.Problem)
-	for _, problem := range problemsMarshaled {
-		ret[problem.SHA1], err = problem.Unmarshal()
-		if err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to unmarshal problem",
-					zap.String("problem.sha1", problem.SHA1),
-					zap.Error(err))
-			return map[string]models.Problem{}, err
-		}
-	}
-	return ret, nil
-}
-
 func (self *BunDatabase) DeleteSubmission(
 	ctx context.Context,
 	subId int64,

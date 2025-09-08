@@ -100,7 +100,17 @@ func PutScheduleResult(
 			}
 		}
 
-		if job.Status == models.StatusSuccess {
+		submission, err := db.GetSubmission(ctx, job.SubId)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to get submission",
+				OriginError: err,
+			}
+		}
+
+		if job.Status == models.StatusSuccess &&
+			submission.Type == models.RefTypeProblem {
 			err = workflows.HandleStageDone(
 				ctx, db, jobQue, s3, problems, contents, tokens, job)
 			if err != nil {
