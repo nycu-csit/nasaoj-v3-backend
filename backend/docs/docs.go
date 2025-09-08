@@ -676,7 +676,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User CsId to by queried",
+                        "description": "User CsId to be queried",
                         "name": "csId",
                         "in": "query",
                         "required": true

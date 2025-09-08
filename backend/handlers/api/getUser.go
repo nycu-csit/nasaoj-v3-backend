@@ -10,7 +10,7 @@ import (
 
 // GetUser
 //
-//	@Param		csId	query		string	true	"User CsId to by queried"
+//	@Param		csId	query		string	true	"User CsId to be queried"
 //	@Success	200		{object}	map[string]string
 //	@Failure	401		{object}	string	"not admin or not login"
 //	@Router		/api/admin/user [get]

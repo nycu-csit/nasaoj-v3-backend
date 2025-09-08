@@ -936,7 +936,7 @@ paths:
             type: string
     get:
       parameters:
-      - description: User CsId to by queried
+      - description: User CsId to be queried
         in: query
         name: csId
         required: true
