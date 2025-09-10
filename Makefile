@@ -2,6 +2,7 @@
 
 SWAG ?= ~/go/bin/swag
 
+GO_ENV += CGO_ENABLED=0
 TARGET := $(shell find . -type f -name '*.go')
 
 all: swagger docker install
@@ -9,8 +10,8 @@ all: swagger docker install
 docker: judge
 	docker compose up -d --force-recreate --build backend worker
 
-install: judge
-	go install
+install:
+	$(GO_ENV) go install
 
 test:
 	go test -v ./tests/units
@@ -23,4 +24,4 @@ swagger:
 	$(SWAG) init -o backend/docs -g cmd/serve/backend.go -pdl 1
 
 judge: $(TARGET)
-	CGO_ENABLED=0 go build -o judge
+	$(GO_ENV) go build -o judge

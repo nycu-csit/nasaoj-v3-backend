@@ -58,7 +58,9 @@ func PutScheduleResult(
 
 		span := trace.SpanFromContext(ctx)
 		span.SetAttributes(
-			attribute.Int64("submission.id", job.SubId))
+			attribute.Int64("submission.id", job.SubId),
+			attribute.String("stage.name", job.StageName),
+			attribute.String("testcase.name", job.TestName))
 
 		// Handle hard timeout if timeout isn't put on worker
 		if time.Now().Compare(time.Unix(job.Deadline, 0)) > 0 {
