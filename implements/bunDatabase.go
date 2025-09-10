@@ -13,12 +13,20 @@ import (
 	"go.uber.org/zap"
 )
 
+type DatabaseType int
+
+const (
+	DatabaseTypePostgresql DatabaseType = iota
+	DatabaseTypeSqlite
+)
+
 type BunDatabase struct {
-	db *bun.DB
+	db   *bun.DB
+	Type DatabaseType
 }
 
-func NewBunDatabase(db *bun.DB) *BunDatabase {
-	return &BunDatabase{db: db}
+func NewBunDatabase(db *bun.DB, dbType DatabaseType) *BunDatabase {
+	return &BunDatabase{db: db, Type: dbType}
 }
 
 func (self *BunDatabase) submissionQueryHook(
@@ -207,25 +215,36 @@ func (self *BunDatabase) IncreaseScore(
 	delta int64,
 ) error {
 	return self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		submission := models.Submission{Id: subId}
-		err := self.db.NewSelect().
-			Column("id", "score_score", "score_stages").
-			Model(&submission).
-			WherePK().
-			Scan(ctx)
+		_, err := tx.NewUpdate().
+			Model((*models.Submission)(nil)).
+			Set("score_score = score_score + ?", delta).
+			Where("id = ?", subId).
+			Exec(ctx)
 		if err != nil {
 			return err
 		}
 
-		submission.Score.Score += delta
-		submission.Score.Stages[stageName] = delta
-		_, err = self.db.NewUpdate().
-			Column("score_score", "score_stages").
-			Model(&submission).
-			WherePK().
-			Exec(ctx)
-		if err != nil {
-			return err
+		switch self.Type {
+		case DatabaseTypePostgresql:
+			_, err := tx.NewUpdate().
+				Model((*models.Submission)(nil)).
+				Set("score_stages = score_stages || ?",
+					map[string]int64{stageName: delta}).
+				Where("id = ?", subId).
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
+		case DatabaseTypeSqlite:
+			_, err := tx.NewUpdate().
+				Model((*models.Submission)(nil)).
+				Set("score_stages = json_set(score_stages, ?, ?)",
+					"$."+stageName, delta).
+				Where("id = ?", subId).
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

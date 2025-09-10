@@ -54,7 +54,7 @@ var stageCmd = &cobra.Command{
 		bunDB.AddQueryHook(bunotel.NewQueryHook(bunotel.WithDBName("test")))
 		utils.InitDB(ctx, bunDB)
 
-		db := implements.NewBunDatabase(bunDB)
+		db := implements.NewBunDatabase(bunDB, implements.DatabaseTypeSqlite)
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
 		problems := implements.NewDBProblemStorage(bunDB, nil)

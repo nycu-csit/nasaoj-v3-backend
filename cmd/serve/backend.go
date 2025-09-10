@@ -95,7 +95,7 @@ var backendCmd = &cobra.Command{
 		}
 
 		// Initialize custom interfaces
-		db := implements.NewBunDatabase(bunDB)
+		db := implements.NewBunDatabase(bunDB, implements.DatabaseTypePostgresql)
 		s3 := implements.NewMinIOObjectStorage(mc)
 		jobQue := implements.NewRedisJobQueue(rdb)
 		tokens := implements.NewRedisTokenStorage(rdb)

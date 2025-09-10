@@ -61,7 +61,7 @@ var problemCmd = &cobra.Command{
 			panic(err)
 		}
 
-		db := implements.NewBunDatabase(bunDB)
+		db := implements.NewBunDatabase(bunDB, implements.DatabaseTypeSqlite)
 		jobQue := implements.NewChanJobQueue()
 		s3 := implements.NewMapObjectStorage()
 		problems := implements.NewDBProblemStorage(bunDB, nil)
