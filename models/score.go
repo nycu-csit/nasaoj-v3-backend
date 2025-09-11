@@ -6,11 +6,13 @@ type Score struct {
 }
 
 type UserScore struct {
-	Score int64  `json:"score"`
-	CsId  string `json:"csId"`
+	Score     int64  `json:"score"`
+	CsId      string `json:"csId"`
+	CreatedAt int64  `json:"createdAt"`
 }
 
 type UserScoreWithStages struct {
-	Score `json:",inline"`
-	CsId  string `json:"csId"`
+	Score     `json:",inline"`
+	CsId      string `json:"csId"`
+	CreatedAt int64  `json:"createdAt"`
 }

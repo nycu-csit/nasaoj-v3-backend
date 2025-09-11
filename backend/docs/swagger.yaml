@@ -468,6 +468,8 @@ definitions:
     type: object
   models.UserScore:
     properties:
+      createdAt:
+        type: integer
       csId:
         type: string
       score:
@@ -475,6 +477,8 @@ definitions:
     type: object
   models.UserScoreWithStages:
     properties:
+      createdAt:
+        type: integer
       csId:
         type: string
       score:

@@ -260,7 +260,7 @@ func (self *BunDatabase) GetScoresWithStages(
 	err := self.db.NewSelect().
 		DistinctOn("cs_id").
 		Model(&submissions).
-		Column("cs_id", "score_score", "score_stages", "problem_id").
+		Column("cs_id", "score_score", "score_stages", "problem_id", "created_at").
 		OrderExpr("cs_id, id DESC").
 		Where("problem_id = ?", refId).
 		Scan(ctx)
@@ -270,8 +270,9 @@ func (self *BunDatabase) GetScoresWithStages(
 
 	for _, submission := range submissions {
 		userScore := models.UserScoreWithStages{
-			CsId:  submission.CsId,
-			Score: submission.Score,
+			CsId:      submission.CsId,
+			Score:     submission.Score,
+			CreatedAt: submission.CreatedAt,
 		}
 		ret = append(ret, userScore)
 	}
@@ -288,7 +289,7 @@ func (self *BunDatabase) GetScores(
 	err := self.db.NewSelect().
 		DistinctOn("cs_id").
 		Model(&submissions).
-		Column("cs_id", "score_score", "problem_id").
+		Column("cs_id", "score_score", "problem_id", "created_at").
 		Where("problem_id = ?", refId).
 		OrderExpr("cs_id, id DESC").
 		Scan(ctx)
@@ -298,8 +299,9 @@ func (self *BunDatabase) GetScores(
 
 	for _, submission := range submissions {
 		userScore := models.UserScore{
-			CsId:  submission.CsId,
-			Score: submission.Score.Score,
+			CsId:      submission.CsId,
+			Score:     submission.Score.Score,
+			CreatedAt: submission.CreatedAt,
 		}
 		ret = append(ret, userScore)
 	}

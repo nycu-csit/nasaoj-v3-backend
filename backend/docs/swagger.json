@@ -1945,6 +1945,9 @@
         "models.UserScore": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "csId": {
                     "type": "string"
                 },
@@ -1956,6 +1959,9 @@
         "models.UserScoreWithStages": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "csId": {
                     "type": "string"
                 },

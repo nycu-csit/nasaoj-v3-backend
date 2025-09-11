@@ -1953,6 +1953,9 @@ const docTemplate = `{
         "models.UserScore": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "csId": {
                     "type": "string"
                 },
@@ -1964,6 +1967,9 @@ const docTemplate = `{
         "models.UserScoreWithStages": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "csId": {
                     "type": "string"
                 },
