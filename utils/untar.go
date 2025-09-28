@@ -17,17 +17,17 @@ func UnTar(
 	basepath string,
 	tarbuf []byte,
 ) error {
-	if err := os.MkdirAll(basepath, 0700); err != nil && !os.IsExist(err) {
+	if err := os.RemoveAll(basepath); err != nil {
 		tracing.Logger.Ctx(ctx).
-			Error("failed to make directory",
+			Error("failed to remove files from previous run",
 				zap.String("file.path", basepath),
 				zap.Error(err))
 		return err
 	}
 
-	if err := os.RemoveAll(basepath); err != nil {
+	if err := os.MkdirAll(basepath, 0700); err != nil {
 		tracing.Logger.Ctx(ctx).
-			Error("failed to remove files from previous run",
+			Error("failed to make directory",
 				zap.String("file.path", basepath),
 				zap.Error(err))
 		return err

@@ -176,7 +176,6 @@ var problemCmd = &cobra.Command{
 
 		color.Cyan("workflows run problem done\n")
 
-		isJobInClosed := false
 		for {
 			jobWithFile, ok := <-jobDone
 			if !ok {
@@ -208,12 +207,6 @@ var problemCmd = &cobra.Command{
 							zap.Error(err))
 					panic(err)
 				}
-			}
-
-			if !isJobInClosed && jobQue.Size(problem.Tag) == 0 {
-				color.Cyan("jobQue closed\n")
-				jobQue.Close(problem.Tag)
-				isJobInClosed = true
 			}
 		}
 
