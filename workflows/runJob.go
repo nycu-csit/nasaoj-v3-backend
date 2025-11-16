@@ -121,6 +121,7 @@ func RunJob(
 				ret = err
 			}
 		}
+		tracing.Logger.Ctx(ctx).Warn("worker thread timeout")
 	case err := <-done:
 		if err != nil {
 			switch t := err.(type) {

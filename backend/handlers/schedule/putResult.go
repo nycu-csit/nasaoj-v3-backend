@@ -10,10 +10,12 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 func PutScheduleResult(
@@ -64,6 +66,9 @@ func PutScheduleResult(
 
 		// Handle hard timeout if timeout isn't put on worker
 		if time.Now().Compare(time.Unix(job.Deadline, 0)) > 0 {
+			tracing.Logger.Ctx(ctx).Warn("job exceeded hard deadline",
+				zap.String("deadline", time.Unix(job.Deadline, 0).Format(time.RFC3339)),
+				zap.String("now", time.Now().Format(time.RFC3339)))
 			job.Status = models.StatusTimeout
 		}
 
