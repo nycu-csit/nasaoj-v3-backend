@@ -192,6 +192,8 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetOutput(db, mc, "stderr", true))
 		apiAdminReadGroup.GET("/scores",
 			apiHandlers.GetScores(db, true))
+		apiAdminReadGroup.GET("/dump-scores/:problemId",
+			apiHandlers.GetDumpScores(db))
 		apiAdminReadGroup.GET("/user",
 			apiHandlers.GetUser(db))
 		apiAdminReadGroup.GET("/users",

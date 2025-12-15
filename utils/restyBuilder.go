@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 
 	"github.com/go-resty/resty/v2"
@@ -45,7 +46,7 @@ func RestyBuilder(
 		panic(err)
 	}
 
-	if !resp.IsSuccess() {
+	if err != nil || resp.StatusCode() != http.StatusOK {
 		tracing.Logger.Ctx(ctx).
 			Panic("resp.IsSuccess failed")
 		panic(types.HTTPRequestFailedError)

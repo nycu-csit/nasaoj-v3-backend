@@ -519,6 +519,24 @@ paths:
           description: Unauthorized
           schema:
             type: string
+  /api/admin/dump-scores/{problemId}:
+    get:
+      parameters:
+      - description: problem id
+        format: int64
+        in: path
+        name: problemId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: scores
+          schema:
+            items:
+              $ref: '#/definitions/models.UserScore'
+            type: array
   /api/admin/problem:
     delete:
       parameters:

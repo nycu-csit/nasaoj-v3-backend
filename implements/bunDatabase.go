@@ -280,6 +280,67 @@ func (self *BunDatabase) GetScoresWithStages(
 	return ret, nil
 }
 
+func (self *BunDatabase) GetScoresWithDeadline(
+	ctx context.Context,
+	refId int64,
+) ([]models.UserScore, error) {
+	var submissions []models.Submission
+	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		var problemMarshaled models.ProblemMarshaled
+		err := tx.NewSelect().
+			Model(&problemMarshaled).
+			Where("problem_id = ?", refId).
+			Where("is_enabled = ?", true).
+			Limit(1).
+			Scan(ctx)
+		if err != nil {
+			return err
+		}
+
+		problem, err := problemMarshaled.Unmarshal()
+		if err != nil {
+			return err
+		}
+
+		validSubQ := tx.NewSelect().
+			Model((*models.Submission)(nil)).
+			DistinctOn("cs_id").
+			Column("cs_id", "created_at", "id").
+			Where("problem_id = ?", refId).
+			Order("cs_id ASC", "created_at DESC")
+
+		if problem.Deadline != 0 {
+			validSubQ = validSubQ.
+				Where("created_at < ?", problem.Deadline)
+		}
+
+		err = self.db.NewSelect().
+			With("valid_sub", validSubQ).
+			Model((*models.Submission)(nil)).
+			Where("id IN (?)", tx.NewSelect().
+				Table("valid_sub").
+				Column("id")).
+			Order("cs_id ASC").
+			Scan(ctx, &submissions)
+
+		return err
+	})
+	if err != nil {
+		return []models.UserScore{}, err
+	}
+
+	var ret []models.UserScore
+	for _, sub := range submissions {
+		ret = append(ret, models.UserScore{
+			Score:     sub.Score.Score,
+			CsId:      sub.CsId,
+			CreatedAt: sub.CreatedAt,
+		})
+	}
+
+	return ret, nil
+}
+
 func (self *BunDatabase) GetScores(
 	ctx context.Context,
 	refId int64,

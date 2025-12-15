@@ -46,6 +46,34 @@
                 }
             }
         },
+        "/api/admin/dump-scores/{problemId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "problem id",
+                        "name": "problemId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "scores",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.UserScore"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/problem": {
             "delete": {
                 "parameters": [

@@ -29,6 +29,11 @@ type Database interface {
 		refId int64,
 	) ([]models.UserScoreWithStages, error)
 
+	GetScoresWithDeadline(
+		ctx context.Context,
+		refId int64,
+	) ([]models.UserScore, error)
+
 	GetUserResource(
 		ctx context.Context,
 		csId string,
