@@ -87,7 +87,7 @@ func CheckAccessToken(
 			var claim models.AccessTokenClaim
 			token, err := jwt.ParseWithClaims(accessTokenString, &claim,
 				func(*jwt.Token) (interface{}, error) {
-					return []byte(viper.GetString("ACCESS_TOKEN_SECRET")), nil
+					return []byte(viper.GetString("access-token-secret")), nil
 				})
 			if err != nil || !token.Valid {
 				accessTokenString, err = refreshAccessToken(ctx, db, w, req)
@@ -100,7 +100,7 @@ func CheckAccessToken(
 				}
 				token, err := jwt.ParseWithClaims(accessTokenString, &claim,
 					func(*jwt.Token) (interface{}, error) {
-						return []byte(viper.GetString("ACCESS_TOKEN_SECRET")), nil
+						return []byte(viper.GetString("access-token-secret")), nil
 					})
 				if err != nil || !token.Valid {
 					return HTTPError{

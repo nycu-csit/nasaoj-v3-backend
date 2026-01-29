@@ -18,9 +18,9 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bunotel"
 	"github.com/uptrace/bunrouter"
-	apiHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
-	authHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
-	scheduleHandlers "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -95,20 +95,13 @@ var backendCmd = &cobra.Command{
 		}
 
 		// Initialize custom interfaces
-		db := implements.NewBunDatabase(bunDB, implements.DatabaseTypePostgresql)
-		s3 := implements.NewMinIOObjectStorage(mc)
-		jobQue := implements.NewRedisJobQueue(rdb)
-		tokens := implements.NewRedisTokenStorage(rdb)
-		workers := implements.NewRedisWorkerStatusStorage(rdb)
-		problems := implements.NewDBProblemStorage(bunDB,
+		db := implements.NewPostgres(bunDB,
 			&cache.Options{Redis: rdb})
-		tools := implements.NewDBToolStorage(bunDB,
-			&cache.Options{Redis: rdb})
-		contents := implements.NewDBContentFileStorage(bunDB,
-			&cache.Options{Redis: rdb})
+		s3 := implements.NewMinIO(mc)
+		kv := implements.NewRedis(rdb)
 
 		if viper.GetString("admin-token") != "" {
-			if err := tokens.SetAdminToken(
+			if err := kv.SetAdminToken(
 				ctx, viper.GetString("admin-token")); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to set admin token",
@@ -131,55 +124,57 @@ var backendCmd = &cobra.Command{
 					httpSwagger.Handler()))
 		}
 
+		authHandlers := auth.NewHandlers(db)
 		authGroup := backend.NewGroup("/auth").
 			Use(middlewares.CacheControlHandler)
 		authGroup.GET("/login",
-			authHandlers.GetLogin(ctx))
+			authHandlers.GetLogin)
 		authGroup.PUT("/logout",
-			authHandlers.PutLogout(db))
+			authHandlers.PutLogout)
 		authGroup.GET("/callback",
-			authHandlers.GetCallback(db))
+			middlewares.CheckAuth(db, kv)(
+				authHandlers.GetCallback))
 
+		apiHandlers := api.NewHandlers(db, kv, s3)
 		apiGroup := backend.NewGroup("/api").
-			Use(middlewares.CheckAuth(db, tokens))
+			Use(middlewares.CheckAuth(db, kv))
 
 		apiReadGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIRead: models.ScopeSelf,
 			}))
 		apiReadGroup.GET("/problem",
-			apiHandlers.GetProblem(problems))
+			apiHandlers.GetProblem)
 		apiReadGroup.GET("/problems",
-			apiHandlers.GetProblems(problems, false))
+			apiHandlers.GetProblems(false))
 		apiReadGroup.GET("/tool",
-			apiHandlers.GetTool(tools))
+			apiHandlers.GetTool)
 		apiReadGroup.GET("/tools",
-			apiHandlers.GetTools(tools, false))
+			apiHandlers.GetTools(false))
 		apiReadGroup.GET("/stdout",
-			apiHandlers.GetOutput(db, mc, "stdout", false))
+			apiHandlers.GetOutput("stdout", false))
 		apiReadGroup.GET("/results",
-			apiHandlers.GetResults(db, problems, false))
+			apiHandlers.GetResults(false))
 		apiReadGroup.GET("/scores",
-			apiHandlers.GetScores(db, false))
+			apiHandlers.GetScores(false))
 		apiReadGroup.GET("/me",
 			apiHandlers.GetMe)
 		apiReadGroup.GET("/submissions",
-			apiHandlers.GetSubmissions(db, problems, false))
+			apiHandlers.GetSubmissions(false))
 
 		apiWriteGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIWrite: models.ScopeSelf,
 			}))
 		apiWriteGroup.POST("/submit",
-			apiHandlers.PostSubmit(
-				db, jobQue, s3, problems, tools, contents, tokens, false))
+			apiHandlers.PostSubmit(false))
 
 		apiUserArgsGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanUserArgsWrite: models.ScopeSelf,
 			}))
 		apiUserArgsGroup.PUT("/user",
-			apiHandlers.PutUser(db))
+			apiHandlers.PutUser)
 
 		apiAdminGroup := apiGroup.NewGroup("/admin")
 		apiAdminReadGroup := apiAdminGroup.NewGroup("").
@@ -187,72 +182,71 @@ var backendCmd = &cobra.Command{
 				CanAPIRead: models.ScopeAll,
 			}))
 		apiAdminReadGroup.GET("/stdout",
-			apiHandlers.GetOutput(db, mc, "stdout", true))
+			apiHandlers.GetOutput("stdout", true))
 		apiAdminReadGroup.GET("/stderr",
-			apiHandlers.GetOutput(db, mc, "stderr", true))
+			apiHandlers.GetOutput("stderr", true))
 		apiAdminReadGroup.GET("/scores",
-			apiHandlers.GetScores(db, true))
+			apiHandlers.GetScores(true))
 		apiAdminReadGroup.GET("/dump-scores/:problemId",
-			apiHandlers.GetDumpScores(db))
+			apiHandlers.GetDumpScores)
 		apiAdminReadGroup.GET("/user",
-			apiHandlers.GetUser(db))
+			apiHandlers.GetUser)
 		apiAdminReadGroup.GET("/users",
-			apiHandlers.GetUsers(db))
+			apiHandlers.GetUsers)
 		apiAdminReadGroup.GET("/submissions",
-			apiHandlers.GetSubmissions(db, problems, true))
+			apiHandlers.GetSubmissions(true))
 		apiAdminReadGroup.GET("/results",
-			apiHandlers.GetResults(db, problems, true))
+			apiHandlers.GetResults(true))
 		apiAdminReadGroup.GET("/problems",
-			apiHandlers.GetProblems(problems, true))
+			apiHandlers.GetProblems(true))
 		apiAdminReadGroup.GET("/tools",
-			apiHandlers.GetTools(tools, true))
+			apiHandlers.GetTools(true))
 		apiAdminReadGroup.GET("/tokens",
-			apiHandlers.GetTokens(tokens))
+			apiHandlers.GetTokens)
 		apiAdminReadGroup.GET("/worker/states",
-			apiHandlers.GetWorkerStates(workers))
+			apiHandlers.GetWorkerStates)
 
 		apiAdminWriteGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIWrite: models.ScopeAll,
 			}))
 		apiAdminWriteGroup.PUT("/problems",
-			apiHandlers.PutProblems(problems))
+			apiHandlers.PutProblems)
 		apiAdminWriteGroup.PUT("/content-files",
-			apiHandlers.PutContentFiles(contents))
+			apiHandlers.PutContentFiles)
 		apiAdminWriteGroup.PUT("/problem/state",
-			apiHandlers.PutProblemState(problems))
+			apiHandlers.PutProblemState)
 		apiAdminWriteGroup.PUT("/tools",
-			apiHandlers.PutTools(tools))
+			apiHandlers.PutTools)
 		apiAdminWriteGroup.PUT("/tool/state",
-			apiHandlers.PutToolState(tools))
+			apiHandlers.PutToolState)
 		apiAdminWriteGroup.PUT("/users",
-			apiHandlers.PutUsers(db))
+			apiHandlers.PutUsers)
 		apiAdminWriteGroup.PUT("/token/state",
-			apiHandlers.PutTokenState(tokens))
+			apiHandlers.PutTokenState)
 		apiAdminWriteGroup.POST("/token",
-			apiHandlers.PostToken(tokens))
+			apiHandlers.PostToken)
 		apiAdminWriteGroup.POST("/submit",
-			apiHandlers.PostSubmit(
-				db, jobQue, s3, problems, tools, contents, tokens, true))
+			apiHandlers.PostSubmit(true))
 		apiAdminWriteGroup.DELETE("/problem",
-			apiHandlers.DeleteProblem(problems))
+			apiHandlers.DeleteProblem)
 		apiAdminWriteGroup.DELETE("/tool",
-			apiHandlers.DeleteTool(tools))
+			apiHandlers.DeleteTool)
 		apiAdminWriteGroup.DELETE("/submission",
-			apiHandlers.DeleteSubmission(db))
+			apiHandlers.DeleteSubmission)
 		apiAdminWriteGroup.DELETE("/user",
-			apiHandlers.DeleteUser(db))
+			apiHandlers.DeleteUser)
 
+		scheduleHandlers := schedule.NewHandlers(db, kv, s3)
 		scheduleGroup := backend.NewGroup("/schedule").
-			Use(middlewares.CheckAuth(db, tokens)).
+			Use(middlewares.CheckAuth(db, kv)).
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanScheduleAPI: models.ScopeAll,
 			}))
 		scheduleGroup.GET("/job",
-			scheduleHandlers.GetScheduleJob(db, jobQue, workers, s3))
+			scheduleHandlers.GetScheduleJob)
 		scheduleGroup.PUT("/result",
-			scheduleHandlers.PutScheduleResult(
-				db, jobQue, workers, s3, problems, contents, tokens))
+			scheduleHandlers.PutScheduleResult)
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"),

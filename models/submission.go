@@ -24,9 +24,5 @@ type Submission struct {
 	Args      map[string]string `json:"args" bun:"args"`
 	InputArgs map[string]string `json:"inputArgs" bun:"input_args"`
 
-	Score Score `json:",inline" bun:"embed:score_"`
-
-	// Problem *ProblemMarshaled `bun:"rel:belongs-to,join:problem_sha1=sha1"`
-	// Tool    *ToolMarshaled    `bun:"rel:belongs-to,join:tool_sha1=sha1`
 	Jobs []*Job `bun:"rel:has-many,join:id=sub_id"`
 }

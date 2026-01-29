@@ -18,6 +18,8 @@ func HandleStageDone(
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
 	contents interfaces.ContentFileStorage,
+	submissions interfaces.SubmissionStorage,
+	jobs interfaces.JobStorage,
 	tokens interfaces.TokenStorage,
 
 	job models.Job,
@@ -34,7 +36,7 @@ func HandleStageDone(
 		return nil
 	}
 
-	submission, err := db.GetSubmission(ctx, job.SubId)
+	submission, err := submissions.GetSubmission(ctx, job.SubId)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to get submission",
@@ -59,14 +61,6 @@ func HandleStageDone(
 		return types.StageNotExistError
 	}
 
-	err = db.IncreaseScore(ctx, job.SubId, job.StageName, stage.Score)
-	if err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to put score",
-				zap.Error(err))
-		return err
-	}
-
 	for _, next := range stage.Before {
 		jobdep, err := jobQue.StageDone(ctx, fmt.Sprintf("%d-%s", job.SubId, next))
 		if err != nil {
@@ -77,7 +71,7 @@ func HandleStageDone(
 		}
 
 		if jobdep <= 0 {
-			err = RunStage(ctx, jobQue, db, s3, problems, contents, tokens,
+			err = RunStage(ctx, jobQue, db, s3, problems, contents, jobs, tokens,
 				submission, next)
 			if err != nil {
 				tracing.Logger.Ctx(ctx).

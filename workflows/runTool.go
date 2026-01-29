@@ -20,6 +20,7 @@ func RunTool(
 	s3 interfaces.ObjectStorage,
 	tools interfaces.ToolStorage,
 	contentFiles interfaces.ContentFileStorage,
+	jobs interfaces.JobStorage,
 	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
@@ -89,7 +90,7 @@ func RunTool(
 		SoftTL:   tool.Testcase.SoftTL,
 	}
 
-	if err := db.UpdateJob(ctx, &job); err != nil {
+	if err := jobs.UpdateJob(ctx, &job); err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to update job status",
 				zap.Error(err))

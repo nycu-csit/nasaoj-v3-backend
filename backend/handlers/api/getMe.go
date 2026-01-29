@@ -21,7 +21,9 @@ type MeOutput struct {
 //	@Success	200	{object}	MeOutput
 //	@Failure	401	{object}	string	"missing credential"
 //	@Router		/api/me [get]
-func GetMe(w http.ResponseWriter, req bunrouter.Request) error {
+func (self *Handlers) GetMe(
+	w http.ResponseWriter, req bunrouter.Request,
+) error {
 	claim, ok := req.Context().
 		Value(types.AccessToken("")).(models.AccessTokenClaim)
 	if !ok {

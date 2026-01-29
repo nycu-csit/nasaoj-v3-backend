@@ -11,7 +11,6 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
@@ -61,15 +60,7 @@ func putAdminSubmitPlaceholder() {}
 //	@Failure	429
 //
 //	@Router		/api/submit [post]
-func PostSubmit(
-	db interfaces.Database,
-	jobQue interfaces.JobQueue,
-	s3 interfaces.ObjectStorage,
-	problems interfaces.ProblemStorage,
-	tools interfaces.ToolStorage,
-	contents interfaces.ContentFileStorage,
-	tokens interfaces.TokenStorage,
-
+func (self *Handlers) PostSubmit(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -118,7 +109,7 @@ func PostSubmit(
 			csId = privs.OwnerCsId
 		}
 
-		resource, err := db.GetUserResource(ctx, csId)
+		resource, err := self.db.GetUserResource(ctx, csId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
@@ -130,7 +121,7 @@ func PostSubmit(
 		var submission models.Submission
 		switch input.Type {
 		case models.RefTypeProblem:
-			problem, err := problems.GetProblem(ctx, input.RefSHA1)
+			problem, err := self.problems.GetProblem(ctx, input.RefSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -148,7 +139,7 @@ func PostSubmit(
 
 			if !isAdmin {
 				// Check last submission
-				lastSubmit, err := db.GetLastSubmission(ctx,
+				lastSubmit, err := self.submissions.GetLastSubmission(ctx,
 					resource.CsId, problem.ProblemId, models.RefTypeProblem)
 				if err == nil {
 					// Check Job status
@@ -184,18 +175,13 @@ func PostSubmit(
 				CsId:      resource.CsId,
 				CreatedAt: time.Now().Unix(),
 				Args:      make(map[string]string),
-
-				Score: models.Score{
-					Score:  0,
-					Stages: make(map[string]int64),
-				},
 			}
 
 			for key, val := range resource.Map() {
 				submission.Args[key] = val
 			}
 
-			if err := db.InsertSubmissionByProblem(
+			if err := self.submissions.InsertSubmissionByProblem(
 				ctx, &submission, problem); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -204,8 +190,9 @@ func PostSubmit(
 				}
 			}
 
-			if err := workflows.RunProblem(ctx, jobQue, db, s3, problems, contents,
-				tokens, submission); err != nil {
+			if err := workflows.RunProblem(ctx, self.jobQue, self.db, self.s3,
+				self.problems, self.contents, self.jobs,
+				self.tokens, submission); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to run problem",
@@ -214,7 +201,7 @@ func PostSubmit(
 			}
 
 		case models.RefTypeTool:
-			tool, err := tools.GetTool(ctx, input.RefSHA1)
+			tool, err := self.tools.GetTool(ctx, input.RefSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -232,7 +219,7 @@ func PostSubmit(
 
 			if !isAdmin {
 				// Check last submission
-				lastSubmit, err := db.GetLastSubmission(ctx,
+				lastSubmit, err := self.submissions.GetLastSubmission(ctx,
 					resource.CsId, tool.ToolId, models.RefTypeTool)
 				if err == nil {
 					// Check Job status
@@ -269,11 +256,6 @@ func PostSubmit(
 				CreatedAt: time.Now().Unix(),
 				Args:      make(map[string]string),
 				InputArgs: make(map[string]string),
-
-				Score: models.Score{
-					Score:  0,
-					Stages: make(map[string]int64),
-				},
 			}
 
 			for _, key := range tool.InputArgs {
@@ -284,7 +266,8 @@ func PostSubmit(
 				submission.Args[key] = val
 			}
 
-			if err := db.InsertSubmissionByTool(ctx, &submission, tool); err != nil {
+			if err := self.submissions.InsertSubmissionByTool(
+				ctx, &submission, tool); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to insert tool submission",
@@ -292,7 +275,8 @@ func PostSubmit(
 				}
 			}
 
-			if err := workflows.RunTool(ctx, jobQue, db, s3, tools, contents, tokens,
+			if err := workflows.RunTool(ctx, self.jobQue, self.db, self.s3,
+				self.tools, self.contents, self.jobs, self.tokens,
 				submission); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,

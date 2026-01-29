@@ -18,10 +18,8 @@ type ObjectStorage interface {
 		timeout time.Duration,
 	) (string, error)
 
-	/*
-		GetFileByURL(
-			ctx context.Context,
-			URL string,
-		) ([]byte, error)
-	*/
+	GetFile(
+		ctx context.Context,
+		filename string,
+	) ([]byte, error)
 }

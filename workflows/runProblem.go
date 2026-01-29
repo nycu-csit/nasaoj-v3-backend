@@ -18,6 +18,7 @@ func RunProblem(
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
 	contents interfaces.ContentFileStorage,
+	jobs interfaces.JobStorage,
 	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
@@ -56,7 +57,7 @@ func RunProblem(
 	// Run stages without dependency
 	for stageName := range problem.Stages {
 		if _, exist := stageDeps[stageName]; !exist {
-			err := RunStage(ctx, jobQue, db, s3, problems, contents, tokens,
+			err := RunStage(ctx, jobQue, db, s3, problems, contents, jobs, tokens,
 				submission, stageName)
 			if err != nil {
 				tracing.Logger.Ctx(ctx).

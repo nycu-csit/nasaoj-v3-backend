@@ -37,10 +37,9 @@ var problemsCmd = &cobra.Command{
 					zap.Error(err))
 			panic(err)
 		}
-		problems := implements.NewDBProblemStorage(bunDB, nil)
-		contents := implements.NewDBContentFileStorage(bunDB, nil)
+		db := implements.NewPostgres(bunDB, nil)
 
-		err = utils.LoadProblems(ctx, problems, contents,
+		err = utils.LoadProblems(ctx, db, db,
 			viper.GetString("problems-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
@@ -50,7 +49,7 @@ var problemsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportProblems, err := problems.GetAllProblems(ctx)
+		exportProblems, err := db.GetAllProblems(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all problems",
@@ -58,7 +57,7 @@ var problemsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportContentFiles, err := contents.GetAllContentFiles(ctx)
+		exportContentFiles, err := db.GetAllContentFiles(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all content files",

@@ -20,6 +20,7 @@ func RunStage(
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
 	contents interfaces.ContentFileStorage,
+	jobs interfaces.JobStorage,
 	tokens interfaces.TokenStorage,
 
 	submission models.Submission,
@@ -92,7 +93,7 @@ func RunStage(
 			SoftTL:   testcase.SoftTL,
 		}
 
-		if err := db.UpdateJob(ctx, &job); err != nil {
+		if err := jobs.UpdateJob(ctx, &job); err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to update job status",
 					zap.Error(err))

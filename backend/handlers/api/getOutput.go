@@ -2,15 +2,11 @@ package api
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 
-	"github.com/minio/minio-go/v7"
-	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
@@ -48,9 +44,7 @@ func getAdminStdoutPlaceholder() {}
 //	@Failure	400
 //	@Failure	404
 //	@Router		/api/stdout [get]
-func GetOutput(
-	db interfaces.Database,
-	mc *minio.Client,
+func (self *Handlers) GetOutput(
 	target string,
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -68,7 +62,7 @@ func GetOutput(
 		stageName := req.URL.Query().Get("stage")
 		testName := req.URL.Query().Get("testcase")
 
-		submission, err := db.GetSubmission(ctx, subId)
+		submission, err := self.submissions.GetSubmission(ctx, subId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusNotFound,
@@ -100,8 +94,7 @@ func GetOutput(
 			Info("get output from minio",
 				zap.String("file.name", fileName))
 
-		output, err := mc.GetObject(ctx, viper.GetString("minio-bucket"), fileName,
-			minio.GetObjectOptions{})
+		output, err := self.s3.GetFile(ctx, fileName)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusNotFound,
@@ -109,9 +102,7 @@ func GetOutput(
 				OriginError: err,
 			}
 		}
-		defer output.Close()
 
-		b, err := io.ReadAll(output)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusNotFound,
@@ -122,7 +113,7 @@ func GetOutput(
 
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, err = fmt.Fprintf(w, "%s\n", string(b[:]))
+		_, err = fmt.Fprintf(w, "%s\n", string(output))
 		return err
 	}
 }

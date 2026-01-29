@@ -6,9 +6,9 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type SubmissionsOutputSubmission struct {
@@ -52,9 +52,7 @@ func getAdminSubmissionsPlaceHolder() {}
 //	@Failure	400		{object}	string				"Problem Id invalid"
 //	@Failure	401		{object}	string				"didn't login"
 //	@Router		/api/submissions [get]
-func GetSubmissions(
-	db interfaces.Database,
-	problems interfaces.ProblemStorage,
+func (self *Handlers) GetSubmissions(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -130,7 +128,7 @@ func GetSubmissions(
 			isRefId = true
 		}
 
-		subs, count, err := db.GetSubmissionsAndCount(ctx,
+		subs, count, err := self.submissions.GetSubmissionsAndCount(ctx,
 			csId, isCsId,
 			pageNum, isPageNum, pageSize,
 			refId, isRefId,
@@ -138,7 +136,7 @@ func GetSubmissions(
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
-				Message:     "db query failed",
+				Message:     "failed to query submissions",
 				OriginError: err,
 			}
 		}
@@ -146,13 +144,22 @@ func GetSubmissions(
 		submissions := []SubmissionsOutputSubmission{}
 		sha1s := []string{}
 		for _, sub := range subs {
+			problem, err := self.problems.GetProblem(ctx, sub.ProblemSHA1)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to query problem",
+					OriginError: err,
+				}
+			}
+
 			output := SubmissionsOutputSubmission{
 				Id:   sub.Id,
 				Type: sub.Type,
 
 				CsId:      sub.CsId,
 				CreatedAt: sub.CreatedAt,
-				Score:     sub.Score.Score,
+				Score:     utils.CalcScore(problem, sub).Score,
 			}
 			switch sub.Type {
 			case models.RefTypeProblem:
@@ -166,7 +173,7 @@ func GetSubmissions(
 			submissions = append(submissions, output)
 		}
 
-		scores, err := problems.GetProblemScores(ctx, sha1s)
+		scores, err := self.problems.GetProblemScores(ctx, sha1s)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,

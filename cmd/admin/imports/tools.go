@@ -37,10 +37,9 @@ var toolsCmd = &cobra.Command{
 					zap.Error(err))
 			panic(err)
 		}
-		tools := implements.NewDBToolStorage(bunDB, nil)
-		contents := implements.NewDBContentFileStorage(bunDB, nil)
+		db := implements.NewPostgres(bunDB, nil)
 
-		err = utils.LoadTools(ctx, tools, contents,
+		err = utils.LoadTools(ctx, db, db,
 			viper.GetString("tools-dir"),
 			viper.GetString("testcases-dir"))
 		if err != nil {
@@ -50,7 +49,7 @@ var toolsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportTools, err := tools.GetAllTools(ctx)
+		exportTools, err := db.GetAllTools(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all tools",
@@ -62,7 +61,7 @@ var toolsCmd = &cobra.Command{
 			exportTools[sha1] = tool
 		}
 
-		exportContentFiles, err := contents.GetAllContentFiles(ctx)
+		exportContentFiles, err := db.GetAllContentFiles(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all content files",

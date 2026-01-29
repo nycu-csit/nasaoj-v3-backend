@@ -3,6 +3,7 @@ package implements
 import (
 	"bytes"
 	"context"
+	"io"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -12,15 +13,15 @@ import (
 )
 
 // ObjectStorage implementation for MinIO backend
-type MinIOObjectStorage struct {
+type MinIO struct {
 	*minio.Client
 }
 
-func NewMinIOObjectStorage(mc *minio.Client) *MinIOObjectStorage {
-	return &MinIOObjectStorage{mc}
+func NewMinIO(mc *minio.Client) *MinIO {
+	return &MinIO{mc}
 }
 
-func (self MinIOObjectStorage) PutFile(
+func (self *MinIO) PutFile(
 	ctx context.Context,
 	filename string,
 	b []byte,
@@ -37,7 +38,7 @@ func (self MinIOObjectStorage) PutFile(
 	return nil
 }
 
-func (self MinIOObjectStorage) GetFileURL(
+func (self *MinIO) GetFileURL(
 	ctx context.Context,
 	filename string,
 	timeout time.Duration,
@@ -52,4 +53,20 @@ func (self MinIOObjectStorage) GetFileURL(
 	}
 
 	return fileURL.String(), nil
+}
+
+func (self *MinIO) GetFile(
+	ctx context.Context,
+	filename string,
+) ([]byte, error) {
+	buf, err := self.GetObject(ctx, viper.GetString("minio-bucket"),
+		filename, minio.GetObjectOptions{})
+	if err != nil {
+		return []byte{}, err
+	}
+	b, err := io.ReadAll(buf)
+	if err != nil {
+		return []byte{}, err
+	}
+	return b, nil
 }

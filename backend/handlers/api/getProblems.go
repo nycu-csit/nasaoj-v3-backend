@@ -5,7 +5,6 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -48,8 +47,7 @@ func getAdminProblemsPlaceholder() {}
 //	@Success	200	{object}	[]ProblemOutput
 //	@Failure	500	{object}	string	"Problem loading error"
 //	@Router		/api/problems [get]
-func GetProblems(
-	problems interfaces.ProblemStorage,
+func (self *Handlers) GetProblems(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -58,9 +56,9 @@ func GetProblems(
 		var resProblems map[string]models.Problem
 		var err error
 		if isAdmin {
-			resProblems, err = problems.GetAllProblems(ctx)
+			resProblems, err = self.problems.GetAllProblems(ctx)
 		} else {
-			resProblems, err = problems.GetProblems(ctx)
+			resProblems, err = self.problems.GetProblems(ctx)
 		}
 		if err != nil {
 			return middlewares.HTTPError{
