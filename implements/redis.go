@@ -167,7 +167,7 @@ func (self *Redis) SetAdminToken(
 	key := hex.EncodeToString(h[:])
 
 	b, err := json.Marshal(models.Token{
-		Privs:     models.NewAdminPrivs(""),
+		Privs:     models.NewAdminPrivs(0),
 		IsEnabled: true,
 	})
 	if err != nil {

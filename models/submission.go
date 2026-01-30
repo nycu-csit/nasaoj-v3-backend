@@ -19,7 +19,7 @@ type Submission struct {
 	ToolId      int64   `json:"toolId" bun:"tool_id"`
 	Type        RefType `json:"type" bun:"type"`
 
-	CsId      string            `json:"csId" bun:"cs_id"`
+	OwnerId   int64             `json:"ownerId" bun:"owner_id"`
 	CreatedAt int64             `json:"createdAt" bun:"created_at"`
 	Args      map[string]string `json:"args" bun:"args"`
 	InputArgs map[string]string `json:"inputArgs" bun:"input_args"`

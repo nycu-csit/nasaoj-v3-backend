@@ -54,13 +54,13 @@ var scoresCmd = &cobra.Command{
 		for _, score := range res {
 			if viper.GetBool("with-time") {
 				w.Write([]string{
-					score.CsId,
+					strconv.FormatInt(score.Id, 10),
 					strconv.FormatInt(score.Score, 10),
 					time.Unix(score.CreatedAt, 0).String(),
 				})
 			} else {
 				w.Write([]string{
-					score.CsId,
+					strconv.FormatInt(score.Id, 10),
 					strconv.FormatInt(score.Score, 10),
 				})
 			}

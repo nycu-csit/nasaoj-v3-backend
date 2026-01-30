@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -18,7 +19,7 @@ import (
 
 type AdminSubmitInput struct {
 	SubmitInput `json:",inline"`
-	AsCsId      string `json:"asCsId"`
+	AsOwnerId   int64 `json:"asOwnerId"`
 }
 
 type SubmitInput struct {
@@ -34,7 +35,7 @@ type SubmitOutput struct {
 	RefId     int64             `json:"refId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
-	CsId      string `json:"csId"`
+	OwnerId   string `json:"ownerId"`
 	CreatedAt int64  `json:"createdAt"`
 }
 
@@ -76,7 +77,7 @@ func (self *Handlers) PostSubmit(
 		}
 
 		var input SubmitInput
-		var csId string
+		var ownerId int64
 		if isAdmin {
 			var adminInput AdminSubmitInput
 			if err := json.Unmarshal(b, &adminInput); err != nil {
@@ -87,7 +88,7 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 			input = adminInput.SubmitInput
-			csId = adminInput.AsCsId
+			ownerId = adminInput.AsOwnerId
 		} else {
 			if err := json.Unmarshal(b, &input); err != nil {
 				return middlewares.HTTPError{
@@ -106,10 +107,10 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 
-			csId = privs.OwnerCsId
+			ownerId = privs.OwnerId
 		}
 
-		resource, err := self.db.GetUserResource(ctx, csId)
+		resource, err := self.db.GetUserResource(ctx, ownerId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
@@ -140,7 +141,7 @@ func (self *Handlers) PostSubmit(
 			if !isAdmin {
 				// Check last submission
 				lastSubmit, err := self.submissions.GetLastSubmission(ctx,
-					resource.CsId, problem.ProblemId, models.RefTypeProblem)
+					resource.Id, problem.ProblemId, models.RefTypeProblem)
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
@@ -172,7 +173,7 @@ func (self *Handlers) PostSubmit(
 				ProblemId:   problem.ProblemId,
 				Type:        models.RefTypeProblem,
 
-				CsId:      resource.CsId,
+				OwnerId:   resource.Id,
 				CreatedAt: time.Now().Unix(),
 				Args:      make(map[string]string),
 			}
@@ -220,7 +221,7 @@ func (self *Handlers) PostSubmit(
 			if !isAdmin {
 				// Check last submission
 				lastSubmit, err := self.submissions.GetLastSubmission(ctx,
-					resource.CsId, tool.ToolId, models.RefTypeTool)
+					resource.Id, tool.ToolId, models.RefTypeTool)
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
@@ -252,7 +253,7 @@ func (self *Handlers) PostSubmit(
 				ToolId:   tool.ToolId,
 				Type:     models.RefTypeTool,
 
-				CsId:      resource.CsId,
+				OwnerId:   resource.Id,
 				CreatedAt: time.Now().Unix(),
 				Args:      make(map[string]string),
 				InputArgs: make(map[string]string),
@@ -294,7 +295,7 @@ func (self *Handlers) PostSubmit(
 				RefId:     submission.ProblemId,
 				InputArgs: submission.InputArgs,
 
-				CsId:      submission.CsId,
+				OwnerId:   strconv.FormatInt(submission.OwnerId, 10),
 				CreatedAt: submission.CreatedAt,
 			})
 		case models.RefTypeTool:
@@ -304,7 +305,7 @@ func (self *Handlers) PostSubmit(
 				RefId:     submission.ToolId,
 				InputArgs: submission.InputArgs,
 
-				CsId:      submission.CsId,
+				OwnerId:   strconv.FormatInt(submission.OwnerId, 10),
 				CreatedAt: submission.CreatedAt,
 			})
 		default:

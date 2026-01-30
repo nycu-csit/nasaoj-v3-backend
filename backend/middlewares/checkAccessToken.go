@@ -30,14 +30,15 @@ func refreshAccessToken(
 		return "", types.ContextNotExistError
 	}
 
-	session, err := db.GetSession(ctx, refreshTokenClaim.CsId)
+	session, err := db.GetSession(ctx, refreshTokenClaim.Id)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Warn("session not exist", zap.Error(err))
 		return "", err
 	}
 
-	user, err := db.GetUserResource(ctx, refreshTokenClaim.CsId)
+	// Query user resource by ID (session ID is the user resource ID)
+	user, err := db.GetUserResource(ctx, refreshTokenClaim.Id)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Warn("user not exist", zap.Error(err))
@@ -113,7 +114,7 @@ func CheckAccessToken(
 
 			span := trace.SpanFromContext(ctx)
 			span.SetAttributes(
-				attribute.String("owner.csid", claim.Privs.OwnerCsId))
+				attribute.Int64("owner.id", claim.Privs.OwnerId))
 
 			ctx = context.WithValue(ctx, types.AccessToken(""), claim)
 			ctx = context.WithValue(ctx, types.Privileges(""), claim.Privs)

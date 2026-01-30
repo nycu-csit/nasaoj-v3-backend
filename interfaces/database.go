@@ -9,7 +9,13 @@ import (
 type Database interface {
 	GetUserResource(
 		ctx context.Context,
-		csId string,
+		id int64,
+	) (models.UserResource, error)
+
+	GetUserPass(
+		ctx context.Context,
+		username string,
+		passhash string,
 	) (models.UserResource, error)
 
 	GetUsers(
@@ -18,17 +24,30 @@ type Database interface {
 
 	DeleteUser(
 		ctx context.Context,
-		csId string,
+		id int64,
 	) error
 
 	ExistUserResource(
 		ctx context.Context,
-		csId string,
+		id int64,
 	) (bool, error)
+
+	ExistUserResourceBySourceId(
+		ctx context.Context,
+		source models.LoginSourceType,
+		sourceId string,
+	) (bool, error)
+
+	GetUserResourceBySourceId(
+		ctx context.Context,
+		source models.LoginSourceType,
+		sourceId string,
+	) (models.UserResource, error)
 
 	InsertUserResources(
 		ctx context.Context,
-		userResources []models.UserResource,
+		users []models.UserResource,
+		creds []models.PlainCred,
 	) error
 
 	UpsertUser(
@@ -38,7 +57,7 @@ type Database interface {
 
 	GetSession(
 		ctx context.Context,
-		csId string,
+		id int64,
 	) (models.Session, error)
 
 	UpsertSession(
@@ -48,11 +67,11 @@ type Database interface {
 
 	UpdateRefreshToken(
 		ctx context.Context,
-		csId string,
+		id int64,
 	) (models.Session, error)
 
 	InvalidateSession(
 		ctx context.Context,
-		csId string,
+		id int64,
 	) error
 }

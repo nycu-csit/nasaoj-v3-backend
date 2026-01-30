@@ -74,7 +74,7 @@ func RunStage(
 		duration := time.Duration(testcase.HardTL) * time.Second
 		deadline := time.Now().Add(duration).Unix()
 		jobToken, err := tokens.GenerateToken(
-			ctx, models.NewJobPrivs(submission.CsId), duration)
+			ctx, models.NewJobPrivs(submission.OwnerId), duration)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to generate token",

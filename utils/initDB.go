@@ -8,20 +8,14 @@ import (
 )
 
 func InitDB(ctx context.Context, db *bun.DB) error {
-	var err error
-
-	err = db.ResetModel(ctx,
+	return db.ResetModel(ctx,
 		(*models.ProblemMarshaled)(nil),
 		(*models.ToolMarshaled)(nil),
 		(*models.ContentFile)(nil),
 		(*models.Job)(nil),
 		(*models.Submission)(nil),
 		(*models.UserResource)(nil),
+		(*models.PlainCred)(nil),
 		(*models.Session)(nil),
 	)
-	if err != nil {
-		panic(err)
-	}
-
-	return nil
 }

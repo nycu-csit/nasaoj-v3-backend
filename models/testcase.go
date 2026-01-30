@@ -11,10 +11,10 @@ type ContentFile struct {
 
 	SHA1       string `json:"sha1" bun:"sha1,pk"`
 	Name       string `json:"name" bun:"name"`
-	Payload    string `json:"-" bun:"payload" msgpack:"payload"`
-	IsTemplate bool   `json:"-" bun:"is_template" msgpack:"isTemplate"`
+	Payload    string `json:"-" bun:"payload"`
+	IsTemplate bool   `json:"-" bun:"is_template"`
 
-	Template *template.Template `json:"-" bun:"-" msgpack:"-"`
+	Template *template.Template `json:"-" bun:"-"`
 }
 
 type Content struct {

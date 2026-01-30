@@ -21,4 +21,9 @@ type ScoreStorage interface {
 		ctx context.Context,
 		refId int64,
 	) ([]models.UserScore, error)
+
+	GetSubmissionScore(
+		ctx context.Context,
+		subId int64,
+	) (models.UserScore, error)
 }

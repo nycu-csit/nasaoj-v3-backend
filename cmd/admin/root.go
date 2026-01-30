@@ -232,6 +232,9 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().
+		Bool("no-read-config", false,
+			"Enable to not to read config")
+	RootCmd.PersistentFlags().
 		String("endpoint",
 			"http://127.0.0.1:8080",
 			"The endpoint of the backend server")

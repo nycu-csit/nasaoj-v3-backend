@@ -8,8 +8,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/go-redis/cache/v9"
 	"github.com/uptrace/bun"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cache"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
@@ -343,7 +343,20 @@ func (self *Postgres) InsertProblem(
 		Model(&problemMarshaled).
 		On("CONFLICT (sha1) DO NOTHING").
 		Exec(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if self.cache != nil {
+		if err := self.cache.Delete(
+			ctx, cacheProblemSHA1Key(problemMarshaled.SHA1)); err != nil {
+			return err
+		}
+		if err := self.cache.Delete(ctx, cacheProblemEnabledKey()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (self *Postgres) getProblemsEnabled(
@@ -464,10 +477,15 @@ func (self *Postgres) UpdateProblemState(
 		}
 	}
 	if self.cache != nil {
-		return self.cache.Delete(ctx, cacheProblemEnabledKey())
-	} else {
-		return nil
+		if err := self.cache.Delete(
+			ctx, cacheProblemSHA1Key(sha1)); err != nil {
+			return err
+		}
+		if err := self.cache.Delete(ctx, cacheProblemEnabledKey()); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (self *Postgres) GetProblemScores(
@@ -526,6 +544,10 @@ func (self *Postgres) DeleteProblemAndSubmissions(
 		}
 		if err := self.cache.Delete(ctx,
 			cacheProblemSHA1Key(sha1)); err != nil {
+			return err
+		}
+		if err := self.cache.Delete(ctx,
+			cacheProblemEnabledKey()); err != nil {
 			return err
 		}
 	}
@@ -634,7 +656,20 @@ func (self *Postgres) InsertTool(
 		Model(&toolMarshaled).
 		On("CONFLICT (sha1) DO NOTHING").
 		Exec(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if self.cache != nil {
+		if err := self.cache.Delete(
+			ctx, cacheToolSHA1Key(toolMarshaled.SHA1)); err != nil {
+			return err
+		}
+		if err := self.cache.Delete(ctx, cacheToolEnabledKey()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (self *Postgres) getToolsEnabled(
@@ -755,10 +790,15 @@ func (self *Postgres) UpdateToolState(
 		}
 	}
 	if self.cache != nil {
-		return self.cache.Delete(ctx, cacheToolEnabledKey())
-	} else {
-		return nil
+		if err := self.cache.Delete(
+			ctx, cacheToolSHA1Key(sha1)); err != nil {
+			return err
+		}
+		if err := self.cache.Delete(ctx, cacheToolEnabledKey()); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (self *Postgres) DeleteToolAndSubmissions(
@@ -821,9 +861,15 @@ func cacheScoresWStagesKey(
 
 func cacheUserScoresKey(
 	problemId int64,
-	csId string,
+	id int64,
 ) string {
-	return "user-scores-" + strconv.FormatInt(problemId, 10) + "-" + csId
+	return "user-scores-" + strconv.FormatInt(problemId, 10) + "-" + strconv.FormatInt(id, 10)
+}
+
+func cacheSubmissionScoreKey(
+	subId int64,
+) string {
+	return "sub-scores-" + strconv.FormatInt(subId, 10)
 }
 
 func cacheUsersKey(
@@ -834,22 +880,78 @@ func cacheUsersKey(
 
 func cacheUserStageScoresKey(
 	problemId int64,
-	csId string,
+	id int64,
 ) string {
-	return "user-stage-scores-" + strconv.FormatInt(problemId, 10) + "-" + csId
+	return "user-stage-scores-" + strconv.FormatInt(problemId, 10) + "-" + strconv.FormatInt(id, 10)
+}
+
+func (self *Postgres) getSubmissionScore(
+	ctx context.Context,
+	subId int64,
+) (models.UserScore, error) {
+	sub := models.Submission{Id: subId}
+	err := self.db.NewSelect().
+		Model(&sub).
+		WherePK().
+		Relation("Jobs").
+		Scan(ctx)
+	if err != nil {
+		return models.UserScore{}, err
+	}
+
+	problem, err := self.GetProblem(ctx, sub.ProblemSHA1)
+	if err != nil {
+		return models.UserScore{}, err
+	}
+
+	score, isFinal := utils.CalcScore(problem, sub)
+
+	return models.UserScore{
+		Score: score.Score,
+		Id:    sub.OwnerId,
+
+		CreatedAt: sub.CreatedAt,
+		IsFinal:   isFinal,
+	}, nil
+}
+
+func (self *Postgres) GetSubmissionScore(
+	ctx context.Context,
+	subId int64,
+) (models.UserScore, error) {
+	if self.cache != nil {
+		var ret models.UserScore
+		err := self.cache.Once(&cache.Item{
+			Key:   cacheSubmissionScoreKey(subId),
+			Value: &ret,
+			Do: func(*cache.Item) (interface{}, error) {
+				return self.getSubmissionScore(ctx, subId)
+			},
+			TTL: 2 * time.Second,
+		})
+		if ret.IsFinal {
+			err = self.cache.Expire(ctx, cacheSubmissionScoreKey(subId), time.Hour)
+			if err != nil {
+				return models.UserScore{}, err
+			}
+		}
+		return ret, err
+	} else {
+		return self.getSubmissionScore(ctx, subId)
+	}
 }
 
 func (self *Postgres) getUserScoreWithStages(
 	ctx context.Context,
 	refId int64,
-	csId string,
+	id int64,
 ) (models.UserScoreWithStages, error) {
 	var sub models.Submission
 	err := self.db.NewSelect().
 		Model(&sub).
-		Column("id", "cs_id", "problem_id", "problem_sha1").
+		Column("id", "owner_id", "problem_id", "problem_sha1").
 		Where("problem_id = ?", refId).
-		Where("cs_id = ?", csId).
+		Where("owner_id = ?", id).
 		OrderExpr("id DESC").
 		Limit(1).
 		Relation("Jobs").
@@ -863,51 +965,60 @@ func (self *Postgres) getUserScoreWithStages(
 		return models.UserScoreWithStages{}, err
 	}
 
+	score, isFinal := utils.CalcScore(problem, sub)
 	return models.UserScoreWithStages{
-		CsId:      csId,
-		Score:     utils.CalcScore(problem, sub),
+		Id:    id,
+		Score: score,
+
 		CreatedAt: sub.CreatedAt,
+		IsFinal:   isFinal,
 	}, nil
 }
 
 func (self *Postgres) GetUserScoreWithStages(
 	ctx context.Context,
 	refId int64,
-	csId string,
+	id int64,
 ) (models.UserScoreWithStages, error) {
 	if self.cache != nil {
 		var ret models.UserScoreWithStages
 		err := self.cache.Once(&cache.Item{
-			Key:   cacheUserScoresKey(refId, csId),
+			Key:   cacheUserScoresKey(refId, id),
 			Value: &ret,
 			Do: func(*cache.Item) (interface{}, error) {
-				return self.getUserScoreWithStages(ctx, refId, csId)
+				return self.getUserScoreWithStages(ctx, refId, id)
 			},
 		})
+		if ret.IsFinal {
+			err = self.cache.Expire(ctx, cacheUserScoresKey(refId, id), time.Hour)
+			if err != nil {
+				return models.UserScoreWithStages{}, err
+			}
+		}
 		return ret, err
 	} else {
-		return self.getUserScoreWithStages(ctx, refId, csId)
+		return self.getUserScoreWithStages(ctx, refId, id)
 	}
 }
 
 func (self *Postgres) getSubmittedUsers(
 	ctx context.Context,
 	refId int64,
-) ([]string, error) {
+) ([]int64, error) {
 	var subs []models.Submission
 	err := self.db.NewSelect().
 		Model(&subs).
-		DistinctOn("cs_id").
-		Column("cs_id").
+		DistinctOn("owner_id").
+		Column("owner_id").
 		Where("problem_id = ?", refId).
 		Scan(ctx)
 	if err != nil {
-		return []string{}, err
+		return []int64{}, err
 	}
 
-	var ret []string
+	var ret []int64
 	for _, sub := range subs {
-		ret = append(ret, sub.CsId)
+		ret = append(ret, sub.OwnerId)
 	}
 	return ret, nil
 }
@@ -915,9 +1026,9 @@ func (self *Postgres) getSubmittedUsers(
 func (self *Postgres) GetSubmittedUsers(
 	ctx context.Context,
 	refId int64,
-) ([]string, error) {
+) ([]int64, error) {
 	if self.cache != nil {
-		var ret []string
+		var ret []int64
 		err := self.cache.Once(&cache.Item{
 			Key:   cacheUsersKey(refId),
 			Value: &ret,
@@ -934,25 +1045,30 @@ func (self *Postgres) GetSubmittedUsers(
 func (self *Postgres) getScores(
 	ctx context.Context,
 	refId int64,
-) ([]models.UserScore, error) {
+) ([]models.UserScore, bool, error) {
 	users, err := self.GetSubmittedUsers(ctx, refId)
 	if err != nil {
-		return []models.UserScore{}, err
+		return []models.UserScore{}, false, err
 	}
 
+	isFinal := true
 	var ret []models.UserScore
 	for _, user := range users {
 		score, err := self.GetUserScoreWithStages(ctx, refId, user)
 		if err != nil {
-			return []models.UserScore{}, err
+			return []models.UserScore{}, false, err
 		}
 		ret = append(ret, models.UserScore{
-			CsId:      score.CsId,
-			Score:     score.Score.Score,
+			Id:    score.Id,
+			Score: score.Score.Score,
+
 			CreatedAt: score.CreatedAt,
 		})
+		if !score.IsFinal {
+			isFinal = false
+		}
 	}
-	return ret, nil
+	return ret, isFinal, nil
 }
 
 func (self *Postgres) GetScores(
@@ -961,37 +1077,51 @@ func (self *Postgres) GetScores(
 ) ([]models.UserScore, error) {
 	if self.cache != nil {
 		var ret []models.UserScore
+		var isFinal bool
 		err := self.cache.Once(&cache.Item{
 			Key:   cacheScoresKey(refId),
 			Value: &ret,
-			Do: func(*cache.Item) (interface{}, error) {
-				return self.getScores(ctx, refId)
+			Do: func(*cache.Item) (ret interface{}, err error) {
+				ret, isFinal, err = self.getScores(ctx, refId)
+				return
 			},
 		})
+		if isFinal {
+			err := self.cache.Expire(ctx, cacheScoresKey(refId), time.Hour)
+			if err != nil {
+				return []models.UserScore{}, err
+			}
+		}
 		return ret, err
 	} else {
-		return self.getScores(ctx, refId)
+		ret, _, err := self.getScores(ctx, refId)
+		return ret, err
 	}
 }
 
 func (self *Postgres) getScoresWithStages(
 	ctx context.Context,
 	refId int64,
-) ([]models.UserScoreWithStages, error) {
+) ([]models.UserScoreWithStages, bool, error) {
 	users, err := self.GetSubmittedUsers(ctx, refId)
 	if err != nil {
-		return []models.UserScoreWithStages{}, err
+		return []models.UserScoreWithStages{}, false, err
 	}
 
+	isFinal := true
 	var ret []models.UserScoreWithStages
 	for _, user := range users {
 		score, err := self.GetUserScoreWithStages(ctx, refId, user)
 		if err != nil {
-			return []models.UserScoreWithStages{}, err
+			return []models.UserScoreWithStages{}, false, err
 		}
 		ret = append(ret, score)
+
+		if !score.IsFinal {
+			isFinal = false
+		}
 	}
-	return ret, nil
+	return ret, isFinal, nil
 }
 
 func (self *Postgres) GetScoresWithStages(
@@ -1000,16 +1130,25 @@ func (self *Postgres) GetScoresWithStages(
 ) ([]models.UserScoreWithStages, error) {
 	if self.cache != nil {
 		var ret []models.UserScoreWithStages
+		var isFinal bool
 		err := self.cache.Once(&cache.Item{
 			Key:   cacheScoresWStagesKey(refId),
 			Value: &ret,
-			Do: func(*cache.Item) (interface{}, error) {
-				return self.getScoresWithStages(ctx, refId)
+			Do: func(*cache.Item) (ret interface{}, err error) {
+				ret, isFinal, err = self.getScoresWithStages(ctx, refId)
+				return
 			},
 		})
+		if isFinal {
+			err := self.cache.Expire(ctx, cacheScoresWStagesKey(refId), time.Hour)
+			if err != nil {
+				return []models.UserScoreWithStages{}, err
+			}
+		}
 		return ret, err
 	} else {
-		return self.getScoresWithStages(ctx, refId)
+		ret, _, err := self.getScoresWithStages(ctx, refId)
+		return ret, err
 	}
 }
 
@@ -1038,10 +1177,10 @@ func (self *Postgres) GetScoresWithDeadline(
 
 		validSubQ := tx.NewSelect().
 			Model((*models.Submission)(nil)).
-			DistinctOn("cs_id").
-			Column("cs_id", "created_at", "id").
+			DistinctOn("owner_id").
+			Column("owner_id", "created_at", "id").
 			Where("problem_id = ?", refId).
-			Order("cs_id ASC", "created_at DESC")
+			Order("owner_id ASC", "created_at DESC")
 
 		if problem.Deadline != 0 {
 			validSubQ = validSubQ.
@@ -1050,13 +1189,13 @@ func (self *Postgres) GetScoresWithDeadline(
 
 		err = self.db.NewSelect().
 			With("valid_sub", validSubQ).
-			Model((*models.Submission)(nil)).
+			Model(&submissions).
 			Where("id IN (?)", tx.NewSelect().
 				Table("valid_sub").
 				Column("id")).
-			Order("cs_id ASC").
+			Order("owner_id ASC").
 			Relation("Jobs").
-			Scan(ctx, &submissions)
+			Scan(ctx)
 
 		return err
 	})
@@ -1066,11 +1205,11 @@ func (self *Postgres) GetScoresWithDeadline(
 
 	var ret []models.UserScore
 	for _, sub := range submissions {
-		score := utils.CalcScore(problem, sub)
+		score, _ := utils.CalcScore(problem, sub)
 
 		ret = append(ret, models.UserScore{
 			Score:     score.Score,
-			CsId:      sub.CsId,
+			Id:        sub.OwnerId,
 			CreatedAt: sub.CreatedAt,
 		})
 	}
@@ -1112,14 +1251,14 @@ func (self *Postgres) GetSubmission(
 
 func (self *Postgres) GetLastSubmission(
 	ctx context.Context,
-	csId string,
+	id int64,
 	refId int64,
 	subType models.RefType,
 ) (models.Submission, error) {
 	var ret models.Submission
 	query := self.db.NewSelect().
 		Model(&ret).
-		Where("cs_id = ?", csId).
+		Where("owner_id = ?", id).
 		Where("type = ?", subType).
 		Order("id DESC").
 		Limit(1)
@@ -1151,8 +1290,8 @@ func (self *Postgres) GetLastSubmission(
 
 func (self *Postgres) GetSubmissionsAndCount(
 	ctx context.Context,
-	csId string,
-	isCsId bool,
+	id int64,
+	isOwnerId bool,
 	pageNum int,
 	isPageNum bool,
 	pageSize int,
@@ -1164,8 +1303,8 @@ func (self *Postgres) GetSubmissionsAndCount(
 	query := self.db.NewSelect().
 		Order("id DESC").
 		Limit(pageSize)
-	if isCsId {
-		query = query.Where("cs_id = ?", csId)
+	if isOwnerId {
+		query = query.Where("owner_id = ?", id)
 	}
 	if isPageNum {
 		query = query.Offset(pageNum * pageSize)
@@ -1197,15 +1336,15 @@ func (self *Postgres) DeleteSubmission(
 	_, err := self.db.NewDelete().
 		Model((*models.Submission)(nil)).
 		Where("id = ?", subId).
-		Returning("problem_id", "cs_id").
+		Returning("problem_id", "owner_id").
 		Exec(ctx, &sub)
 	if err != nil {
 		return err
 	}
 
 	pending := []string{
-		cacheUserScoresKey(sub.ProblemId, sub.CsId),
-		cacheUserStageScoresKey(sub.ProblemId, sub.CsId),
+		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
+		cacheUserStageScoresKey(sub.ProblemId, sub.OwnerId),
 		cacheUsersKey(sub.ProblemId),
 		cacheScoresKey(sub.ProblemId),
 		cacheScoresWStagesKey(sub.ProblemId),
@@ -1314,20 +1453,20 @@ func (self *Postgres) InsertSubmissionByTool(
 
 func (self *Postgres) DeleteUserAndSubmissions(
 	ctx context.Context,
-	csId string,
+	id int64,
 ) error {
 	var subs []models.Submission
 	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		_, err := tx.NewDelete().
 			Model((*models.UserResource)(nil)).
-			Where("cs_id = ?", csId).
+			Where("id = ?", id).
 			Exec(ctx)
 		if err != nil {
 			return err
 		}
 		_, err = tx.NewDelete().
 			Model((*models.Submission)(nil)).
-			Where("cs_id = ?", csId).
+			Where("owner_id = ?", id).
 			Returning("problem_id").
 			Exec(ctx, &subs)
 		if err != nil {
@@ -1342,7 +1481,7 @@ func (self *Postgres) DeleteUserAndSubmissions(
 	var pending []string
 
 	for _, sub := range subs {
-		pending = append(pending, cacheUserScoresKey(sub.ProblemId, csId))
+		pending = append(pending, cacheUserScoresKey(sub.ProblemId, id))
 		pending = append(pending, cacheUsersKey(sub.ProblemId))
 		pending = append(pending, cacheScoresKey(sub.ProblemId))
 		pending = append(pending, cacheScoresWStagesKey(sub.ProblemId))
@@ -1449,25 +1588,41 @@ func (self *Postgres) UpdateJob(
 
 func (self *Postgres) GetUserResource(
 	ctx context.Context,
-	csId string,
+	id int64,
 ) (models.UserResource, error) {
 	var ret models.UserResource
 	err := self.db.NewSelect().Model(&ret).
-		Where("cs_id = ?", csId).Scan(ctx)
+		Where("id = ?", id).Scan(ctx)
+	return ret, err
+}
+
+func (self *Postgres) GetUserPass(
+	ctx context.Context,
+	username string,
+	passhash string,
+) (models.UserResource, error) {
+	var ret models.UserResource
+	err := self.db.NewSelect().
+		Model(&ret).
+		Where("username = ?", username).
+		Where("plain_cred.passhash = ?", passhash).
+		Relation("PlainCred").
+		Scan(ctx)
 	return ret, err
 }
 
 func (self *Postgres) InsertUserResources(
 	ctx context.Context,
-	userResources []models.UserResource,
+	users []models.UserResource,
+	creds []models.PlainCred,
 ) error {
-	for _, newUser := range userResources {
+	for i, newUser := range users {
 		err := self.db.RunInTx(ctx, nil,
 			func(ctx context.Context, tx bun.Tx) error {
 				var oldUser models.UserResource
 				err := tx.NewSelect().
 					Model(&oldUser).
-					Where("cs_id = ?", newUser.CsId).
+					Where("username = ?", newUser.Username).
 					Scan(ctx)
 				if err == sql.ErrNoRows {
 					// Insert New User
@@ -1476,6 +1631,17 @@ func (self *Postgres) InsertUserResources(
 						Exec(ctx)
 					if err != nil {
 						return err
+					}
+					if creds != nil {
+						creds[i].ResourceId = newUser.Id
+						_, err = tx.NewInsert().
+							Model(&creds[i]).
+							On("CONFLICT (resource_id) DO UPDATE").
+							Set("passhash = EXCLUDED.passhash").
+							Exec(ctx)
+						if err != nil {
+							return err
+						}
 					}
 					return nil
 				}
@@ -1502,10 +1668,22 @@ func (self *Postgres) InsertUserResources(
 				_, err = tx.NewUpdate().
 					Model((*models.UserResource)(nil)).
 					Set("args = ?", mergedUser.Args).
-					Where("cs_id = ?", newUser.CsId).
+					Where("username = ?", newUser.Username).
 					Exec(ctx)
 				if err != nil {
 					return err
+				}
+
+				if creds != nil {
+					creds[i].ResourceId = mergedUser.Id
+					_, err = tx.NewInsert().
+						Model(&creds[i]).
+						On("CONFLICT (resource_id) DO UPDATE").
+						Set("passhash = EXCLUDED.passhash").
+						Exec(ctx)
+					if err != nil {
+						return err
+					}
 				}
 
 				return nil
@@ -1519,12 +1697,38 @@ func (self *Postgres) InsertUserResources(
 
 func (self *Postgres) ExistUserResource(
 	ctx context.Context,
-	csId string,
+	id int64,
 ) (bool, error) {
 	return self.db.NewSelect().
 		Model((*models.UserResource)(nil)).
-		Where("cs_id = ?", csId).
+		Where("id = ?", id).
 		Exists(ctx)
+}
+
+func (self *Postgres) ExistUserResourceBySourceId(
+	ctx context.Context,
+	source models.LoginSourceType,
+	sourceId string,
+) (bool, error) {
+	return self.db.NewSelect().
+		Model((*models.UserResource)(nil)).
+		Where("source = ?", source).
+		Where("source_id = ?", sourceId).
+		Exists(ctx)
+}
+
+func (self *Postgres) GetUserResourceBySourceId(
+	ctx context.Context,
+	source models.LoginSourceType,
+	sourceId string,
+) (models.UserResource, error) {
+	var ret models.UserResource
+	err := self.db.NewSelect().
+		Model(&ret).
+		Where("source = ?", source).
+		Where("source_id = ?", sourceId).
+		Scan(ctx)
+	return ret, err
 }
 
 func (self *Postgres) UpsertUser(
@@ -1533,8 +1737,9 @@ func (self *Postgres) UpsertUser(
 ) error {
 	_, err := self.db.NewInsert().
 		Model(&user).
-		On("CONFLICT (cs_id) DO UPDATE").
+		On("CONFLICT (id) DO UPDATE").
 		Set("args = EXCLUDED.args").
+		Set("is_admin = EXCLUDED.is_admin").
 		Exec(ctx)
 	return err
 }
@@ -1549,9 +1754,9 @@ func (self *Postgres) GetUsers(
 
 func (self *Postgres) GetSession(
 	ctx context.Context,
-	csId string,
+	id int64,
 ) (models.Session, error) {
-	ret := models.Session{CsId: csId}
+	ret := models.Session{Id: id}
 	err := self.db.NewSelect().Model(&ret).WherePK().Scan(ctx)
 	return ret, err
 }
@@ -1560,10 +1765,10 @@ func (self *Postgres) UpsertSession(
 	ctx context.Context,
 	session *models.Session,
 ) error {
-	_, err := self.db.NewInsert().Model(session).
-		On("CONFLICT (cs_id) DO UPDATE").
-		Set("cs_id = EXCLUDED.cs_id").
-		Set("groups = EXCLUDED.groups").
+	_, err := self.db.NewInsert().
+		Model(session).
+		On("CONFLICT (id) DO UPDATE").
+		Set("id = EXCLUDED.id").
 		Set("refresh_token = EXCLUDED.refresh_token").
 		Set("is_valid = EXCLUDED.is_valid").
 		Exec(ctx)
@@ -1572,12 +1777,15 @@ func (self *Postgres) UpsertSession(
 
 func (self *Postgres) UpdateRefreshToken(
 	ctx context.Context,
-	csId string,
+	id int64,
 ) (models.Session, error) {
 	ret := models.Session{
-		CsId: csId,
+		Id: id,
 	}
-	err := self.db.NewSelect().Model(&ret).WherePK().Scan(ctx)
+	err := self.db.NewSelect().
+		Model(&ret).
+		WherePK().
+		Scan(ctx)
 	if err != nil {
 		return models.Session{}, err
 	}
@@ -1587,8 +1795,9 @@ func (self *Postgres) UpdateRefreshToken(
 				zap.Error(err))
 		return models.Session{}, err
 	}
-	err = self.db.NewUpdate().Model((*models.Session)(nil)).
-		Where("cs_id = ?", csId).
+	err = self.db.NewUpdate().
+		Model((*models.Session)(nil)).
+		Where("id = ?", id).
 		Set("refresh_token = ?", ret.RefreshToken).
 		Returning("*").Scan(ctx, &ret)
 	return ret, nil
@@ -1596,11 +1805,11 @@ func (self *Postgres) UpdateRefreshToken(
 
 func (self *Postgres) InvalidateSession(
 	ctx context.Context,
-	csId string,
+	id int64,
 ) error {
 	_, err := self.db.NewUpdate().
 		Model((*models.Session)(nil)).
-		Where("cs_id = ?", csId).
+		Where("id = ?", id).
 		Set("is_valid = ?", false).
 		Exec(ctx)
 	return err
@@ -1608,11 +1817,11 @@ func (self *Postgres) InvalidateSession(
 
 func (self *Postgres) DeleteUser(
 	ctx context.Context,
-	csId string,
+	id int64,
 ) error {
 	_, err := self.db.NewDelete().
 		Model((*models.UserResource)(nil)).
-		Where("cs_id = ?", csId).
+		Where("id = ?", id).
 		Exec(ctx)
 	return err
 }

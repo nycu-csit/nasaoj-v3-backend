@@ -8,7 +8,6 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type SubmissionsOutputSubmission struct {
@@ -17,7 +16,7 @@ type SubmissionsOutputSubmission struct {
 	RefId   int64          `json:"refId"`
 	Type    models.RefType `json:"type"`
 
-	CsId       string `json:"csId"`
+	OwnerId    string `json:"ownerId"`
 	CreatedAt  int64  `json:"createdAt"`
 	Score      int64  `json:"score"`
 	TotalScore int64  `json:"totalScore"`
@@ -61,12 +60,19 @@ func (self *Handlers) GetSubmissions(
 		queryValues := req.URL.Query()
 		var err error
 
-		var csId string
-		var isCsId bool = false
+		var ownerId int64
+		var isOwnerId bool = false
 		if isAdmin {
-			if queryValues.Has("csId") {
-				csId = queryValues.Get("csId")
-				isCsId = true
+			if queryValues.Has("ownerId") {
+				ownerId, err = strconv.ParseInt(queryValues.Get("ownerId"), 10, 64)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusBadRequest,
+						Message:     "invalid owner id",
+						OriginError: err,
+					}
+				}
+				isOwnerId = true
 			}
 		} else {
 			privs, ok := req.Context().
@@ -77,8 +83,8 @@ func (self *Handlers) GetSubmissions(
 					Message:    "privs missing",
 				}
 			}
-			csId = privs.OwnerCsId
-			isCsId = true
+			ownerId = privs.OwnerId
+			isOwnerId = true
 		}
 
 		var pageNum int
@@ -129,7 +135,7 @@ func (self *Handlers) GetSubmissions(
 		}
 
 		subs, count, err := self.submissions.GetSubmissionsAndCount(ctx,
-			csId, isCsId,
+			ownerId, isOwnerId,
 			pageNum, isPageNum, pageSize,
 			refId, isRefId,
 			refType, isRefType)
@@ -144,7 +150,6 @@ func (self *Handlers) GetSubmissions(
 		submissions := []SubmissionsOutputSubmission{}
 		sha1s := []string{}
 		for _, sub := range subs {
-			problem, err := self.problems.GetProblem(ctx, sub.ProblemSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -153,13 +158,22 @@ func (self *Handlers) GetSubmissions(
 				}
 			}
 
+			score, err := self.scores.GetSubmissionScore(ctx, sub.Id)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to query score",
+					OriginError: err,
+				}
+			}
+
 			output := SubmissionsOutputSubmission{
 				Id:   sub.Id,
 				Type: sub.Type,
 
-				CsId:      sub.CsId,
+				OwnerId:   strconv.FormatInt(sub.OwnerId, 10),
 				CreatedAt: sub.CreatedAt,
-				Score:     utils.CalcScore(problem, sub).Score,
+				Score:     score.Score,
 			}
 			switch sub.Type {
 			case models.RefTypeProblem:

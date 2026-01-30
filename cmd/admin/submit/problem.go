@@ -3,6 +3,7 @@ package submit
 import (
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
@@ -26,9 +27,10 @@ var problemCmd = &cobra.Command{
 		utils.RestyBuilder(ctx, "/api/admin/submit",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPost
+				ownerId, _ := strconv.ParseInt(viper.GetString("ownerid"), 10, 64)
 				return r.
 					SetBody(api.AdminSubmitInput{
-						AsCsId: viper.GetString("csid"),
+						AsOwnerId: ownerId,
 						SubmitInput: api.SubmitInput{
 							RefSHA1: args[0],
 							Type:    models.RefTypeProblem,

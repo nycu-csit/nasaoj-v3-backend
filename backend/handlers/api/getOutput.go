@@ -81,7 +81,7 @@ func (self *Handlers) GetOutput(
 				}
 			}
 
-			if submission.CsId != privs.OwnerCsId {
+			if submission.OwnerId != privs.OwnerId {
 				return middlewares.HTTPError{
 					StatusCode: http.StatusForbidden,
 					Message:    "submission owner not match",

@@ -55,7 +55,7 @@ func (self *Handlers) PostToken(
 	case "worker":
 		privs = models.NewWorkerPrivs()
 	case "admin":
-		privs = models.NewAdminPrivs("")
+		privs = models.NewAdminPrivs(0)
 	default:
 		return middlewares.HTTPError{
 			StatusCode: http.StatusBadRequest,

@@ -5,10 +5,17 @@ import "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 func CalcScore(
 	problem models.Problem,
 	sub models.Submission,
-) models.Score {
+) (models.Score, bool) {
+	isFinal := true
 	stageJobCnt := make(map[string]int)
 	for _, job := range sub.Jobs {
-		if job.Status == models.StatusSuccess {
+		switch job.Status {
+		case
+			models.StatusPending,
+			models.StatusRunning,
+			models.StatusBlocked:
+			isFinal = false
+		case models.StatusSuccess:
 			stageJobCnt[job.StageName] += 1
 		}
 	}
@@ -25,5 +32,5 @@ func CalcScore(
 		}
 	}
 
-	return ret
+	return ret, isFinal
 }

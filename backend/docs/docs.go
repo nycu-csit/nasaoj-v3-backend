@@ -703,9 +703,10 @@ const docTemplate = `{
             "get": {
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "User CsId to be queried",
-                        "name": "csId",
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "User Id to be queried",
+                        "name": "id",
                         "in": "query",
                         "required": true
                     }
@@ -732,8 +733,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User CsId",
-                        "name": "csId",
+                        "description": "User Id",
+                        "name": "id",
                         "in": "query",
                         "required": true
                     },
@@ -785,21 +786,23 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/admin/users/cssso": {
             "put": {
                 "consumes": [
                     "application/json"
                 ],
                 "parameters": [
                     {
-                        "description": "User resources",
+                        "description": "request body",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.UserResource"
+                                "$ref": "#/definitions/api.PutUsersCSSSOInput"
                             }
                         }
                     }
@@ -816,6 +819,35 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    }
+                }
+            }
+        },
+        "/api/admin/users/plain": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutUsersPlainInput"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     }
                 }
             }
@@ -840,6 +872,15 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    }
+                }
+            }
+        },
+        "/api/healthz": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -1233,8 +1274,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
-            "get": {
+        "/auth/login/cssso": {
+            "post": {
                 "description": "OAuth login endpoint",
                 "parameters": [
                     {
@@ -1247,6 +1288,29 @@ const docTemplate = `{
                 "responses": {
                     "302": {
                         "description": "302 Found",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login/plain": {
+            "post": {
+                "parameters": [
+                    {
+                        "description": "query params",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginPlainInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
                         "schema": {
                             "type": ""
                         }
@@ -1272,8 +1336,8 @@ const docTemplate = `{
         "api.AdminSubmitInput": {
             "type": "object",
             "properties": {
-                "asCsId": {
-                    "type": "string"
+                "asOwnerId": {
+                    "type": "integer"
                 },
                 "inputArgs": {
                     "type": "object",
@@ -1439,14 +1503,42 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PutUsersCSSSOInput": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "csId": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PutUsersPlainInput": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "api.ResultOutput": {
             "type": "object",
             "properties": {
                 "createdAt": {
                     "type": "integer"
-                },
-                "csId": {
-                    "type": "string"
                 },
                 "id": {
                     "type": "integer"
@@ -1462,6 +1554,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/api.ResultOutputJob"
                     }
+                },
+                "ownerId": {
+                    "type": "string"
                 },
                 "refId": {
                     "type": "integer"
@@ -1523,11 +1618,11 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
+                },
+                "ownerId": {
+                    "type": "string"
                 },
                 "refId": {
                     "type": "integer"
@@ -1570,9 +1665,6 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -1581,6 +1673,9 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "ownerId": {
+                    "type": "string"
                 },
                 "refId": {
                     "type": "integer"
@@ -1661,6 +1756,17 @@ const docTemplate = `{
                 }
             }
         },
+        "auth.LoginPlainInput": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "jwt.NumericDate": {
             "type": "object",
             "properties": {
@@ -1679,9 +1785,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "csId": {
-                    "type": "string"
-                },
                 "exp": {
                     "description": "the ` + "`" + `exp` + "`" + ` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4",
                     "allOf": [
@@ -1690,12 +1793,6 @@ const docTemplate = `{
                         }
                     ]
                 },
-                "groups": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "iat": {
                     "description": "the ` + "`" + `iat` + "`" + ` (Issued At) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.6",
                     "allOf": [
@@ -1703,6 +1800,9 @@ const docTemplate = `{
                             "$ref": "#/definitions/jwt.NumericDate"
                         }
                     ]
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "iss": {
                     "description": "the ` + "`" + `iss` + "`" + ` (Issuer) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1",
@@ -1784,6 +1884,17 @@ const docTemplate = `{
                 "StatusMissing"
             ]
         },
+        "models.LoginSourceType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "LoginSourcePlain",
+                "LoginSourceCSSSO"
+            ]
+        },
         "models.Privileges": {
             "type": "object",
             "properties": {
@@ -1799,8 +1910,8 @@ const docTemplate = `{
                 "canUserArgsWrite": {
                     "type": "integer"
                 },
-                "ownerCsId": {
-                    "type": "string"
+                "ownerId": {
+                    "type": "integer"
                 }
             }
         },
@@ -1818,6 +1929,12 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "importedAt": {
+                    "type": "integer"
+                },
+                "isEnabled": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -1844,6 +1961,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "timeout": {
+                    "type": "integer"
+                },
+                "totalScore": {
                     "type": "integer"
                 }
             }
@@ -1935,11 +2055,17 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "importedAt": {
+                    "type": "integer"
+                },
                 "inputArgs": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
+                },
+                "isEnabled": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -1973,7 +2099,19 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "csId": {
+                "id": {
+                    "type": "integer"
+                },
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "source": {
+                    "$ref": "#/definitions/models.LoginSourceType"
+                },
+                "sourceId": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -1984,8 +2122,8 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
+                "id": {
+                    "type": "integer"
                 },
                 "score": {
                     "type": "integer"
@@ -1998,8 +2136,8 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
+                "id": {
+                    "type": "integer"
                 },
                 "score": {
                     "type": "integer"

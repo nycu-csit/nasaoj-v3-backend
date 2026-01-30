@@ -2,9 +2,7 @@ package api
 
 import (
 	"net/http"
-	"slices"
 
-	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -34,8 +32,7 @@ func (self *Handlers) GetMe(
 	}
 
 	return bunrouter.JSON(w, MeOutput{
-		IsAdmin: slices.Contains(
-			claim.Groups, viper.GetString("admin-role")),
+		IsAdmin:          claim.Resource.IsAdmin,
 		AccessTokenClaim: claim,
 	})
 }

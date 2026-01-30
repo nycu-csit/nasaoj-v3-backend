@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/go-redis/cache/v9"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/redis/go-redis/extra/redisotel/v9"
@@ -16,12 +15,14 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cache"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
@@ -55,6 +56,7 @@ var backendCmd = &cobra.Command{
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(
 			viper.GetString("pg-connection-string"))))
 		bunDB := bun.NewDB(sqldb, pgdialect.New())
+		bunDB.AddQueryHook(bundebug.NewQueryHook())
 		bunDB.AddQueryHook(bunotel.NewQueryHook(bunotel.WithDBName("backend")))
 
 		// Initialize Redis instance
@@ -127,8 +129,10 @@ var backendCmd = &cobra.Command{
 		authHandlers := auth.NewHandlers(db)
 		authGroup := backend.NewGroup("/auth").
 			Use(middlewares.CacheControlHandler)
-		authGroup.GET("/login",
-			authHandlers.GetLogin)
+		authGroup.POST("/login/cssso",
+			authHandlers.PostLoginCSSSO)
+		authGroup.POST("/login/plain",
+			authHandlers.PostLoginPlain)
 		authGroup.PUT("/logout",
 			middlewares.CheckAuth(db, kv)(
 				authHandlers.PutLogout))
@@ -136,6 +140,8 @@ var backendCmd = &cobra.Command{
 			authHandlers.GetCallback)
 
 		apiHandlers := api.NewHandlers(db, kv, s3)
+		backend.GET("/api/healthz",
+			apiHandlers.GetHealthz)
 		apiGroup := backend.NewGroup("/api").
 			Use(middlewares.CheckAuth(db, kv))
 
@@ -220,8 +226,10 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PutTools)
 		apiAdminWriteGroup.PUT("/tool/state",
 			apiHandlers.PutToolState)
-		apiAdminWriteGroup.PUT("/users",
-			apiHandlers.PutUsers)
+		apiAdminWriteGroup.PUT("/users/cssso",
+			apiHandlers.PutUsersCSSSO)
+		apiAdminWriteGroup.PUT("/users/plain",
+			apiHandlers.PutUsersPlain)
 		apiAdminWriteGroup.PUT("/token/state",
 			apiHandlers.PutTokenState)
 		apiAdminWriteGroup.POST("/token",

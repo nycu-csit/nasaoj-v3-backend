@@ -3,6 +3,7 @@ package auth
 import (
 	"database/sql"
 	"net/http"
+	"slices"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/spf13/viper"
@@ -83,22 +84,8 @@ func (self *Handlers) GetCallback(
 		}
 	}
 
-	session := models.Session{
-		CsId:   claim.CsId,
-		Groups: claim.Groups,
-
-		IsValid: true,
-	}
-	err = session.RotateRefreshToken()
-	if err != nil && err != sql.ErrNoRows {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusUnauthorized,
-			Message:     "rotate refresh token failed",
-			OriginError: err,
-		}
-	}
-
-	exist, err := self.db.ExistUserResource(ctx, claim.CsId)
+	// Check if user exists, register if not
+	exist, err := self.db.ExistUserResourceBySourceId(ctx, models.LoginSourceCSSSO, claim.CsId)
 	if err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusUnauthorized,
@@ -122,6 +109,43 @@ func (self *Handlers) GetCallback(
 				Message:     "user register failed",
 				OriginError: err,
 			}
+		}
+	}
+
+	// Get user resource to get user ID and update IsAdmin
+	user, err := self.db.GetUserResourceBySourceId(ctx, models.LoginSourceCSSSO, claim.CsId)
+	if err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Message:     "get user failed",
+			OriginError: err,
+		}
+	}
+
+	// Update IsAdmin based on OIDC groups
+	isAdmin := slices.Contains(claim.Groups, viper.GetString("admin-role"))
+	if user.IsAdmin != isAdmin {
+		user.IsAdmin = isAdmin
+		if err := self.db.UpsertUser(ctx, user); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "update user admin status failed",
+				OriginError: err,
+			}
+		}
+	}
+
+	// Create session with user ID (not CsId)
+	session := models.Session{
+		Id:      user.Id,
+		IsValid: true,
+	}
+	err = session.RotateRefreshToken()
+	if err != nil && err != sql.ErrNoRows {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusUnauthorized,
+			Message:     "rotate refresh token failed",
+			OriginError: err,
 		}
 	}
 

@@ -11,14 +11,19 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
-// PutUsers
+type PutUsersCSSSOInput struct {
+	CsId string            `json:"csId"`
+	Args map[string]string `json:"args"`
+}
+
+// PutUsersCSSSO
 //
-//	@Param		request	body	[]models.UserResource	true	"User resources"
+//	@Param		request	body	[]PutUsersCSSSOInput	true	"request body"
 //	@Accept		json
 //	@Success	200	{object}	string	"success"
 //	@Failure	401	{object}	string
-//	@Router		/api/admin/users [put]
-func (self *Handlers) PutUsers(
+//	@Router		/api/admin/users/cssso [put]
+func (self *Handlers) PutUsersCSSSO(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {
 	ctx := req.Context()
@@ -32,7 +37,7 @@ func (self *Handlers) PutUsers(
 		}
 	}
 
-	var inputUsers []models.UserResource
+	var inputUsers []PutUsersCSSSOInput
 	if err := json.Unmarshal(b, &inputUsers); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusBadRequest,
@@ -41,7 +46,17 @@ func (self *Handlers) PutUsers(
 		}
 	}
 
-	if err := self.db.InsertUserResources(ctx, inputUsers); err != nil {
+	var users []models.UserResource
+	for _, user := range inputUsers {
+		users = append(users, models.UserResource{
+			Username: user.CsId,
+			Args:     user.Args,
+			Source:   models.LoginSourceCSSSO,
+			SourceId: user.CsId,
+		})
+	}
+
+	if err := self.db.InsertUserResources(ctx, users, nil); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "insert user resources failed",

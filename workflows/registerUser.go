@@ -17,7 +17,9 @@ func RegisterUser(
 	csId string,
 ) error {
 	user := models.UserResource{
-		CsId: csId,
+		Username: csId,
+		Source:   models.LoginSourceCSSSO,
+		SourceId: csId,
 	}
 
 	for _, hook := range RegisterUserHooks {

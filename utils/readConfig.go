@@ -9,6 +9,9 @@ import (
 )
 
 func ReadConfig(ctx context.Context) {
+	if viper.GetBool("no-read-config") {
+		return
+	}
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("$HOME/.config/judge")

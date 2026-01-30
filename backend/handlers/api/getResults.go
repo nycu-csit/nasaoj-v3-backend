@@ -26,7 +26,7 @@ type ResultOutput struct {
 	RefId   int64          `json:"refId"`
 	Type    models.RefType `json:"type"`
 
-	CsId      string            `json:"csId"`
+	OwnerId   string            `json:"ownerId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
 	CreatedAt  int64 `json:"createdAt"`
@@ -115,7 +115,7 @@ func (self *Handlers) GetResults(
 					}
 				}
 
-				if submission.CsId != privs.OwnerCsId {
+				if submission.OwnerId != privs.OwnerId {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusForbidden,
 						Message:     "submission author mismatch",
@@ -140,7 +140,7 @@ func (self *Handlers) GetResults(
 					}
 				}
 				submission, err = self.submissions.GetLastSubmission(
-					ctx, privs.OwnerCsId, refId, int(subType))
+					ctx, privs.OwnerId, refId, int(subType))
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusNotFound,
@@ -156,14 +156,24 @@ func (self *Handlers) GetResults(
 			}
 		}
 
+		score, err := self.scores.GetSubmissionScore(ctx, submission.Id)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to get submission score",
+				OriginError: err,
+			}
+		}
+
 		ret := ResultOutput{
 			Id:   submission.Id,
 			Type: submission.Type,
 
-			CsId:      submission.CsId,
+			OwnerId:   strconv.FormatInt(submission.OwnerId, 10),
 			InputArgs: submission.InputArgs,
 
 			CreatedAt: submission.CreatedAt,
+			Score:     score.Score,
 
 			Jobs: []ResultOutputJob{},
 		}

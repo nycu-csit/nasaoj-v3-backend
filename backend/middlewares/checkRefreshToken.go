@@ -51,7 +51,7 @@ func CheckRefreshToken(
 			// check time and refresh
 			timeLeft := claim.ExpiresAt.Time.Sub(time.Now()) / time.Second
 			if int64(timeLeft) < viper.GetInt64("refresh-token-timeout")/2 {
-				session, err := db.UpdateRefreshToken(ctx, claim.CsId)
+				session, err := db.UpdateRefreshToken(ctx, claim.Id)
 				if err != nil {
 					return HTTPError{
 						StatusCode:  http.StatusInternalServerError,

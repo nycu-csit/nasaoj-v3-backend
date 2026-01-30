@@ -11,7 +11,7 @@ import (
 
 // DeleteUser
 //
-//	@Param		csId	query		string	true	"User CsId"
+//	@Param		id		query		string	true	"User Id"
 //	@Param		prune	query		bool	false	"If delete submissions"	attribute(optional)
 //	@Success	200		{object}	string
 //	@Failure	400		{object}	string
@@ -22,7 +22,14 @@ func (self *Handlers) DeleteUser(
 ) error {
 	ctx := req.Context()
 
-	csId := req.URL.Query().Get("csId")
+	id, err := strconv.ParseInt(req.URL.Query().Get("id"), 10, 64)
+	if err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusBadRequest,
+			Message:     "failed to parse param 'id'",
+			OriginError: err,
+		}
+	}
 	prune, err := strconv.ParseBool(req.URL.Query().Get("prune"))
 	if err != nil {
 		return middlewares.HTTPError{
@@ -33,7 +40,7 @@ func (self *Handlers) DeleteUser(
 	}
 
 	if prune {
-		err := self.submissions.DeleteUserAndSubmissions(ctx, csId)
+		err := self.submissions.DeleteUserAndSubmissions(ctx, id)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
@@ -42,7 +49,7 @@ func (self *Handlers) DeleteUser(
 			}
 		}
 	} else {
-		if err := self.db.DeleteUser(ctx, csId); err != nil {
+		if err := self.db.DeleteUser(ctx, id); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "failed to delete user",

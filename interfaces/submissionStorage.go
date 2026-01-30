@@ -14,15 +14,15 @@ type SubmissionStorage interface {
 
 	GetLastSubmission(
 		ctx context.Context,
-		csId string,
+		id int64,
 		refId int64,
 		subType models.RefType,
 	) (models.Submission, error)
 
 	GetSubmissionsAndCount(
 		ctx context.Context,
-		csId string,
-		isCsId bool,
+		id int64,
+		isOwnerId bool,
 		pageNum int,
 		isPageNum bool,
 		pageSize int,
@@ -51,7 +51,7 @@ type SubmissionStorage interface {
 
 	DeleteUserAndSubmissions(
 		ctx context.Context,
-		csId string,
+		id int64,
 	) error
 
 	SkipJobs(

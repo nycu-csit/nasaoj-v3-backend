@@ -28,7 +28,7 @@ func (self *Handlers) PutLogout(
 			Message:    "refresh token not exist",
 		}
 	}
-	if err := self.db.InvalidateSession(ctx, refreshTokenClaim.CsId); err != nil {
+	if err := self.db.InvalidateSession(ctx, refreshTokenClaim.Id); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "invalidate session failed",

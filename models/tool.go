@@ -22,8 +22,8 @@ type Tool struct {
 	PostScript  Content           `json:"postScript"`
 	Timeout     int64             `json:"timeout"`
 
-	ImportedAt int64 `json:"-" msgpack:"importedAt"`
-	IsEnabled  bool  `json:"-" msgpack:"isEnabled"`
+	ImportedAt int64 `json:"importedAt"`
+	IsEnabled  bool  `json:"isEnabled"`
 }
 
 type ToolMarshaled struct {
