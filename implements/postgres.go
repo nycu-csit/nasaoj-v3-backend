@@ -1365,7 +1365,7 @@ func (self *Postgres) SkipJobs(
 	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		err := tx.NewSelect().
 			Model(&sub).
-			Where("sub_id = ?", subId).
+			Where("id = ?", subId).
 			Scan(ctx)
 		if err != nil {
 			return err

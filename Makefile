@@ -14,7 +14,8 @@ install:
 	$(GO_ENV) go install
 
 test:
-	go test -v ./tests/units
+	go test -v -count=1 -failfast ./tests/units
+	go test -v -count=1 -failfast ./tests/e2e
 
 bench:
 	go test -bench=. ./tests/benchmarks
