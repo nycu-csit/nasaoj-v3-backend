@@ -130,10 +130,10 @@ var backendCmd = &cobra.Command{
 		authGroup.GET("/login",
 			authHandlers.GetLogin)
 		authGroup.PUT("/logout",
-			authHandlers.PutLogout)
-		authGroup.GET("/callback",
 			middlewares.CheckAuth(db, kv)(
-				authHandlers.GetCallback))
+				authHandlers.PutLogout))
+		authGroup.GET("/callback",
+			authHandlers.GetCallback)
 
 		apiHandlers := api.NewHandlers(db, kv, s3)
 		apiGroup := backend.NewGroup("/api").
