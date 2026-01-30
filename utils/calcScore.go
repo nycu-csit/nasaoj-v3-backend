@@ -13,7 +13,10 @@ func CalcScore(
 		}
 	}
 
-	var ret models.Score
+	ret := models.Score{
+		Score:  0,
+		Stages: make(map[string]int64),
+	}
 	for stageName, stage := range problem.Stages {
 		cnt, ok := stageJobCnt[stageName]
 		if ok && cnt == len(stage.Testcases) {
