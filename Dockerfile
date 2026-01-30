@@ -9,7 +9,7 @@ CMD ["serve", "backend"]
 
 #####
 
-FROM dockersource.cc.cs.nctu.edu.tw/devops/images/debian/12:main AS worker_runtime
+FROM dockersource.cc.cs.nctu.edu.tw/nasa/nasaoj-v3/worker-base:main AS worker_runtime
 
 RUN mkdir -p /var/run/nasaoj-worker
 RUN apt-get update && apt-get install -y \
