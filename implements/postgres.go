@@ -1414,7 +1414,7 @@ func (self *Postgres) UpdateJob(
 	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		err := tx.NewSelect().
 			Model(&sub).
-			Where("sub_id = ?", job.SubId).
+			Where("id = ?", job.SubId).
 			Scan(ctx)
 		if err != nil {
 			return err
