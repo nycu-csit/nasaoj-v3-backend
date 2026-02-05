@@ -62,7 +62,11 @@ func UnTar(
 			return err
 		}
 
-		if err = os.WriteFile(filepath, b, os.FileMode(hdr.Mode)); err != nil {
+		if hdr.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		if err := os.WriteFile(filepath, b, os.FileMode(hdr.Mode)); err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to write file",
 					zap.String("file.path", filepath),
