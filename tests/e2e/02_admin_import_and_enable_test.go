@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	problemSHA1 string
+	problemSHA1s []string
 )
 
 func Test_02_1_Import_problem(t *testing.T) {
@@ -22,12 +22,19 @@ func Test_02_1_Import_problem(t *testing.T) {
 		"--access-token", viper.GetString("admin-token"),
 		"--endpoint", "http://localhost:8080")
 
-	var out strings.Builder
-	cmd.Stdout = &out
-	cmd.Stderr = &out
+	var (
+		stdout strings.Builder
+		stderr strings.Builder
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", out.String())
+		t.Logf("%s\n", stderr.String())
 		t.Fatalf("finish with %v\n", err)
+	}
+
+	for line := range strings.Lines(cmd.Stdout.String()) {
+		problemSHA1s = append(problemSHA1s, strings.TrimSpace(line))
 	}
 }
 
@@ -50,7 +57,7 @@ func Test_02_2_Enable_problem(t *testing.T) {
 
 	var problems []Problem
 	if err := yaml.Unmarshal([]byte(stdout.String()), &problems); err != nil {
-		t.Fatalf("failed to unmarshal to yaml")
+		t.Fatalf("failed to unmarshal to yaml, %v", err)
 	}
 
 	if len(problems) <= 0 {
@@ -60,14 +67,15 @@ func Test_02_2_Enable_problem(t *testing.T) {
 	sort.Slice(problems, func(i, j int) bool {
 		return problems[i].ImportedAt > problems[j].ImportedAt
 	})
-	problemSHA1 = problems[0].SHA1
 
-	cmd = exec.Command(
-		"judge", "admin", "enable", "problem", problemSHA1,
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
+	for _, problem := range problems {
+		cmd = exec.Command(
+			"judge", "admin", "enable", "problem", problem.SHA1,
+			"--access-token", viper.GetString("admin-token"),
+			"--endpoint", "http://localhost:8080")
 
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("finish with %v\n", err)
+		if err := cmd.Run(); err != nil {
+			t.Fatalf("finish with %v\n", err)
+		}
 	}
 }

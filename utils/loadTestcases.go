@@ -31,6 +31,32 @@ func LoadTestcases(
 				return nil
 			}
 
+			name, err := filepath.Rel(dir, cur)
+			if err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to parse relative path",
+						zap.Error(err))
+				return err
+			}
+
+			if d.Type()&fs.ModeSymlink != 0 {
+				realPath, err := filepath.EvalSymlinks(cur)
+				if err != nil {
+					return err
+				}
+
+				m, err := LoadTestcases(ctx, realPath)
+				if err != nil {
+					return err
+				}
+
+				for subPath, file := range m {
+					ret[path.Join(name, subPath)] = file
+				}
+
+				return nil
+			}
+
 			b, err := os.ReadFile(cur)
 			if err != nil {
 				tracing.Logger.Ctx(ctx).
@@ -40,13 +66,6 @@ func LoadTestcases(
 				return err
 			}
 
-			name, err := filepath.Rel(dir, cur)
-			if err != nil {
-				tracing.Logger.Ctx(ctx).
-					Error("failed to parse relative path",
-						zap.Error(err))
-				return err
-			}
 			tracing.Logger.Ctx(ctx).
 				Info("found file",
 					zap.String("file.name", name))

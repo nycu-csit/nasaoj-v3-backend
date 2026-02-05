@@ -22,9 +22,9 @@ type Problem struct {
 	Timeout     int64             `json:"timeout"`
 	Deadline    int64             `json:"deadline"`
 
-	ImportedAt int64 `json:"importedAt"`
-	IsEnabled  bool  `json:"isEnabled"`
-	TotalScore int64 `json:"totalScore"`
+	ImportedAt int64 `json:-"`
+	IsEnabled  bool  `json:"-"`
+	TotalScore int64 `json:"-"`
 }
 
 type ProblemMarshaled struct {

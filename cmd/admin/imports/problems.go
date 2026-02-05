@@ -76,23 +76,41 @@ var problemsCmd = &cobra.Command{
 				})
 		}
 
+		var problems []api.PutProblemsInputProblem
+		for sha1, problem := range exportProblems {
+			problems = append(problems, api.PutProblemsInputProblem{
+				SHA1: sha1,
+
+				ProblemId:   problem.ProblemId,
+				Name:        problem.Name,
+				Description: problem.Description,
+				PdfUrl:      problem.PdfUrl,
+				Stages:      problem.Stages,
+				Args:        problem.Args,
+				Tag:         problem.Tag,
+				PreScript:   problem.PreScript,
+				PostScript:  problem.PostScript,
+				Timeout:     problem.Timeout,
+				Deadline:    problem.Deadline,
+			})
+		}
 		resp := utils.RestyBuilder(ctx, "/api/admin/problems",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
-					SetBody(exportProblems)
+					SetBody(problems)
 			})
 
 		io.WriteString(os.Stdout, string(resp.Body()[:]))
 
-		resp = utils.RestyBuilder(ctx, "/api/admin/content-files",
+		_ = utils.RestyBuilder(ctx, "/api/admin/content-files",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
 					SetBody(contentFilesPayload)
 			})
 
-		io.WriteString(os.Stdout, string(resp.Body()[:]))
+		// io.WriteString(os.Stdout, string(resp.Body()[:]))
 	},
 }
 

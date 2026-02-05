@@ -10,8 +10,7 @@ import (
 )
 
 type Tool struct {
-	ToolId int64 `json:"toolId"`
-
+	ToolId      int64             `json:"toolId"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	Testcase    Testcase          `json:"testcase"`
@@ -22,8 +21,8 @@ type Tool struct {
 	PostScript  Content           `json:"postScript"`
 	Timeout     int64             `json:"timeout"`
 
-	ImportedAt int64 `json:"importedAt"`
-	IsEnabled  bool  `json:"isEnabled"`
+	ImportedAt int64 `json:"-"`
+	IsEnabled  bool  `json:"-"`
 }
 
 type ToolMarshaled struct {
