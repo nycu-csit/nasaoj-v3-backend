@@ -57,10 +57,6 @@ var toolsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		for sha1, tool := range exportTools {
-			exportTools[sha1] = tool
-		}
-
 		exportContentFiles, err := db.GetAllContentFiles(ctx)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
@@ -80,6 +76,26 @@ var toolsCmd = &cobra.Command{
 				})
 		}
 
+		var tools []api.PutToolsInputTool
+		for sha1, tool := range exportTools {
+			// Dehydrate to remove payload from content files
+			db.DehydrateTool(&tool)
+
+			tools = append(tools, api.PutToolsInputTool{
+				SHA1: sha1,
+
+				ToolId:      tool.ToolId,
+				Name:        tool.Name,
+				Description: tool.Description,
+				Testcase:    tool.Testcase,
+				Args:        tool.Args,
+				InputArgs:   tool.InputArgs,
+				Tag:         tool.Tag,
+				PreScript:   tool.PreScript,
+				PostScript:  tool.PostScript,
+				Timeout:     tool.Timeout,
+			})
+		}
 		resp := utils.RestyBuilder(ctx, "/api/admin/tools",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
@@ -89,14 +105,14 @@ var toolsCmd = &cobra.Command{
 
 		io.WriteString(os.Stdout, string(resp.Body()[:]))
 
-		resp = utils.RestyBuilder(ctx, "/api/admin/content-files",
+		_ = utils.RestyBuilder(ctx, "/api/admin/content-files",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
 					SetBody(contentFilesPayload)
 			})
 
-		io.WriteString(os.Stdout, string(resp.Body()[:]))
+		// io.WriteString(os.Stdout, string(resp.Body()[:]))
 	},
 }
 

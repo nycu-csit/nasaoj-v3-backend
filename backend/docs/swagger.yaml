@@ -96,6 +96,37 @@ definitions:
       problemSHA1:
         type: string
     type: object
+  api.PutProblemsInputProblem:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      deadline:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+      pdfUrl:
+        type: string
+      postScript:
+        $ref: '#/definitions/models.Content'
+      preScript:
+        $ref: '#/definitions/models.Content'
+      problemId:
+        type: integer
+      sha1:
+        type: string
+      stages:
+        additionalProperties:
+          $ref: '#/definitions/models.Stage'
+        type: object
+      tag:
+        type: string
+      timeout:
+        type: integer
+    type: object
   api.PutTokenStateInput:
     properties:
       state:
@@ -109,6 +140,35 @@ definitions:
         type: boolean
       toolSHA1:
         type: string
+    type: object
+  api.PutToolsInputTool:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      description:
+        type: string
+      inputArgs:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      postScript:
+        $ref: '#/definitions/models.Content'
+      preScript:
+        $ref: '#/definitions/models.Content'
+      sha1:
+        type: string
+      tag:
+        type: string
+      testcase:
+        $ref: '#/definitions/models.Testcase'
+      timeout:
+        type: integer
+      toolId:
+        type: integer
     type: object
   api.PutUsersCSSSOInput:
     properties:
@@ -335,7 +395,11 @@ definitions:
     type: object
   models.ContentFile:
     properties:
+      isTemplate:
+        type: boolean
       name:
+        type: string
+      payload:
         type: string
       sha1:
         type: string
@@ -380,41 +444,6 @@ definitions:
       canUserArgsWrite:
         type: integer
       ownerId:
-        type: integer
-    type: object
-  models.Problem:
-    properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
-      deadline:
-        type: integer
-      description:
-        type: string
-      importedAt:
-        type: integer
-      isEnabled:
-        type: boolean
-      name:
-        type: string
-      pdfUrl:
-        type: string
-      postScript:
-        $ref: '#/definitions/models.Content'
-      preScript:
-        $ref: '#/definitions/models.Content'
-      problemId:
-        type: integer
-      stages:
-        additionalProperties:
-          $ref: '#/definitions/models.Stage'
-        type: object
-      tag:
-        type: string
-      timeout:
-        type: integer
-      totalScore:
         type: integer
     type: object
   models.RefType:
@@ -465,37 +494,6 @@ definitions:
           type: string
         type: array
       softTL:
-        type: integer
-    type: object
-  models.Tool:
-    properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
-      description:
-        type: string
-      importedAt:
-        type: integer
-      inputArgs:
-        items:
-          type: string
-        type: array
-      isEnabled:
-        type: boolean
-      name:
-        type: string
-      postScript:
-        $ref: '#/definitions/models.Content'
-      preScript:
-        $ref: '#/definitions/models.Content'
-      tag:
-        type: string
-      testcase:
-        $ref: '#/definitions/models.Testcase'
-      timeout:
-        type: integer
-      toolId:
         type: integer
     type: object
   models.UserResource:
@@ -655,14 +653,16 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            $ref: '#/definitions/models.Problem'
-          type: object
+          items:
+            $ref: '#/definitions/api.PutProblemsInputProblem'
+          type: array
       responses:
         "200":
-          description: success
+          description: SHA1s
           schema:
-            type: string
+            items:
+              type: string
+            type: array
         "401":
           description: Unauthorized
           schema:
@@ -968,14 +968,16 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            $ref: '#/definitions/models.Tool'
-          type: object
+          items:
+            $ref: '#/definitions/api.PutToolsInputTool'
+          type: array
       responses:
         "200":
-          description: success
+          description: SHA1s
           schema:
-            type: string
+            items:
+              type: string
+            type: array
         "401":
           description: Unauthorized
           schema:

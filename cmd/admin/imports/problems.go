@@ -78,6 +78,9 @@ var problemsCmd = &cobra.Command{
 
 		var problems []api.PutProblemsInputProblem
 		for sha1, problem := range exportProblems {
+			// Dehydrate to remove payload from content files
+			db.DehydrateProblem(&problem)
+
 			problems = append(problems, api.PutProblemsInputProblem{
 				SHA1: sha1,
 

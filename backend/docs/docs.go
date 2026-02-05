@@ -187,18 +187,21 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/models.Problem"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutProblemsInputProblem"
                             }
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "success",
+                        "description": "SHA1s",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
@@ -676,18 +679,21 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/models.Tool"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutToolsInputTool"
                             }
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "success",
+                        "description": "SHA1s",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
@@ -1481,6 +1487,53 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PutProblemsInputProblem": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "deadline": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pdfUrl": {
+                    "type": "string"
+                },
+                "postScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "preScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.Stage"
+                    }
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "timeout": {
+                    "type": "integer"
+                }
+            }
+        },
         "api.PutTokenStateInput": {
             "type": "object",
             "properties": {
@@ -1500,6 +1553,50 @@ const docTemplate = `{
                 },
                 "toolSHA1": {
                     "type": "string"
+                }
+            }
+        },
+        "api.PutToolsInputTool": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "inputArgs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "postScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "preScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "testcase": {
+                    "$ref": "#/definitions/models.Testcase"
+                },
+                "timeout": {
+                    "type": "integer"
+                },
+                "toolId": {
+                    "type": "integer"
                 }
             }
         },
@@ -1852,7 +1949,13 @@ const docTemplate = `{
         "models.ContentFile": {
             "type": "object",
             "properties": {
+                "isTemplate": {
+                    "type": "boolean"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "payload": {
                     "type": "string"
                 },
                 "sha1": {
@@ -1911,59 +2014,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "ownerId": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Problem": {
-            "type": "object",
-            "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "deadline": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "importedAt": {
-                    "type": "integer"
-                },
-                "isEnabled": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "pdfUrl": {
-                    "type": "string"
-                },
-                "postScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "preScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "problemId": {
-                    "type": "integer"
-                },
-                "stages": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/models.Stage"
-                    }
-                },
-                "tag": {
-                    "type": "string"
-                },
-                "timeout": {
-                    "type": "integer"
-                },
-                "totalScore": {
                     "type": "integer"
                 }
             }
@@ -2039,53 +2089,6 @@ const docTemplate = `{
                     }
                 },
                 "softTL": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.Tool": {
-            "type": "object",
-            "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "description": {
-                    "type": "string"
-                },
-                "importedAt": {
-                    "type": "integer"
-                },
-                "inputArgs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "isEnabled": {
-                    "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "postScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "preScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "tag": {
-                    "type": "string"
-                },
-                "testcase": {
-                    "$ref": "#/definitions/models.Testcase"
-                },
-                "timeout": {
-                    "type": "integer"
-                },
-                "toolId": {
                     "type": "integer"
                 }
             }

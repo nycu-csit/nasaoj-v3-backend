@@ -31,7 +31,7 @@ type PutToolsInputTool struct {
 //
 //	@Param		request	body	[]PutToolsInputTool	true	"tool"
 //	@Accept		json
-//	@Success	200	{object}	[]string "SHA1s"
+//	@Success	200	{object}	[]string	"SHA1s"
 //	@Failure	401	{object}	string
 //	@Router		/api/admin/tools [put]
 func (self *Handlers) PutTools(

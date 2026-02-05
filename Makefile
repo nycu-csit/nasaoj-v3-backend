@@ -19,6 +19,7 @@ TARGET := judge
 all: swagger docker install
 
 docker-reset: docker-clean docker docker-init
+	sleep 1
 
 docker: judge
 	$(COMPOSE) up -d --wait \
@@ -48,8 +49,8 @@ install:
 	$(GO_ENV) go install
 
 test: install
-	go test -v -count=1 -failfast ./tests/units
-	go test -v -count=1 -failfast ./tests/e2e
+	go test -v -failfast ./tests/units -count=1
+	go test -v -failfast ./tests/e2e -count=1
 
 bench:
 	go test -bench=. ./tests/benchmarks

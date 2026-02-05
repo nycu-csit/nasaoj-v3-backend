@@ -33,7 +33,7 @@ type PutProblemsInputProblem struct {
 //
 //	@Param		request	body	[]PutProblemsInputProblem	true	"problem"
 //	@Accept		json
-//	@Success	200	{object}	[]string "SHA1s"
+//	@Success	200	{object}	[]string	"SHA1s"
 //	@Failure	401	{object}	string
 //	@Router		/api/admin/problems [put]
 func (self *Handlers) PutProblems(

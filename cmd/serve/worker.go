@@ -25,7 +25,7 @@ var workerCmd = &cobra.Command{
 			defer tracing.DeferUptrace(ctx)
 		}
 
-		jobIn := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
+		jobIn := make(chan models.JobWithFile)
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("buffer-size"))
 		go func() { // FetchJob threads
 			retCh := make(chan error)

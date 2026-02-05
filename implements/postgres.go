@@ -240,6 +240,41 @@ func (self *Postgres) HydrateTool(
 	return nil
 }
 
+func (self *Postgres) DehydrateContentFiles(
+	contentFiles *[]models.ContentFile,
+) {
+	for i := range *contentFiles {
+		(*contentFiles)[i].Payload = ""
+		(*contentFiles)[i].IsTemplate = false
+		(*contentFiles)[i].Template = nil
+	}
+}
+
+func (self *Postgres) DehydrateProblem(
+	problem *models.Problem,
+) {
+	self.DehydrateContentFiles(&problem.PreScript.Files)
+	self.DehydrateContentFiles(&problem.PostScript.Files)
+
+	for stageName, stage := range problem.Stages {
+		self.DehydrateContentFiles(&stage.PreScript.Files)
+		self.DehydrateContentFiles(&stage.PostScript.Files)
+
+		for i := range stage.Testcases {
+			self.DehydrateContentFiles(&stage.Testcases[i].Content.Files)
+		}
+		problem.Stages[stageName] = stage
+	}
+}
+
+func (self *Postgres) DehydrateTool(
+	tool *models.Tool,
+) {
+	self.DehydrateContentFiles(&tool.PreScript.Files)
+	self.DehydrateContentFiles(&tool.PostScript.Files)
+	self.DehydrateContentFiles(&tool.Testcase.Content.Files)
+}
+
 func cacheProblemSHA1Key(
 	sha1 string,
 ) string {

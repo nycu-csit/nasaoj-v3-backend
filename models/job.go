@@ -75,5 +75,6 @@ func (self Job) IsDone() bool {
 	return self.Status == StatusSuccess ||
 		self.Status == StatusFailed ||
 		self.Status == StatusSkip ||
-		self.Status == StatusTimeout
+		self.Status == StatusTimeout ||
+		self.Status == StatusMissing
 }

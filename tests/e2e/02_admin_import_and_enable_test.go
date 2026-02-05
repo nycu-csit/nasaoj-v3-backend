@@ -33,7 +33,7 @@ func Test_02_1_Import_problem(t *testing.T) {
 		t.Fatalf("finish with %v\n", err)
 	}
 
-	for line := range strings.Lines(cmd.Stdout.String()) {
+	for line := range strings.Lines(stdout.String()) {
 		problemSHA1s = append(problemSHA1s, strings.TrimSpace(line))
 	}
 }

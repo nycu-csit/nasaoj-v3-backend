@@ -45,9 +45,9 @@ func (self *Session) RotateRefreshToken() error {
 				Id: self.Id,
 			},
 			RegisteredClaims: jwt.RegisteredClaims{
-				IssuedAt: &jwt.NumericDate{time.Now()},
-				ExpiresAt: &jwt.NumericDate{time.Now().Add(time.Duration(
-					viper.GetInt64("refresh-token-timeout")) * time.Second)},
+				IssuedAt: jwt.NewNumericDate(time.Now()),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(
+					viper.GetInt64("refresh-token-timeout")) * time.Second)),
 			}}).SignedString([]byte(viper.GetString("refresh-token-secret")))
 	return err
 }
@@ -69,8 +69,8 @@ func (self *Session) ToAccessToken(
 			Privs:    privs,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: &jwt.NumericDate{time.Now()},
-			ExpiresAt: &jwt.NumericDate{time.Now().Add(time.Duration(
-				viper.GetInt64("access-token-timeout")) * time.Second)},
+			IssuedAt: jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(
+				viper.GetInt64("access-token-timeout")) * time.Second)),
 		}}).SignedString([]byte(viper.GetString("access-token-secret")))
 }
