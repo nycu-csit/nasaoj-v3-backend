@@ -68,6 +68,11 @@ func GetLogin(
 			Value:   state,
 			Expires: expire,
 		})
+		http.SetCookie(w, &http.Cookie{
+			Name:    "referer",
+			Value:   req.Header.Get("Referer"),
+			Expires: expire,
+		})
 
 		if req.URL.Query().Get("source") == "cli" {
 			w.Header().Set("Location", cliOAuth2Config.AuthCodeURL(state))

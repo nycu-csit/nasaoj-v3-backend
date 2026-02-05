@@ -151,7 +151,19 @@ func GetCallback(
 		if req.URL.Query().Get("source") == "cli" {
 			return utils.Success(w)
 		} else {
-			return utils.Redirect(w, "/")
+			cookie, err := req.Cookie("referer")
+			if err == http.ErrNoCookie || (err == nil && cookie.Value == "") {
+				return utils.Redirect(w, "/")
+			} else {
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "failed to get cookie",
+						OriginError: err,
+					}
+				}
+				return utils.Redirect(w, cookie.Value)
+			}
 		}
 	}
 }
