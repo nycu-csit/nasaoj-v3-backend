@@ -10,7 +10,7 @@ import (
 )
 
 var toolCmd = &cobra.Command{
-	Use:   "tool [tool_sha1]",
+	Use:   "tool [tool_sha1_prefix]",
 	Short: "Delete tool and related submissions",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {

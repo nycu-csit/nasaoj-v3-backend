@@ -10,7 +10,7 @@ import (
 )
 
 var problemCmd = &cobra.Command{
-	Use:   "problem [problem_sha1]",
+	Use:   "problem [problem_sha1_prefix]",
 	Short: "Delete problem and related submissions",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
