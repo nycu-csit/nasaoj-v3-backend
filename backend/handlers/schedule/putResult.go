@@ -23,10 +23,10 @@ func (self *Handlers) PutScheduleResult(
 	ctx := req.Context()
 
 	if err := self.workers.UpdateLastAccess(ctx,
-		utils.GetRemoteAddr(req)); err != nil {
+		req.Header.Get("X-Worker-Name")); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
-			Message:     "worker status update failed",
+			Message:     "failed to update worker last access",
 			OriginError: err,
 		}
 	}

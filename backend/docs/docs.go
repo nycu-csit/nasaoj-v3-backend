@@ -1383,6 +1383,9 @@ const docTemplate = `{
                 "lastAccess": {
                     "type": "integer"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "tags": {
                     "type": "array",
                     "items": {

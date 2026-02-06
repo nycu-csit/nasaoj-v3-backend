@@ -17,6 +17,7 @@ import (
 )
 
 func FetchJob(
+	client *resty.Client,
 	pctx context.Context,
 	retCh chan error,
 	jobIn chan models.JobWithFile,
@@ -24,27 +25,13 @@ func FetchJob(
 	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 
-	client := resty.New()
-
-	jobURL, err := url.JoinPath(
-		viper.GetString("scheduler-url"), "/schedule/job")
-	if err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to construct url",
-				zap.Error(err))
-		retCh <- err
-		return
-	}
-
 	var job models.Job
 	resp, err := client.R().
-		SetHeader("Authorization",
-			"Bearer "+viper.GetString("access-token")).
 		SetContext(ctx).
 		SetResult(&job).
 		ForceContentType("application/json").
 		SetQueryParam("tags", viper.GetString("tags")).
-		Get(jobURL)
+		Get("/schedule/job")
 
 	if resp.StatusCode() == http.StatusNoContent {
 		tracing.Logger.Ctx(ctx).
@@ -56,7 +43,7 @@ func FetchJob(
 	if !resp.IsSuccess() {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to get job",
-				zap.String("url", jobURL))
+				zap.Error(err))
 		retCh <- types.HTTPRequestFailedError
 		return
 	}
@@ -76,7 +63,7 @@ func FetchJob(
 		retCh <- types.WrongFormatError
 		return
 	}
-	resp, err = client.R().
+	resp, err = resty.New().R().
 		SetContext(ctx).
 		SetQueryString(fileURL.RawQuery).
 		Get(strings.Split(fileURL.String(), "?")[0])

@@ -10,6 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.uber.org/zap"
 )
@@ -17,8 +18,7 @@ import (
 const (
 	tokenKey = "token"
 
-	workerTagsKey       = "worker-tags"
-	workerLastAccessKey = "worker-last-access"
+	workerStatusKey = "worker-stat"
 )
 
 func queueKey(
@@ -306,41 +306,23 @@ func (self *Redis) EnableToken(
 func (self *Redis) GetWorkers(
 	ctx context.Context,
 ) (models.WorkerStatusMap, error) {
-	tagsRes, err := self.rdb.HGetAll(ctx, workerTagsKey).Result()
-	if err != nil {
-		return models.WorkerStatusMap{}, err
-	}
-	lastAccessRes, err := self.rdb.HGetAll(ctx, workerLastAccessKey).Result()
+	res, err := self.rdb.HGetAll(ctx, workerStatusKey).Result()
 	if err != nil {
 		return models.WorkerStatusMap{}, err
 	}
 
 	ret := make(models.WorkerStatusMap)
-	for ip, tagsStr := range tagsRes {
-		lastAccessStr, ok := lastAccessRes[ip]
-		if !ok {
-			continue
-		}
+	for name, raw := range res {
 
-		var tags []string
-		if err := json.Unmarshal([]byte(tagsStr), &tags); err != nil {
+		var status models.WorkerStatus
+		if err := json.Unmarshal([]byte(raw), &status); err != nil {
 			tracing.Logger.Ctx(ctx).
-				Error("failed to unmarshal json to tags",
-					zap.Error(err))
-			return models.WorkerStatusMap{}, err
-		}
-		var lastAccess int64
-		if err := json.Unmarshal([]byte(lastAccessStr), &lastAccess); err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to unmarshal json to last access",
+				Error("failed to unmarshal json",
 					zap.Error(err))
 			return models.WorkerStatusMap{}, err
 		}
 
-		ret[ip] = models.WorkerStatus{
-			Tags:       tags,
-			LastAccess: lastAccess,
-		}
+		ret[name] = status
 	}
 
 	return ret, nil
@@ -348,26 +330,25 @@ func (self *Redis) GetWorkers(
 
 func (self *Redis) UpdateWorkerStatus(
 	ctx context.Context,
+	name string,
 	ip string,
 	tags []string,
 ) error {
+	status := models.WorkerStatus{
+		Ip:         ip,
+		Tags:       tags,
+		LastAccess: time.Now().Unix(),
+	}
 	_, err := self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		b, err := json.Marshal(tags)
+		b, err := json.Marshal(status)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
-				Error("failed to marshal tags to json",
+				Error("failed to marshal to json",
 					zap.Error(err))
 			return err
 		}
 
-		if _, err := pipe.HSet(ctx, workerTagsKey,
-			ip, string(b[:])).Result(); err != nil {
-			return err
-		}
-		if _, err := pipe.HSet(ctx, workerLastAccessKey,
-			ip, time.Now().Unix()).Result(); err != nil {
-			return err
-		}
+		pipe.HSet(ctx, workerStatusKey, name, string(b[:])).Result()
 		return nil
 	})
 	return err
@@ -375,26 +356,50 @@ func (self *Redis) UpdateWorkerStatus(
 
 func (self *Redis) UpdateLastAccess(
 	ctx context.Context,
-	ip string,
+	name string,
 ) error {
-	if _, err := self.rdb.HSet(ctx, workerLastAccessKey,
-		ip, time.Now().Unix()).Result(); err != nil {
-		return err
+	if len(name) == 0 {
+		tracing.Logger.Ctx(ctx).
+			Error("worker name cannot be empty")
+		return types.WrongFormatError
 	}
-	return nil
+	_, err := self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		res, err := pipe.HGet(ctx, workerStatusKey, name).Result()
+		if err != nil {
+			return err
+		}
+
+		var status models.WorkerStatus
+		if len(res) != 0 {
+			if err := json.Unmarshal([]byte(res), &status); err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to unmarshal json",
+						zap.String("content", res),
+						zap.Error(err))
+				return err
+			}
+		}
+
+		status.LastAccess = time.Now().Unix()
+
+		b, err := json.Marshal(status)
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to marshal to json",
+					zap.Error(err))
+			return err
+		}
+
+		_, err = pipe.HSet(ctx, workerStatusKey, name, string(b[:])).Result()
+		return err
+	})
+	return err
 }
 
 func (self *Redis) DeleteWorker(
 	ctx context.Context,
-	ip string,
+	name string,
 ) error {
-	if _, err := self.rdb.HDel(ctx,
-		workerTagsKey, ip).Result(); err != nil {
-		return err
-	}
-	if _, err := self.rdb.HDel(ctx,
-		workerLastAccessKey, ip).Result(); err != nil {
-		return err
-	}
-	return nil
+	_, err := self.rdb.HDel(ctx, workerStatusKey, name).Result()
+	return err
 }

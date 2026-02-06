@@ -13,17 +13,18 @@ type WorkerStatusStorage interface {
 
 	UpdateWorkerStatus(
 		ctx context.Context,
+		name string,
 		ip string,
 		tags []string,
 	) error
 
 	UpdateLastAccess(
 		ctx context.Context,
-		ip string,
+		name string,
 	) error
 
 	DeleteWorker(
 		ctx context.Context,
-		ip string,
+		name string,
 	) error
 }

@@ -23,6 +23,7 @@ func (self *Handlers) GetScheduleJob(
 	tags := req.URL.Query().Get("tags")
 
 	if err := self.workers.UpdateWorkerStatus(ctx,
+		req.Header.Get("X-Worker-Name"),
 		utils.GetRemoteAddr(req),
 		strings.Split(tags, ",")); err != nil {
 		return middlewares.HTTPError{

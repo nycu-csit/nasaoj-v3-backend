@@ -10,7 +10,7 @@ import (
 )
 
 type GetWorkerStatesOutput struct {
-	IP string `json:"ip"`
+	Name string `json:"name"`
 
 	models.WorkerStatus `json:",inline"`
 }
@@ -36,9 +36,9 @@ func (self *Handlers) GetWorkerStates(
 	}
 
 	ret := []GetWorkerStatesOutput{}
-	for ip, status := range res {
+	for name, status := range res {
 		if status.LastAccess < time.Now().Add(-time.Hour).Unix() {
-			if err := self.workers.DeleteWorker(ctx, ip); err != nil {
+			if err := self.workers.DeleteWorker(ctx, name); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "worker delete failed",
@@ -48,7 +48,7 @@ func (self *Handlers) GetWorkerStates(
 			continue
 		}
 		ret = append(ret, GetWorkerStatesOutput{
-			IP:           ip,
+			Name:         name,
 			WorkerStatus: status,
 		})
 	}

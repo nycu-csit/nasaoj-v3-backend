@@ -15,7 +15,8 @@ import (
 )
 
 type workersCmdOutput struct {
-	IP   string   `yaml:"ip"`
+	Name string   `yaml:"name"`
+	Ip   string   `yaml:"ip"`
 	Tags []string `yaml:"tags"`
 
 	LastAccess string `yaml:"lastAccess"`
@@ -38,7 +39,8 @@ var workersCmd = &cobra.Command{
 		var ret []workersCmdOutput
 		for _, output := range res {
 			ret = append(ret, workersCmdOutput{
-				IP:   output.IP,
+				Name: output.Name,
+				Ip:   output.Ip,
 				Tags: output.Tags,
 				LastAccess: time.Now().Sub(
 					time.Unix(output.LastAccess, 0)).String() + " ago",

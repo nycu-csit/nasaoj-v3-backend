@@ -29,6 +29,8 @@ definitions:
         type: string
       lastAccess:
         type: integer
+      name:
+        type: string
       tags:
         items:
           type: string
