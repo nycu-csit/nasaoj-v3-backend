@@ -31,7 +31,7 @@ var (
 	}
 )
 
-func Test_03_1_Check_problem(t *testing.T) {
+func Test_03_1_Check_problems(t *testing.T) {
 	var res []api.ProblemOutput
 	resp, err := client.R().
 		SetResult(&res).
@@ -62,7 +62,7 @@ func Test_03_1_Check_problem(t *testing.T) {
 	}
 }
 
-func Test_03_2_Run_problem(t *testing.T) {
+func Test_03_2_Run_problems(t *testing.T) {
 	for _, pres := range results {
 		t.Run(strconv.FormatInt(pres.Id, 10), func(t *testing.T) {
 			t.Parallel()
@@ -80,7 +80,7 @@ func Test_03_2_Run_problem(t *testing.T) {
 	}
 }
 
-func Test_03_3_Check_submission(t *testing.T) {
+func Test_03_3_Check_submissions(t *testing.T) {
 	for _, pres := range results {
 		t.Run(strconv.FormatInt(pres.Id, 10), func(t *testing.T) {
 			t.Parallel()

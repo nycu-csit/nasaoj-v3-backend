@@ -476,21 +476,23 @@ func (self *Postgres) GetAllProblems(
 
 func (self *Postgres) UpdateProblemState(
 	ctx context.Context,
-	sha1 string,
+	sha1Prefix string,
 	isEnabled bool,
 ) error {
+	var sha1 string
 	if isEnabled {
 		err := self.db.RunInTx(ctx, &sql.TxOptions{},
 			func(ctx context.Context, tx bun.Tx) error {
-				problem := models.ProblemMarshaled{SHA1: sha1}
+				var problem models.ProblemMarshaled
 				err := tx.NewSelect().
 					Column("sha1", "problem_id", "is_enabled").
 					Model(&problem).
-					WherePK().
+					Where("sha1 LIKE ?", sha1Prefix+"%").
 					Scan(ctx)
 				if err != nil {
 					return err
 				}
+				sha1 = problem.SHA1
 				_, err = tx.NewUpdate().
 					Model((*models.ProblemMarshaled)(nil)).
 					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
@@ -502,14 +504,18 @@ func (self *Postgres) UpdateProblemState(
 			return err
 		}
 	} else {
+		var problem models.ProblemMarshaled
 		_, err := self.db.NewUpdate().
-			Model((*models.ProblemMarshaled)(nil)).
-			Where("sha1 = ?", sha1).
+			Model(&problem).
+			Where("sha1 LIKE ?", sha1Prefix+"%").
 			Set("is_enabled = ?", false).
+			Limit(1).
+			Returning("sha1").
 			Exec(ctx)
 		if err != nil {
 			return err
 		}
+		sha1 = problem.SHA1
 	}
 	if self.cache != nil {
 		if err := self.cache.Delete(
@@ -541,44 +547,49 @@ func (self *Postgres) GetProblemScores(
 
 func (self *Postgres) DeleteProblemAndSubmissions(
 	ctx context.Context,
-	sha1 string,
+	sha1Prefix string,
 ) error {
-	problemMarshaled := models.ProblemMarshaled{SHA1: sha1}
+	var isDeleted bool
+	var problem models.ProblemMarshaled
 	err := self.db.RunInTx(ctx, &sql.TxOptions{},
 		func(ctx context.Context, tx bun.Tx) error {
-			_, err := tx.NewDelete().
-				Model(&problemMarshaled).
-				WherePK().
-				Returning("problem_id").
+			res, err := tx.NewDelete().
+				Model(&problem).
+				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Returning("sha1", "problem_id").
 				Exec(ctx)
 			if err != nil {
 				return err
+			}
+			cnt, err := res.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if cnt == 0 {
+				isDeleted = false
+				return nil
 			}
 			_, err = tx.NewDelete().
 				Model((*models.Submission)(nil)).
-				Where("ref_sha1 = ?", sha1).
+				Where("problem_sha1 = ?", problem.SHA1).
 				Exec(ctx)
 			if err != nil {
 				return err
 			}
+			isDeleted = true
 			return nil
 		})
 	if err != nil {
 		return err
 	}
 
-	problem, err := problemMarshaled.Unmarshal()
-	if err != nil {
-		return err
-	}
-
-	if self.cache != nil {
+	if isDeleted && self.cache != nil {
 		if err := self.cache.Delete(ctx,
 			cacheProblemIdKey(problem.ProblemId)); err != nil {
 			return err
 		}
 		if err := self.cache.Delete(ctx,
-			cacheProblemSHA1Key(sha1)); err != nil {
+			cacheProblemSHA1Key(problem.SHA1)); err != nil {
 			return err
 		}
 		if err := self.cache.Delete(ctx,
@@ -789,21 +800,23 @@ func (self *Postgres) GetAllTools(
 
 func (self *Postgres) UpdateToolState(
 	ctx context.Context,
-	sha1 string,
+	sha1Prefix string,
 	isEnabled bool,
 ) error {
+	var sha1 string
 	if isEnabled {
 		err := self.db.RunInTx(ctx, &sql.TxOptions{},
 			func(ctx context.Context, tx bun.Tx) error {
-				tool := models.ToolMarshaled{SHA1: sha1}
+				var tool models.ToolMarshaled
 				err := tx.NewSelect().
 					Column("sha1", "tool_id", "is_enabled").
 					Model(&tool).
-					WherePK().
+					Where("sha1 LIKE ?", sha1Prefix+"%").
 					Scan(ctx)
 				if err != nil {
 					return err
 				}
+				sha1 = tool.SHA1
 				_, err = tx.NewUpdate().
 					Model((*models.ToolMarshaled)(nil)).
 					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
@@ -815,14 +828,18 @@ func (self *Postgres) UpdateToolState(
 			return err
 		}
 	} else {
+		var tool models.ToolMarshaled
 		_, err := self.db.NewUpdate().
-			Model((*models.ToolMarshaled)(nil)).
-			Where("sha1 = ?", sha1).
+			Model(&tool).
+			Where("sha1 LIKE ?", sha1Prefix+"%").
 			Set("is_enabled = ?", false).
+			Limit(1).
+			Returning("sha1").
 			Exec(ctx)
 		if err != nil {
 			return err
 		}
+		sha1 = tool.SHA1
 	}
 	if self.cache != nil {
 		if err := self.cache.Delete(
@@ -838,44 +855,50 @@ func (self *Postgres) UpdateToolState(
 
 func (self *Postgres) DeleteToolAndSubmissions(
 	ctx context.Context,
-	sha1 string,
+	sha1Prefix string,
 ) error {
-	toolMarshaled := models.ToolMarshaled{SHA1: sha1}
+	var isDeleted bool
+	var tool models.ToolMarshaled
 	err := self.db.RunInTx(ctx, &sql.TxOptions{},
 		func(ctx context.Context, tx bun.Tx) error {
-			_, err := tx.NewDelete().
-				Model(&toolMarshaled).
-				WherePK().
-				Returning("tool_id").
+			res, err := tx.NewDelete().
+				Model(&tool).
+				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Returning("sha1", "tool_id").
+				Limit(1).
 				Exec(ctx)
 			if err != nil {
 				return err
+			}
+			cnt, err := res.RowsAffected()
+			if err != nil {
+				return err
+			}
+			if cnt == 0 {
+				isDeleted = false
+				return nil
 			}
 			_, err = tx.NewDelete().
 				Model((*models.Submission)(nil)).
-				Where("ref_sha1 = ?", sha1).
+				Where("tool_sha1 = ?", tool.SHA1).
 				Exec(ctx)
 			if err != nil {
 				return err
 			}
+			isDeleted = true
 			return nil
 		})
 	if err != nil {
 		return err
 	}
 
-	tool, err := toolMarshaled.Unmarshal()
-	if err != nil {
-		return err
-	}
-
-	if self.cache != nil {
+	if isDeleted && self.cache != nil {
 		if err := self.cache.Delete(ctx,
 			cacheToolIdKey(tool.ToolId)); err != nil {
 			return err
 		}
 		if err := self.cache.Delete(ctx,
-			cacheToolSHA1Key(sha1)); err != nil {
+			cacheToolSHA1Key(tool.SHA1)); err != nil {
 			return err
 		}
 	}
