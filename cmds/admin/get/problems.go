@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
@@ -43,20 +44,34 @@ var problemsCmd = &cobra.Command{
 					ForceContentType("application/json")
 			})
 
-		var ret []problemResult
+		sort.Slice(res, func(i, j int) bool {
+			return res[i].ImportedAt > res[j].ImportedAt
+		})
+		filter := make(map[int64][]problemResult)
 		for _, problem := range res {
-			ret = append(ret, problemResult{
-				ProblemId:   problem.ProblemId,
-				SHA1:        problem.SHA1,
-				ImportedAt:  time.Unix(problem.ImportedAt, 0).String(),
-				Name:        problem.Name,
-				Description: problem.Description,
-				Tag:         problem.Tag,
-				PdfUrl:      problem.PdfUrl,
-				Deadline:    time.Unix(problem.Deadline, 0).String(),
-				TotalScore:  problem.TotalScore,
-				IsEnabled:   problem.IsEnabled,
-			})
+			if !viper.GetBool("all") && len(filter[problem.ProblemId]) >= 3 {
+				continue
+			}
+			filter[problem.ProblemId] = append(filter[problem.ProblemId],
+				problemResult{
+					ProblemId:   problem.ProblemId,
+					SHA1:        problem.SHA1,
+					ImportedAt:  time.Unix(problem.ImportedAt, 0).String(),
+					Name:        problem.Name,
+					Description: problem.Description,
+					Tag:         problem.Tag,
+					PdfUrl:      problem.PdfUrl,
+					Deadline:    time.Unix(problem.Deadline, 0).String(),
+					TotalScore:  problem.TotalScore,
+					IsEnabled:   problem.IsEnabled,
+				})
+		}
+
+		var ret []problemResult
+		for _, problems := range filter {
+			for _, problem := range problems {
+				ret = append(ret, problem)
+			}
 		}
 
 		sort.Slice(ret, func(i, j int) bool {
@@ -74,4 +89,9 @@ var problemsCmd = &cobra.Command{
 		}
 		io.WriteString(os.Stdout, string(b[:]))
 	},
+}
+
+func init() {
+	problemsCmd.Flags().
+		BoolP("all", "a", false, "Show all problems")
 }

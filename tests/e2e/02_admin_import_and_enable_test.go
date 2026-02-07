@@ -17,8 +17,8 @@ var (
 func Test_02_1_Import_problem(t *testing.T) {
 	cmd := exec.Command(
 		"judge", "admin", "import", "problems",
-		"--problems-dir", "resource/problems",
-		"--testcases-dir", "resource/testcases",
+		"--problems-dir", "resources/02/problems",
+		"--testcases-dir", "resources/02/testcases",
 		"--access-token", viper.GetString("admin-token"),
 		"--endpoint", "http://localhost:8080")
 

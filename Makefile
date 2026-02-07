@@ -57,7 +57,7 @@ bench:
 
 swagger:
 	$(SWAG) fmt
-	$(SWAG) init -o backend/docs -g cmd/serve/backend.go -pdl 1
+	$(SWAG) init -o backend/docs -g cmds/serve/backend.go -pdl 1
 
 $(TARGET): $(SOURCE)
 	$(GO_ENV) go build -o $@

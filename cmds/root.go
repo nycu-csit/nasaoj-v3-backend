@@ -1,14 +1,14 @@
-package cmd
+package cmds
 
 import (
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/admin"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/migrates"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/serve"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmd/tests"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/migrates"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/serve"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/tests"
 )
 
 var (
