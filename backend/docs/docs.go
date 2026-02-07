@@ -402,8 +402,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Filter by CsId",
-                        "name": "csId",
+                        "description": "Filter by OwnerId",
+                        "name": "ownerId",
                         "in": "query"
                     },
                     {
@@ -1363,6 +1363,9 @@ const docTemplate = `{
         "api.GetTokensOutput": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "isEnabled": {
                     "type": "boolean"
                 },

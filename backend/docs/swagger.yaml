@@ -16,6 +16,8 @@ definitions:
     type: object
   api.GetTokensOutput:
     properties:
+      createdAt:
+        type: integer
       isEnabled:
         type: boolean
       privs:
@@ -792,9 +794,9 @@ paths:
         in: query
         name: pageNum
         type: integer
-      - description: Filter by CsId
+      - description: Filter by OwnerId
         in: query
-        name: csId
+        name: ownerId
         type: string
       - description: Filter by RefId
         format: int64
