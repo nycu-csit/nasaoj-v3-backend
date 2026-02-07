@@ -10,7 +10,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 )
 
-func Test_05_Delete_problems(t *testing.T) {
+func Test_12_1_Delete_problems(t *testing.T) {
 	for _, pres := range results {
 		t.Run(pres.SHA1, func(t *testing.T) {
 			t.Parallel()
@@ -30,7 +30,7 @@ func Test_05_Delete_problems(t *testing.T) {
 	}
 }
 
-func Test_06_Check_problems(t *testing.T) {
+func Test_12_2_Check_problems_deleted(t *testing.T) {
 	var res []api.ProblemOutput
 	resp, err := client.R().
 		SetResult(&res).

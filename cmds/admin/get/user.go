@@ -14,7 +14,7 @@ import (
 )
 
 var userCmd = &cobra.Command{
-	Use:   "user [user_CsId]",
+	Use:   "user [user_id]",
 	Short: "Get User and Resources",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -26,7 +26,7 @@ var userCmd = &cobra.Command{
 				return r.
 					SetResult(&res).
 					ForceContentType("application/json").
-					SetQueryParam("csId", args[0])
+					SetQueryParam("id", args[0])
 			})
 
 		b, err := yaml.Marshal(res)

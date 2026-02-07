@@ -27,7 +27,7 @@ var problemCmd = &cobra.Command{
 		utils.RestyBuilder(ctx, "/api/admin/submit",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPost
-				ownerId, _ := strconv.ParseInt(viper.GetString("ownerid"), 10, 64)
+				ownerId, _ := strconv.ParseInt(viper.GetString("owner-id"), 10, 64)
 				return r.
 					SetBody(api.AdminSubmitInput{
 						AsOwnerId: ownerId,

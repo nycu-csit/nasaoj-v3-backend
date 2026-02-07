@@ -11,21 +11,21 @@ import (
 )
 
 type SubmissionsOutputSubmission struct {
-	Id      int64          `json:"id"`
-	RefSHA1 string         `json:"refSHA1"`
-	RefId   int64          `json:"refId"`
-	Type    models.RefType `json:"type"`
+	Id      int64          `json:"id" yaml:"id"`
+	RefSHA1 string         `json:"refSHA1" yaml:"refSHA1"`
+	RefId   int64          `json:"refId" yaml:"refId"`
+	Type    models.RefType `json:"type" yaml:"type"`
 
-	OwnerId    string `json:"ownerId"`
-	CreatedAt  int64  `json:"createdAt"`
-	Score      int64  `json:"score"`
-	TotalScore int64  `json:"totalScore"`
+	OwnerId    string `json:"ownerId" yaml:"ownerId"`
+	CreatedAt  int64  `json:"createdAt" yaml:"createdAt"`
+	Score      int64  `json:"score" yaml:"score"`
+	TotalScore int64  `json:"totalScore" yaml:"totalScore"`
 }
 
 type SubmissionsOutput struct {
-	PageSize    int                           `json:"pageSize"`
-	TotalRowCnt int                           `json:"totalRowCnt"`
-	Submissions []SubmissionsOutputSubmission `json:"submissions"`
+	PageSize    int                           `json:"pageSize" yaml:"pageSize"`
+	TotalRowCnt int                           `json:"totalRowCnt" yaml:"totalRowCnt"`
+	Submissions []SubmissionsOutputSubmission `json:"submissions" yaml:"submissions"`
 }
 
 const pageSize int = 20
@@ -33,7 +33,7 @@ const pageSize int = 20
 // GetAdminSubmissions
 //
 //	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		csId	query		string				false	"Filter by CsId"							attribute(optional)
+//	@Param		ownerId	query		string				false	"Filter by OwnerId"							attribute(optional)
 //	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
 //	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
 //	@Success	200		{object}	SubmissionsOutput	"Submissions"

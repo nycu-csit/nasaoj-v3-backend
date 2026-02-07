@@ -156,6 +156,9 @@ func (self *Redis) GetPrivs(
 				zap.Error(err))
 		return models.Privileges{}, err
 	}
+	if !ret.IsEnabled {
+		return models.Privileges{}, nil
+	}
 	return ret.Privs, nil
 }
 
@@ -169,6 +172,7 @@ func (self *Redis) SetAdminToken(
 	b, err := json.Marshal(models.Token{
 		Privs:     models.NewAdminPrivs(0),
 		IsEnabled: true,
+		CreatedAt: time.Now().Unix(),
 	})
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -199,6 +203,7 @@ func (self *Redis) GenerateTokenWithoutExpire(
 	b, err := json.Marshal(models.Token{
 		Privs:     privs,
 		IsEnabled: true,
+		CreatedAt: time.Now().Unix(),
 	})
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -230,6 +235,7 @@ func (self *Redis) GenerateToken(
 	b, err := json.Marshal(models.Token{
 		Privs:     privs,
 		IsEnabled: true,
+		CreatedAt: time.Now().Unix(),
 	})
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -287,10 +293,18 @@ func (self *Redis) DisableToken(
 	ctx context.Context,
 	key string,
 ) error {
-	return self.modifyToken(ctx, key, func(token models.Token) models.Token {
+	err := self.modifyToken(ctx, key, func(token models.Token) models.Token {
 		token.IsEnabled = false
 		return token
 	})
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to disable token",
+				zap.String("key", key),
+				zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (self *Redis) EnableToken(

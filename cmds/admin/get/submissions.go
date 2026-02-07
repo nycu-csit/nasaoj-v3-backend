@@ -24,15 +24,15 @@ var submissionsCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		pageNum := viper.GetInt64("page-num")
-		csId := viper.GetString("cs-id")
+		ownerId := viper.GetString("owner-id")
 		refId := viper.GetInt64("ref-id")
 		refType := viper.GetInt("type")
 
 		var output api.SubmissionsOutput
 		utils.RestyBuilder(ctx, "/api/admin/submissions",
 			func(r *resty.Request) *resty.Request {
-				if csId != "" {
-					r = r.SetQueryParam("csId", csId)
+				if ownerId != "" {
+					r = r.SetQueryParam("ownerId", ownerId)
 				}
 				if refId != 0 {
 					r = r.SetQueryParam("refId", strconv.FormatInt(refId, 10))
@@ -63,7 +63,7 @@ func init() {
 	submissionsCmd.Flags().
 		Int64("page-num", 0, "Page number")
 	submissionsCmd.Flags().
-		String("cs-id", "", "CsId")
+		String("owner-id", "", "OwnerId")
 	submissionsCmd.Flags().
 		Int64("ref-id", 0, "Reference Id for problems / tools")
 	submissionsCmd.Flags().

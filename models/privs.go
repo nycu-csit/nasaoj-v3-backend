@@ -21,6 +21,7 @@ type Privileges struct {
 type Token struct {
 	Privs     Privileges `json:"privs" yaml:"privs"`
 	IsEnabled bool       `json:"isEnabled" yaml:"isEnabled"`
+	CreatedAt int64      `json:"createdAt" yaml:"createdAt"`
 }
 
 func NewWorkerPrivs() Privileges {

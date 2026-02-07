@@ -12,7 +12,7 @@ import (
 )
 
 var userCmd = &cobra.Command{
-	Use:   "user [user_csId]",
+	Use:   "user [user_id]",
 	Short: "Delete user",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -21,7 +21,7 @@ var userCmd = &cobra.Command{
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodDelete
 				return r.
-					SetQueryParam("csId", args[0]).
+					SetQueryParam("id", args[0]).
 					SetQueryParam("prune",
 						strconv.FormatBool(viper.GetBool("prune")))
 			})

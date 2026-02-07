@@ -1,6 +1,6 @@
 .PHONY: all \
 	docker docker-quiet docker-clean docker-init docker-reset \
-	install swagger test bench redis postgres
+	install swagger test retest bench redis postgres
 
 SWAG ?= go run github.com/swaggo/swag/cmd/swag@v1.16.6
 
@@ -17,6 +17,8 @@ SOURCE := $(shell find . -type f -name '*.go')
 TARGET := judge
 
 all: swagger docker install
+
+retest: docker-reset test
 
 docker-reset: docker-clean docker docker-init
 	sleep 1

@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
-	api "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
@@ -100,7 +100,7 @@ var toolsCmd = &cobra.Command{
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
-					SetBody(exportTools)
+					SetBody(tools)
 			})
 
 		io.WriteString(os.Stdout, string(resp.Body()[:]))
