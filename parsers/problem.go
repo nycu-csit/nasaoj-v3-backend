@@ -132,5 +132,14 @@ func (self *Problem) ToModelProblem(
 		ret.Stages[stageName] = retStage
 	}
 
+	// Handle after dependencies
+	for stageName, stage := range self.Stages {
+		for _, prev := range stage.After {
+			prevStage := ret.Stages[prev]
+			prevStage.Before = append(prevStage.Before, stageName)
+			ret.Stages[prev] = prevStage
+		}
+	}
+
 	return ret, nil
 }

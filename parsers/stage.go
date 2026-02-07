@@ -4,6 +4,7 @@ type StageName = string
 type Stage struct {
 	Testcases  []Testcase        `yaml:"testcases"`
 	Before     []StageName       `yaml:"before,omitempty"`
+	After      []StageName       `yaml:"after,omitempty"`
 	Args       map[string]string `yaml:"args,omitempty"`
 	PreScript  Content           `yaml:"preScript"`
 	PostScript Content           `yaml:"postScript"`
