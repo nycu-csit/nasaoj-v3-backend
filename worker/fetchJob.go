@@ -2,8 +2,11 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/go-resty/resty/v2"
@@ -54,30 +57,76 @@ func FetchJob(
 		attribute.String("stage.name", job.StageName),
 		attribute.String("testcase.name", job.TestName))
 
-	fileURL, err := url.Parse(job.FileURL)
+	refFilePath := path.Join(viper.GetString("running-dir"), job.RefFilename())
+	_, err = os.Stat(refFilePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			refFileURL, err := url.Parse(job.RefFileURL)
+			if err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to parse file url",
+						zap.String("url", job.JobFileURL),
+						zap.Error(err))
+				retCh <- types.WrongFormatError
+				return
+			}
+			resp, err = resty.New().R().
+				SetContext(ctx).
+				SetQueryString(refFileURL.RawQuery).
+				Get(strings.Split(refFileURL.String(), "?")[0])
+			if err != nil || !resp.IsSuccess() {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to get file",
+						zap.String("url", refFileURL.String()),
+						zap.Error(err))
+				if err != nil {
+					retCh <- err
+				} else {
+					retCh <- types.HTTPRequestFailedError
+				}
+				return
+			}
+
+			if err := os.WriteFile(refFilePath, resp.Body(), 0644); err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to write ref file",
+						zap.Error(err))
+				retCh <- err
+				return
+			}
+		} else {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to stat ref file",
+					zap.String("refFile.path", refFilePath),
+					zap.Error(err))
+			retCh <- err
+			return
+		}
+	}
+
+	jobFileURL, err := url.Parse(job.JobFileURL)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to parse file url",
-				zap.String("url", job.FileURL),
+				zap.String("url", job.JobFileURL),
 				zap.Error(err))
 		retCh <- types.WrongFormatError
 		return
 	}
 	resp, err = resty.New().R().
 		SetContext(ctx).
-		SetQueryString(fileURL.RawQuery).
-		Get(strings.Split(fileURL.String(), "?")[0])
-
-	if err != nil {
-		retCh <- err
-		return
-	}
-
-	if !resp.IsSuccess() {
+		SetQueryString(jobFileURL.RawQuery).
+		Get(strings.Split(jobFileURL.String(), "?")[0])
+	if err != nil || !resp.IsSuccess() {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to get file",
-				zap.String("url", fileURL.String()))
-		retCh <- types.HTTPRequestFailedError
+				zap.String("url", jobFileURL.String()),
+				zap.Error(err))
+		if err != nil {
+			retCh <- err
+		} else {
+			retCh <- types.HTTPRequestFailedError
+		}
 		return
 	}
 

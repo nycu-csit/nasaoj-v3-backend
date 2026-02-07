@@ -22,4 +22,9 @@ type ObjectStorage interface {
 		ctx context.Context,
 		filename string,
 	) ([]byte, error)
+
+	ExistFile(
+		ctx context.Context,
+		filename string,
+	) (bool, error)
 }

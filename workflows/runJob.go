@@ -24,10 +24,33 @@ func RunJob(
 	job *models.JobWithFile,
 ) {
 	// Setup environment
+	refpath := path.Join(viper.GetString("running-dir"), job.RefFilename())
 	basepath := path.Join(viper.GetString("running-dir"), job.Id())
+	tarbuf, err := os.ReadFile(refpath)
+	if err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to open ref tar",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
+
+	if err := utils.Rmrf(pctx, basepath); err != nil {
+		retCh <- err
+		return
+	}
+
+	if err := utils.UnTar(pctx, basepath, tarbuf); err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to untar ref file",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
+
 	if err := utils.UnTar(pctx, basepath, job.Tarbuf); err != nil {
 		tracing.Logger.Ctx(pctx).
-			Error("failed to untar job",
+			Error("failed to untar job file",
 				zap.Error(err))
 		retCh <- err
 		return

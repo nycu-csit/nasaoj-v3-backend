@@ -57,11 +57,19 @@ func (self *Handlers) GetScheduleJob(
 		attribute.String("job.test", job.TestName))
 
 	timeout := time.Duration(job.HardTL) * time.Second
-	job.FileURL, err = self.s3.GetFileURL(ctx, job.Filename(), timeout)
+	job.RefFileURL, err = self.s3.GetFileURL(ctx, job.RefFilename(), timeout)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
-			Error("failed to get file url",
-				zap.String("file.name", job.Filename()),
+			Error("failed to get ref file url",
+				zap.String("refFile.name", job.RefFilename()),
+				zap.Error(err))
+		return types.FileNotExistError
+	}
+	job.JobFileURL, err = self.s3.GetFileURL(ctx, job.JobFilename(), timeout)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get job file url",
+				zap.String("jobFile.name", job.JobFilename()),
 				zap.Error(err))
 		return types.FileNotExistError
 	}

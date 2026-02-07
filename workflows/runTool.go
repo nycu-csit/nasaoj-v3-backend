@@ -86,6 +86,7 @@ func RunTool(
 		Script:   jobScript,
 		Input:    string(b[:]),
 		Deadline: deadline,
+		RefSHA1:  submission.ToolSHA1,
 		HardTL:   tool.Testcase.HardTL,
 		SoftTL:   tool.Testcase.SoftTL,
 	}
@@ -95,6 +96,34 @@ func RunTool(
 			Error("failed to update job status",
 				zap.Error(err))
 		return err
+	}
+
+	exist, err := s3.ExistFile(ctx, job.RefFilename())
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to check exist of ref file",
+				zap.String("refFile.name", job.RefFilename()),
+				zap.Error(err))
+		return err
+	}
+
+	if !exist {
+		var tarbuf bytes.Buffer
+		if err = utils.WriteRefTar(ctx, &tarbuf, contents); err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to write to tar",
+					zap.Error(err))
+			return err
+		}
+
+		err = s3.PutFile(ctx, job.RefFilename(), tarbuf.Bytes())
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to put ref file",
+					zap.String("refFile.name", job.RefFilename()),
+					zap.Error(err))
+			return err
+		}
 	}
 
 	args := utils.ArgsOverlay(
@@ -109,18 +138,18 @@ func RunTool(
 	)
 
 	var tarbuf bytes.Buffer
-	if err = utils.WriteTar(ctx, &tarbuf, contents, args); err != nil {
+	if err = utils.WriteJobTar(ctx, &tarbuf, contents, args); err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to write to tar",
 				zap.Error(err))
 		return err
 	}
 
-	err = s3.PutFile(ctx, job.Filename(), tarbuf.Bytes())
+	err = s3.PutFile(ctx, job.JobFilename(), tarbuf.Bytes())
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
-			Error("failed to put file",
-				zap.String("file.name", job.Filename()),
+			Error("failed to put job file",
+				zap.String("jobFile.name", job.JobFilename()),
 				zap.Error(err))
 		return err
 	}

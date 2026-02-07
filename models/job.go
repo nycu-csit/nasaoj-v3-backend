@@ -31,12 +31,14 @@ type Job struct {
 	Status JobStatus `json:"status" bun:"status"`
 
 	// On Schedule
-	Script   string `json:"script" bun:"script"`
-	Input    string `json:"input" bun:"input"`
-	Deadline int64  `json:"deadline" bun:"deadline"`
-	FileURL  string `json:"fileurl" bun:"-"`
-	HardTL   int64  `json:"hardtl" bun:"-"`
-	SoftTL   int64  `json:"softtl" bun:"-"`
+	Script     string `json:"script" bun:"script"`
+	Input      string `json:"input" bun:"input"`
+	Deadline   int64  `json:"deadline" bun:"deadline"`
+	RefSHA1    string `json:"refSHA1" bun:"-"`
+	RefFileURL string `json:"refFileUrl" bun:"-"`
+	JobFileURL string `json:"jobFileUrl" bun:"-"`
+	HardTL     int64  `json:"hardTL" bun:"-"`
+	SoftTL     int64  `json:"softTL" bun:"-"`
 
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`
@@ -54,8 +56,13 @@ func (self Job) Id() string {
 	return fmt.Sprintf("%d-%s-%s", self.SubId, self.StageName, self.TestName)
 }
 
-func (self Job) Filename() string {
-	return fmt.Sprintf("%s.tar", self.Id())
+func (self Job) JobFilename() string {
+	return fmt.Sprintf("job-%s.tar", self.Id())
+}
+
+func (self Job) RefFilename() string {
+	return fmt.Sprintf("ref-%s-%s-%s.tar", self.RefSHA1, self.StageName,
+		self.TestName)
 }
 
 // Jobcnt key for stage

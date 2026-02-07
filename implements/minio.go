@@ -70,3 +70,19 @@ func (self *MinIO) GetFile(
 	}
 	return b, nil
 }
+
+func (self *MinIO) ExistFile(
+	ctx context.Context,
+	filename string,
+) (bool, error) {
+	_, err := self.StatObject(ctx, viper.GetString("minio-bucket"),
+		filename, minio.StatObjectOptions{})
+	if err != nil {
+		if minio.ToErrorResponse(err).Code == minio.NoSuchKey {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
