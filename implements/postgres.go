@@ -1686,6 +1686,7 @@ func (self *Postgres) InsertUserResources(
 					// Insert New User
 					_, err := tx.NewInsert().
 						Model(&newUser).
+						ExcludeColumn("id").
 						Exec(ctx)
 					if err != nil {
 						return err
