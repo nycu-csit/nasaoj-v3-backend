@@ -55,6 +55,19 @@ func RunStage(
 			zap.String("problem.sha1", submission.ProblemSHA1),
 			zap.String("stage.name", stageName))
 
+	// virtual stage
+	if len(stage.Testcases) == 0 {
+		err := HandleStageDone(ctx, db, jobQue, s3, problems, contents,
+			jobs, tokens, submission, stageName)
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to handle stage done",
+					zap.Error(err))
+			return err
+		}
+		return nil
+	}
+
 	for _, testcase := range stage.Testcases {
 		contents := []models.Content{
 			problem.PreScript,

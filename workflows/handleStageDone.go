@@ -18,32 +18,12 @@ func HandleStageDone(
 	s3 interfaces.ObjectStorage,
 	problems interfaces.ProblemStorage,
 	contents interfaces.ContentFileStorage,
-	submissions interfaces.SubmissionStorage,
 	jobs interfaces.JobStorage,
 	tokens interfaces.TokenStorage,
 
-	job models.Job,
+	submission models.Submission,
+	stageName string,
 ) error {
-	jobCnt, err := jobQue.JobDone(ctx, job.Stage())
-	if err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to set done for job queue",
-				zap.Error(err))
-		return err
-	}
-
-	if jobCnt > 0 {
-		return nil
-	}
-
-	submission, err := submissions.GetSubmission(ctx, job.SubId)
-	if err != nil {
-		tracing.Logger.Ctx(ctx).
-			Error("failed to get submission",
-				zap.Error(err))
-		return err
-	}
-
 	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -53,16 +33,17 @@ func HandleStageDone(
 		return err
 	}
 
-	stage, ok := problem.Stages[job.StageName]
+	stage, ok := problem.Stages[stageName]
 	if !ok {
 		tracing.Logger.Ctx(ctx).
 			Error("stage not exist",
-				zap.String("stage.name", job.StageName))
+				zap.String("stage.name", stageName))
 		return types.StageNotExistError
 	}
 
 	for _, next := range stage.Before {
-		jobdep, err := jobQue.StageDone(ctx, fmt.Sprintf("%d-%s", job.SubId, next))
+		jobdep, err := jobQue.StageDone(ctx,
+			fmt.Sprintf("%d-%s", submission.Id, next))
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to decrease jobDep",

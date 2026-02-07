@@ -110,9 +110,9 @@ func (self *Handlers) PutScheduleResult(
 
 	if job.Status == models.StatusSuccess &&
 		submission.Type == models.RefTypeProblem {
-		err = workflows.HandleStageDone(ctx, self.db, self.jobQue, self.s3,
-			self.problems, self.contents, self.submissions, self.jobs,
-			self.tokens, job)
+		err = workflows.HandleJobDone(ctx, self.db, self.jobQue, self.s3,
+			self.problems, self.contents, self.jobs, self.tokens,
+			submission, job)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
