@@ -19,7 +19,7 @@ type Tool struct {
 	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
-	Timeout     int64             `json:"timeout"`
+	Cooldown    int64             `json:"cooldown"`
 
 	ImportedAt int64 `json:"importedAt"`
 	IsEnabled  bool  `json:"isEnabled"`
@@ -35,7 +35,7 @@ type toolHash struct {
 	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
-	Timeout     int64             `json:"timeout"`
+	Cooldown    int64             `json:"cooldown"`
 }
 
 type ToolMarshaled struct {
@@ -65,7 +65,7 @@ func (self Tool) Marshal() (ToolMarshaled, error) {
 		Tag:         self.Tag,
 		PreScript:   self.PreScript,
 		PostScript:  self.PostScript,
-		Timeout:     self.Timeout,
+		Cooldown:    self.Cooldown,
 	})
 	if err != nil {
 		return ret, err

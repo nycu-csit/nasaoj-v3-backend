@@ -25,7 +25,7 @@ type PutProblemsInputProblem struct {
 	Tag         string                  `json:"tag"`
 	PreScript   models.Content          `json:"preScript"`
 	PostScript  models.Content          `json:"postScript"`
-	Timeout     int64                   `json:"timeout"`
+	Cooldown    int64                   `json:"cooldown"`
 	Deadline    int64                   `json:"deadline"`
 }
 
@@ -71,7 +71,7 @@ func (self *Handlers) PutProblems(
 			Tag:         input.Tag,
 			PreScript:   input.PreScript,
 			PostScript:  input.PostScript,
-			Timeout:     input.Timeout,
+			Cooldown:    input.Cooldown,
 			Deadline:    input.Deadline,
 		}
 		if err := utils.CheckDeps(ctx, problem); err != nil {

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
@@ -67,10 +68,9 @@ func RunTool(
 		return err
 	}
 
-	duration := time.Duration(tool.Timeout) * time.Second
-	deadline := time.Now().Add(duration).Unix()
 	jobToken, err := tokens.GenerateToken(
-		ctx, models.NewJobPrivs(submission.OwnerId), duration)
+		ctx, models.NewJobPrivs(submission.OwnerId), time.Duration(
+			tool.Testcase.Timeout+viper.GetInt64("worker-timeout"))*time.Second)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to generate token",
@@ -82,13 +82,11 @@ func RunTool(
 		StageName: "tool",
 		TestName:  tool.Testcase.Name,
 
-		Status:   models.StatusPending,
-		Script:   jobScript,
-		Input:    string(b[:]),
-		Deadline: deadline,
-		RefSHA1:  submission.ToolSHA1,
-		HardTL:   tool.Testcase.HardTL,
-		SoftTL:   tool.Testcase.SoftTL,
+		Status:  models.StatusPending,
+		Script:  jobScript,
+		Input:   string(b[:]),
+		Timeout: tool.Testcase.Timeout,
+		RefSHA1: submission.ToolSHA1,
 	}
 
 	if err := jobs.UpdateJob(ctx, &job); err != nil {

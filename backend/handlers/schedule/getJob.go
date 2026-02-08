@@ -10,7 +10,6 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -21,17 +20,6 @@ func (self *Handlers) GetScheduleJob(
 ) error {
 	ctx := req.Context()
 	tags := req.URL.Query().Get("tags")
-
-	if err := self.workers.UpdateWorkerStatus(ctx,
-		req.Header.Get("X-Worker-Name"),
-		utils.GetRemoteAddr(req),
-		strings.Split(tags, ",")); err != nil {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusInternalServerError,
-			Message:     "worker status update failed",
-			OriginError: err,
-		}
-	}
 
 	// Get Job from queue
 	var err error
@@ -56,7 +44,7 @@ func (self *Handlers) GetScheduleJob(
 		attribute.String("job.stage", job.StageName),
 		attribute.String("job.test", job.TestName))
 
-	timeout := time.Duration(job.HardTL) * time.Second
+	timeout := time.Duration(job.Timeout) * time.Second
 	job.RefFileURL, err = self.s3.GetFileURL(ctx, job.RefFilename(), timeout)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -74,8 +62,6 @@ func (self *Handlers) GetScheduleJob(
 		return types.FileNotExistError
 	}
 
-	job.Deadline = time.Now().
-		Add(time.Duration(job.HardTL) * time.Second).Unix()
 	job.Status = models.StatusRunning
 	if err = self.jobs.UpdateJob(ctx, &job); err != nil {
 		return middlewares.HTTPError{
@@ -83,6 +69,15 @@ func (self *Handlers) GetScheduleJob(
 			Message:     "job update failed",
 			OriginError: err,
 		}
+	}
+
+	workerName := req.Header.Get("X-Worker-Name")
+	if err = self.workers.AddWorkerJob(ctx, workerName, job.Id()); err != nil {
+		tracing.Logger.Ctx(ctx).
+			Warn("failed to add worker job",
+				zap.String("worker", workerName),
+				zap.String("job.id", job.Id()),
+				zap.Error(err))
 	}
 
 	return bunrouter.JSON(w, job)

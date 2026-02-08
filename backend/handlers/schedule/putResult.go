@@ -4,32 +4,20 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 func (self *Handlers) PutScheduleResult(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {
 	ctx := req.Context()
-
-	if err := self.workers.UpdateLastAccess(ctx,
-		req.Header.Get("X-Worker-Name")); err != nil {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusInternalServerError,
-			Message:     "failed to update worker last access",
-			OriginError: err,
-		}
-	}
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -56,12 +44,13 @@ func (self *Handlers) PutScheduleResult(
 		attribute.String("stage.name", job.StageName),
 		attribute.String("testcase.name", job.TestName))
 
-	// Handle hard timeout if timeout isn't put on worker
-	if time.Now().Compare(time.Unix(job.Deadline, 0)) > 0 {
-		tracing.Logger.Ctx(ctx).Warn("job exceeded hard deadline",
-			zap.String("deadline", time.Unix(job.Deadline, 0).Format(time.RFC3339)),
-			zap.String("now", time.Now().Format(time.RFC3339)))
-		job.Status = models.StatusTimeout
+	workerName := req.Header.Get("X-Worker-Name")
+	if err = self.workers.RemoveWorkerJob(ctx, workerName, job.Id()); err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Message:     "failed to remove worker job",
+			OriginError: err,
+		}
 	}
 
 	if job.Status != models.StatusSuccess {

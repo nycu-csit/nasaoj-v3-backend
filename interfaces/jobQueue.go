@@ -39,4 +39,10 @@ type JobQueue interface {
 		ctx context.Context,
 		stageId string,
 	) (int64, error)
+
+	RemoveJob(
+		ctx context.Context,
+		jobId string,
+		tag string,
+	) error
 }

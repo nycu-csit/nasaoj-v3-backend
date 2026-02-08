@@ -8,6 +8,21 @@ import (
 
 type JobStatus = int64
 
+/*
+	(Generate jobs)
+		-> (With dependencies) StatusBlocked
+			-> (Trigger by prev stage completion) StatusPending
+			-> (Trigger by failed or timeout) StatusSkip
+		-> (With no dependencies) StatusPending
+			-> (GET /schedule/job) StatusRunning
+				-> (Worker Timeout) StatusMissing
+				-> (PUT /schedule/result)
+					-> (If RetCode == 0) StatusSuccess
+						-> (Trigger next stage to run)
+					-> (If RetCode != 0) StatusFailed
+					-> (If timeout) StatusTimeout
+*/
+
 const (
 	StatusPending JobStatus = 260
 	StatusRunning JobStatus = 261
@@ -33,12 +48,10 @@ type Job struct {
 	// On Schedule
 	Script     string `json:"script" bun:"script"`
 	Input      string `json:"input" bun:"input"`
-	Deadline   int64  `json:"deadline" bun:"deadline"`
+	Timeout    int64  `json:"timeout" bun:"-"`
 	RefSHA1    string `json:"refSHA1" bun:"-"`
 	RefFileURL string `json:"refFileUrl" bun:"-"`
 	JobFileURL string `json:"jobFileUrl" bun:"-"`
-	HardTL     int64  `json:"hardTL" bun:"-"`
-	SoftTL     int64  `json:"softTL" bun:"-"`
 
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`

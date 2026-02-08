@@ -16,4 +16,9 @@ type JobStorage interface {
 		ctx context.Context,
 		subId int64,
 	) error
+
+	TimeoutJobById(
+		ctx context.Context,
+		jobId string,
+	) error
 }

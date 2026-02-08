@@ -1,4 +1,4 @@
-package worker
+package workflows
 
 import (
 	"context"

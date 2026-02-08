@@ -1383,6 +1383,12 @@ const docTemplate = `{
                 "ip": {
                     "type": "string"
                 },
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "lastAccess": {
                     "type": "integer"
                 },
@@ -1502,6 +1508,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "cooldown": {
+                    "type": "integer"
+                },
                 "deadline": {
                     "type": "integer"
                 },
@@ -1534,9 +1543,6 @@ const docTemplate = `{
                 },
                 "tag": {
                     "type": "string"
-                },
-                "timeout": {
-                    "type": "integer"
                 }
             }
         },
@@ -1571,6 +1577,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "cooldown": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -1597,9 +1606,6 @@ const docTemplate = `{
                 },
                 "testcase": {
                     "$ref": "#/definitions/models.Testcase"
-                },
-                "timeout": {
-                    "type": "integer"
                 },
                 "toolId": {
                     "type": "integer"
@@ -2082,9 +2088,6 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.ContentFile"
                     }
                 },
-                "hardTL": {
-                    "type": "integer"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -2094,7 +2097,7 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "softTL": {
+                "timeout": {
                     "type": "integer"
                 }
             }

@@ -20,6 +20,7 @@ type tool struct {
 	Tag         string            `yaml:"tag"`
 	PreScript   Content           `yaml:"preScript"`
 	PostScript  Content           `yaml:"postScript"`
+	Cooldown    int64             `yaml:"cooldown"`
 }
 
 type Tool struct {
@@ -27,7 +28,8 @@ type Tool struct {
 }
 
 type toolNode struct {
-	Tag yaml.Node `yaml:"tag"`
+	Tag      yaml.Node `yaml:"tag"`
+	Cooldown yaml.Node `yaml:"cooldown"`
 }
 
 func (self *Tool) UnmarshalYAML(v *yaml.Node) error {
@@ -45,6 +47,10 @@ func (self *Tool) UnmarshalYAML(v *yaml.Node) error {
 
 	if node.Tag.IsZero() {
 		self.tool.Tag = "default"
+	}
+
+	if node.Cooldown.IsZero() {
+		self.tool.Cooldown = 300
 	}
 
 	return nil
@@ -68,7 +74,7 @@ func (self *Tool) ToModelTool(
 		PostScript: models.Content{
 			Scripts: self.PostScript.Scripts,
 		},
-		Timeout: self.Testcase.HardTL,
+		Cooldown: self.Cooldown,
 	}
 	testcase, err := self.Testcase.ToModelTestcase(ctx, contentFiles)
 	if err != nil {

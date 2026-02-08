@@ -63,4 +63,10 @@ type SubmissionStorage interface {
 		ctx context.Context,
 		job *models.Job,
 	) error
+
+	CancelSubmission(
+		ctx context.Context,
+		subId int64,
+		ownerId int64,
+	) error
 }

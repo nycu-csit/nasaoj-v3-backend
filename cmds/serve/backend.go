@@ -18,6 +18,7 @@ import (
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
 	"github.com/uptrace/bunrouter"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/crons"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
@@ -174,6 +175,8 @@ var backendCmd = &cobra.Command{
 			}))
 		apiWriteGroup.POST("/submit",
 			apiHandlers.PostSubmit(false))
+		apiWriteGroup.PUT("/submission/cancel",
+			apiHandlers.PutCancelSubmission(false))
 
 		apiUserArgsGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -244,6 +247,8 @@ var backendCmd = &cobra.Command{
 			apiHandlers.DeleteSubmission)
 		apiAdminWriteGroup.DELETE("/user",
 			apiHandlers.DeleteUser)
+		apiAdminWriteGroup.PUT("/submission/cancel",
+			apiHandlers.PutCancelSubmission(true))
 
 		scheduleHandlers := schedule.NewHandlers(db, kv, s3)
 		scheduleGroup := backend.NewGroup("/schedule").
@@ -255,6 +260,11 @@ var backendCmd = &cobra.Command{
 			scheduleHandlers.GetScheduleJob)
 		scheduleGroup.PUT("/result",
 			scheduleHandlers.PutScheduleResult)
+		scheduleGroup.POST("/heartbeat",
+			scheduleHandlers.PostScheduleHeartbeat)
+
+		// Start cron jobs
+		go crons.CheckWorkerStatus(ctx, kv, db)
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"),
@@ -343,4 +353,6 @@ func init() {
 		String("cors-origin", "", "CORS origin")
 	backendCmd.Flags().
 		Bool("swagger", false, "Enable swagger")
+	backendCmd.Flags().
+		Int64("worker-timeout", 300, "Worker timeout (in sec)")
 }

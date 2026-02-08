@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cache"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.uber.org/zap"
 )
@@ -1275,28 +1277,11 @@ func (self *Postgres) GetScoresWithDeadline(
 	return ret, nil
 }
 
-func (self *Postgres) submissionQueryHook(
-	ctx context.Context,
-	subId int64,
-) error {
-	_, err := self.db.NewUpdate().
-		Model((*models.Job)(nil)).
-		Set("status = ?", models.StatusTimeout).
-		Where("sub_id = ?", subId).
-		Where("deadline < ?", time.Now().Unix()).
-		Where("status = ?", models.StatusRunning).
-		Exec(ctx)
-	return err
-}
-
 func (self *Postgres) GetSubmission(
 	ctx context.Context,
 	subId int64,
 ) (models.Submission, error) {
 	ret := models.Submission{Id: subId}
-	if err := self.submissionQueryHook(ctx, subId); err != nil {
-		return models.Submission{}, err
-	}
 
 	err := self.db.NewSelect().
 		Model(&ret).
@@ -1304,7 +1289,6 @@ func (self *Postgres) GetSubmission(
 		Relation("Jobs").
 		Scan(ctx)
 	return ret, err
-
 }
 
 func (self *Postgres) GetLastSubmission(
@@ -1330,9 +1314,6 @@ func (self *Postgres) GetLastSubmission(
 
 	err := query.Scan(ctx)
 	if err != nil {
-		return models.Submission{}, err
-	}
-	if err = self.submissionQueryHook(ctx, ret.Id); err != nil {
 		return models.Submission{}, err
 	}
 	err = self.db.NewSelect().
@@ -1642,6 +1623,82 @@ func (self *Postgres) UpdateJob(
 	}
 
 	return nil
+}
+
+func (self *Postgres) CancelSubmission(
+	ctx context.Context,
+	subId int64,
+	ownerId int64,
+) error {
+	var sub models.Submission
+	err := self.db.NewSelect().
+		Model(&sub).
+		Where("id = ?", subId).
+		Where("owner_id = ?", ownerId).
+		Scan(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = self.db.NewUpdate().
+		Model((*models.Job)(nil)).
+		Set("status = ?", models.StatusSkip).
+		Where("sub_id = ?", subId).
+		WhereGroup(" AND ", func(q *bun.UpdateQuery) *bun.UpdateQuery {
+			return q.
+				Where("status = ?", models.StatusBlocked).
+				WhereOr("status = ?", models.StatusPending).
+				WhereOr("status = ?", models.StatusRunning)
+		}).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	pending := []string{
+		cacheUsersKey(sub.ProblemId),
+		cacheScoresKey(sub.ProblemId),
+		cacheScoresWStagesKey(sub.ProblemId),
+	}
+
+	for _, key := range pending {
+		if err := self.cache.Delete(ctx, key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (self *Postgres) TimeoutJobById(
+	ctx context.Context,
+	jobId string,
+) error {
+	// Parse job ID: format is "subId-stageName-testName"
+	parts := strings.SplitN(jobId, "-", 3)
+	if len(parts) != 3 {
+		return types.WrongFormatError
+	}
+
+	subId, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return err
+	}
+	stageName := parts[1]
+	testName := parts[2]
+
+	job := models.Job{
+		SubId:     subId,
+		StageName: stageName,
+		TestName:  testName,
+		Status:    models.StatusMissing,
+	}
+
+	if err := self.UpdateJob(ctx, &job); err != nil {
+		return err
+	}
+
+	return self.SkipJobs(ctx, subId)
 }
 
 func (self *Postgres) GetUserResource(

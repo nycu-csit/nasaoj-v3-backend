@@ -105,7 +105,7 @@ func RunJob(
 	}
 
 	job.ExecAt = time.Now().Unix()
-	duration := time.Duration(job.SoftTL) * time.Second
+	duration := time.Duration(job.Timeout) * time.Second
 
 	ctx, cancel := context.WithTimeout(pctx, duration)
 	defer cancel()

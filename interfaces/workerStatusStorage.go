@@ -27,4 +27,21 @@ type WorkerStatusStorage interface {
 		ctx context.Context,
 		name string,
 	) error
+
+	AddWorkerJob(
+		ctx context.Context,
+		workerName string,
+		jobId string,
+	) error
+
+	RemoveWorkerJob(
+		ctx context.Context,
+		workerName string,
+		jobId string,
+	) error
+
+	GetWorkerJobs(
+		ctx context.Context,
+		workerName string,
+	) ([]string, error)
 }

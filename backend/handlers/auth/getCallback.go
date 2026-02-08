@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 	"golang.org/x/oauth2"
 )
 

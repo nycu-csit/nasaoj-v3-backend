@@ -18,7 +18,8 @@ import (
 const (
 	tokenKey = "token"
 
-	workerStatusKey = "worker-stat"
+	workerStatusKey     = "worker-stat"
+	workerJobsKeyPrefix = "worker-jobs-"
 )
 
 func queueKey(
@@ -113,6 +114,19 @@ func (self *Redis) StageDone(
 	stageId string,
 ) (int64, error) {
 	return self.rdb.HIncrBy(ctx, "jobdep", stageId, -1).Result()
+}
+
+func (self *Redis) RemoveJob(
+	ctx context.Context,
+	jobId string,
+	tag string,
+) error {
+	_, err := self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		_ = pipe.Del(ctx, jobId)
+		_ = pipe.LRem(ctx, queueKey(tag), 0, jobId)
+		return nil
+	})
+	return err
 }
 
 func (self *Redis) GetTokens(
@@ -414,6 +428,39 @@ func (self *Redis) DeleteWorker(
 	ctx context.Context,
 	name string,
 ) error {
-	_, err := self.rdb.HDel(ctx, workerStatusKey, name).Result()
+	_, err := self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		pipe.HDel(ctx, workerStatusKey, name)
+		pipe.Del(ctx, workerJobsKeyPrefix+name)
+		return nil
+	})
 	return err
+}
+
+func (self *Redis) AddWorkerJob(
+	ctx context.Context,
+	workerName string,
+	jobId string,
+) error {
+	_, err := self.rdb.HSet(ctx, workerJobsKeyPrefix+workerName, jobId, "1").Result()
+	return err
+}
+
+func (self *Redis) RemoveWorkerJob(
+	ctx context.Context,
+	workerName string,
+	jobId string,
+) error {
+	_, err := self.rdb.HDel(ctx, workerJobsKeyPrefix+workerName, jobId).Result()
+	return err
+}
+
+func (self *Redis) GetWorkerJobs(
+	ctx context.Context,
+	workerName string,
+) ([]string, error) {
+	res, err := self.rdb.HKeys(ctx, workerJobsKeyPrefix+workerName).Result()
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }

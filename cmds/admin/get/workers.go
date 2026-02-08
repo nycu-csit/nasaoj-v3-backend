@@ -18,6 +18,7 @@ type workersCmdOutput struct {
 	Name string   `yaml:"name"`
 	Ip   string   `yaml:"ip"`
 	Tags []string `yaml:"tags"`
+	Jobs []string `yaml:"jobs"`
 
 	LastAccess string `yaml:"lastAccess"`
 }
@@ -40,6 +41,7 @@ var workersCmd = &cobra.Command{
 		for _, output := range res {
 			ret = append(ret, workersCmdOutput{
 				Name: output.Name,
+				Jobs: output.Jobs,
 				Ip:   output.Ip,
 				Tags: output.Tags,
 				LastAccess: time.Now().Sub(

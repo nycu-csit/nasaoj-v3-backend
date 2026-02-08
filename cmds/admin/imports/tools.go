@@ -93,7 +93,7 @@ var toolsCmd = &cobra.Command{
 				Tag:         tool.Tag,
 				PreScript:   tool.PreScript,
 				PostScript:  tool.PostScript,
-				Timeout:     tool.Timeout,
+				Cooldown:    tool.Cooldown,
 			})
 		}
 		resp := utils.RestyBuilder(ctx, "/api/admin/tools",

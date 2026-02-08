@@ -10,6 +10,5 @@ stages:
           - timeout.sh
         scripts:
           - bash timeout.sh
-        softtl: 2
-        hardtl: 5
+        timeout: 2
     score: 100

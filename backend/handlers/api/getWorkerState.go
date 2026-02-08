@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -10,7 +9,8 @@ import (
 )
 
 type GetWorkerStatesOutput struct {
-	Name string `json:"name"`
+	Name string   `json:"name"`
+	Jobs []string `json:"jobs"`
 
 	models.WorkerStatus `json:",inline"`
 }
@@ -30,25 +30,24 @@ func (self *Handlers) GetWorkerStates(
 	if err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
-			Message:     "worker status get failed",
+			Message:     "failed to get worker status",
 			OriginError: err,
 		}
 	}
 
 	ret := []GetWorkerStatesOutput{}
 	for name, status := range res {
-		if status.LastAccess < time.Now().Add(-time.Hour).Unix() {
-			if err := self.workers.DeleteWorker(ctx, name); err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "worker delete failed",
-					OriginError: err,
-				}
+		jobIds, err := self.workers.GetWorkerJobs(ctx, name)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to get worker jobs",
+				OriginError: err,
 			}
-			continue
 		}
 		ret = append(ret, GetWorkerStatesOutput{
 			Name:         name,
+			Jobs:         jobIds,
 			WorkerStatus: status,
 		})
 	}

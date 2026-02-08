@@ -25,8 +25,7 @@ type Content struct {
 type Testcase struct {
 	Content `json:",inline"`
 
-	Name   string            `json:"name"`
-	Args   map[string]string `json:"args"`
-	SoftTL int64             `json:"softTL"`
-	HardTL int64             `json:"hardTL"`
+	Name    string            `json:"name"`
+	Args    map[string]string `json:"args"`
+	Timeout int64             `json:"timeout"`
 }

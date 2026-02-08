@@ -19,7 +19,7 @@ type Problem struct {
 	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
-	Timeout     int64             `json:"timeout"`
+	Cooldown    int64             `json:"cooldown"`
 	Deadline    int64             `json:"deadline"`
 
 	ImportedAt int64 `json:"importedAt"`
@@ -37,7 +37,7 @@ type problemHash struct {
 	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
-	Timeout     int64             `json:"timeout"`
+	Cooldown    int64             `json:"cooldown"`
 	Deadline    int64             `json:"deadline"`
 }
 
@@ -69,7 +69,7 @@ func (self Problem) Marshal() (ProblemMarshaled, error) {
 		Tag:         self.Tag,
 		PreScript:   self.PreScript,
 		PostScript:  self.PostScript,
-		Timeout:     self.Timeout,
+		Cooldown:    self.Cooldown,
 		Deadline:    self.Deadline,
 	})
 	if err != nil {

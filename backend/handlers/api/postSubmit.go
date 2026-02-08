@@ -12,9 +12,9 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
 )
 
 type AdminSubmitInput struct {
@@ -145,18 +145,22 @@ func (self *Handlers) PostSubmit(
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
-						return job.Status == models.StatusPending ||
-							job.Status == models.StatusRunning
+						return !job.IsDone()
 					}) {
-						availableAt := time.Unix(lastSubmit.CreatedAt, 0).
-							Add(time.Duration(problem.Timeout) * time.Second)
-						if time.Now().Unix() < availableAt.Unix() {
-							w.Header().Set("Retry-After", fmt.Sprintf("%d",
-								int64(availableAt.Sub(time.Now()).Seconds())))
-							return middlewares.HTTPError{
-								StatusCode: http.StatusTooManyRequests,
-								Message:    "submit in cooldown",
-							}
+						return middlewares.HTTPError{
+							StatusCode: http.StatusPreconditionFailed,
+							Message:    "wait for previous request to finish",
+						}
+					}
+
+					availableAt := time.Unix(lastSubmit.CreatedAt, 0).
+						Add(time.Duration(problem.Cooldown) * time.Second)
+					if time.Now().Unix() < availableAt.Unix() {
+						w.Header().Set("Retry-After", fmt.Sprintf("%d",
+							int64(availableAt.Sub(time.Now()).Seconds())))
+						return middlewares.HTTPError{
+							StatusCode: http.StatusTooManyRequests,
+							Message:    "submit in cooldown",
 						}
 					}
 				} else if err != sql.ErrNoRows {
@@ -225,18 +229,21 @@ func (self *Handlers) PostSubmit(
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
-						return job.Status == models.StatusPending ||
-							job.Status == models.StatusRunning
+						return !job.IsDone()
 					}) {
-						availableAt := time.Unix(lastSubmit.CreatedAt, 0).
-							Add(time.Duration(tool.Timeout) * time.Second)
-						if time.Now().Unix() < availableAt.Unix() {
-							w.Header().Set("Retry-After", fmt.Sprintf("%d",
-								int64(availableAt.Sub(time.Now()).Seconds())))
-							return middlewares.HTTPError{
-								StatusCode: http.StatusTooManyRequests,
-								Message:    "submit in cooldown",
-							}
+						return middlewares.HTTPError{
+							StatusCode: http.StatusPreconditionFailed,
+							Message:    "wait for previous request to finish",
+						}
+					}
+					availableAt := time.Unix(lastSubmit.CreatedAt, 0).
+						Add(time.Duration(tool.Cooldown) * time.Second)
+					if time.Now().Unix() < availableAt.Unix() {
+						w.Header().Set("Retry-After", fmt.Sprintf("%d",
+							int64(availableAt.Sub(time.Now()).Seconds())))
+						return middlewares.HTTPError{
+							StatusCode: http.StatusTooManyRequests,
+							Message:    "submit in cooldown",
 						}
 					}
 				} else if err != sql.ErrNoRows {

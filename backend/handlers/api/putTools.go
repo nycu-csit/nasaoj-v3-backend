@@ -24,7 +24,7 @@ type PutToolsInputTool struct {
 	Tag         string            `json:"tag"`
 	PreScript   models.Content    `json:"preScript"`
 	PostScript  models.Content    `json:"postScript"`
-	Timeout     int64             `json:"timeout"`
+	Cooldown    int64             `json:"cooldown"`
 }
 
 // PutTools
@@ -69,7 +69,7 @@ func (self *Handlers) PutTools(
 			Tag:         input.Tag,
 			PreScript:   input.PreScript,
 			PostScript:  input.PostScript,
-			Timeout:     input.Timeout,
+			Cooldown:    input.Cooldown,
 		}
 		if err := self.tools.InsertTool(ctx, tool); err != nil {
 			return middlewares.HTTPError{

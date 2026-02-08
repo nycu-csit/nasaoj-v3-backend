@@ -93,7 +93,7 @@ var problemsCmd = &cobra.Command{
 				Tag:         problem.Tag,
 				PreScript:   problem.PreScript,
 				PostScript:  problem.PostScript,
-				Timeout:     problem.Timeout,
+				Cooldown:    problem.Cooldown,
 				Deadline:    problem.Deadline,
 			})
 		}

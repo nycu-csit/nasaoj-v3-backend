@@ -1375,6 +1375,12 @@
                 "ip": {
                     "type": "string"
                 },
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "lastAccess": {
                     "type": "integer"
                 },
@@ -1494,6 +1500,9 @@
                         "type": "string"
                     }
                 },
+                "cooldown": {
+                    "type": "integer"
+                },
                 "deadline": {
                     "type": "integer"
                 },
@@ -1526,9 +1535,6 @@
                 },
                 "tag": {
                     "type": "string"
-                },
-                "timeout": {
-                    "type": "integer"
                 }
             }
         },
@@ -1563,6 +1569,9 @@
                         "type": "string"
                     }
                 },
+                "cooldown": {
+                    "type": "integer"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -1589,9 +1598,6 @@
                 },
                 "testcase": {
                     "$ref": "#/definitions/models.Testcase"
-                },
-                "timeout": {
-                    "type": "integer"
                 },
                 "toolId": {
                     "type": "integer"
@@ -2074,9 +2080,6 @@
                         "$ref": "#/definitions/models.ContentFile"
                     }
                 },
-                "hardTL": {
-                    "type": "integer"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -2086,7 +2089,7 @@
                         "type": "string"
                     }
                 },
-                "softTL": {
+                "timeout": {
                     "type": "integer"
                 }
             }

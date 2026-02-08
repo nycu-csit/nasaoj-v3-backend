@@ -22,6 +22,7 @@ type problem struct {
 	Tag         TagType           `yaml:"tag"`
 	PreScript   Content           `yaml:"preScript"`
 	PostScript  Content           `yaml:"postScript"`
+	Cooldown    int64             `yaml:"cooldown"`
 	Deadline    int64             `yaml:"deadline"`
 }
 
@@ -30,7 +31,8 @@ type Problem struct {
 }
 
 type problemNode struct {
-	Tag yaml.Node `yaml:"tag"`
+	Tag      yaml.Node `yaml:"tag"`
+	Cooldown yaml.Node `yaml:"cooldown"`
 }
 
 func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
@@ -51,6 +53,10 @@ func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
 		self.problem.Tag = "default"
 	}
 
+	if node.Cooldown.IsZero() {
+		self.problem.Cooldown = 300
+	}
+
 	return nil
 }
 
@@ -68,6 +74,7 @@ func (self *Problem) ToModelProblem(
 		Args:        self.Args,
 		Tag:         self.Tag,
 		Deadline:    self.Deadline,
+		Cooldown:    self.Cooldown,
 	}
 
 	if res, err := self.PreScript.ToModelContent(ctx, contentFiles); err == nil {
@@ -88,7 +95,6 @@ func (self *Problem) ToModelProblem(
 		return models.Problem{}, err
 	}
 
-	ret.Timeout = 0
 	for stageName, stage := range self.Stages {
 		retStage := models.Stage{
 			Before: stage.Before,
@@ -116,9 +122,7 @@ func (self *Problem) ToModelProblem(
 			return models.Problem{}, err
 		}
 
-		maxTL := int64(0)
 		for _, testcase := range stage.Testcases {
-			maxTL = max(maxTL, testcase.HardTL)
 			retTestcase, err := testcase.ToModelTestcase(ctx, contentFiles)
 			if err != nil {
 				tracing.Logger.Ctx(ctx).
@@ -128,7 +132,6 @@ func (self *Problem) ToModelProblem(
 			}
 			retStage.Testcases = append(retStage.Testcases, retTestcase)
 		}
-		ret.Timeout += maxTL
 		ret.Stages[stageName] = retStage
 	}
 

@@ -18,10 +18,9 @@ type Content struct {
 type testcase struct {
 	Content `yaml:",inline"`
 
-	Name   string            `yaml:"name"`
-	Args   map[string]string `yaml:"args"`
-	SoftTL int64             `yaml:"softTL"`
-	HardTL int64             `yaml:"hardTL"`
+	Name    string            `yaml:"name"`
+	Args    map[string]string `yaml:"args"`
+	Timeout int64             `yaml:"timeout"`
 }
 
 type Testcase struct {
@@ -29,8 +28,7 @@ type Testcase struct {
 }
 
 type testcaseNode struct {
-	SoftTL yaml.Node `yaml:"softTL"`
-	HardTL yaml.Node `yaml:"hardTL"`
+	Timeout yaml.Node `yaml:"timeout"`
 }
 
 func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
@@ -47,11 +45,8 @@ func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
 	}
 	self.testcase = im
 
-	if node.SoftTL.IsZero() {
-		self.SoftTL = 25
-	}
-	if node.HardTL.IsZero() {
-		self.HardTL = 30
+	if node.Timeout.IsZero() {
+		self.Timeout = 30
 	}
 
 	return nil
@@ -85,10 +80,9 @@ func (self *Testcase) ToModelTestcase(
 	contentFiles map[string]models.ContentFile,
 ) (models.Testcase, error) {
 	ret := models.Testcase{
-		Name:   self.Name,
-		Args:   self.Args,
-		SoftTL: self.SoftTL,
-		HardTL: self.HardTL,
+		Name:    self.Name,
+		Args:    self.Args,
+		Timeout: self.Timeout,
 	}
 
 	if res, err := self.Content.ToModelContent(ctx, contentFiles); err == nil {

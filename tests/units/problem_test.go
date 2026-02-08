@@ -20,10 +20,15 @@ func TestProblem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expect no error, got %+v", err)
 	}
-	softTL := problem.Stages["stage1"].Testcases[0].SoftTL
-	if softTL != 25 {
-		t.Fatalf("expect SoftTL = 25, got %v", softTL)
+	cooldown := problem.Cooldown
+	if cooldown != 300 {
+		t.Fatalf("expect Cooldown = 300, got %v", cooldown)
 	}
+	timeout := problem.Stages["stage1"].Testcases[0].Timeout
+	if timeout != 30 {
+		t.Fatalf("expect Timeout = 30, got %v", timeout)
+	}
+
 	tag := problem.Tag
 	if tag != "default" {
 		t.Fatalf("expect Tag = 'default', got %v", tag)
