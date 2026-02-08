@@ -21,7 +21,7 @@ type testcase struct {
 	Name          string            `yaml:"name"`
 	Args          map[string]string `yaml:"args"`
 	Timeout       int64             `yaml:"timeout"`
-	ResourceGroup string            `yaml:"resourceGroup,omitempty`
+	ResourceGroup string            `yaml:"resourceGroup,omitempty"`
 }
 
 type Testcase struct {

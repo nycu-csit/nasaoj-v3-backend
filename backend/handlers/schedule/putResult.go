@@ -53,6 +53,12 @@ func (self *Handlers) PutScheduleResult(
 		}
 	}
 
+	// Unlock resource group mutex
+	if err = self.jobQue.Unlock(ctx, &job); err != nil {
+		// Log warning but don't fail - job is done, mutex will expire
+		// Note: This is logged as debug since the mutex may have expired
+	}
+
 	if job.Status != models.StatusSuccess {
 		if err = self.jobs.SkipJobs(ctx, job.SubId); err != nil {
 			return middlewares.HTTPError{

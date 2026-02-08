@@ -495,6 +495,8 @@ definitions:
         type: array
       name:
         type: string
+      resourceGroup:
+        type: string
       scripts:
         items:
           type: string

@@ -15,4 +15,5 @@ var (
 	ChannelClosedError        = fmt.Errorf("channel closed")
 	WrongFormatError          = fmt.Errorf("wrong format")
 	HTTPRequestFailedError    = fmt.Errorf("http request failed")
+	LockAcquisitionError      = fmt.Errorf("lock acquisition failed")
 )

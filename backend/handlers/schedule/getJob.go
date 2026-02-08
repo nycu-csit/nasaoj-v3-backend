@@ -20,22 +20,65 @@ func (self *Handlers) GetScheduleJob(
 ) error {
 	ctx := req.Context()
 	tags := req.URL.Query().Get("tags")
+	tagList := strings.Split(tags, ",")
 
-	// Get Job from queue
+	// Get Job from retry queue or normal queue
 	var err error
 	var job models.Job
-	for _, tag := range strings.Split(tags, ",") {
-		job, err = self.jobQue.GetJob(ctx, tag)
-		if err == nil {
-			break
+	var jobFound bool
+
+	for !jobFound {
+		var foundInThisIteration bool
+		var currentTag string
+
+		// Try each tag's retry queue first, then normal queue
+		for _, tag := range tagList {
+			// First check retry queue
+			job, err = self.jobQue.GetRetryJob(ctx, tag)
+			if err == nil {
+				foundInThisIteration = true
+				currentTag = tag
+				break
+			}
+
+			// Then check normal queue
+			job, err = self.jobQue.GetJob(ctx, tag)
+			if err == nil {
+				foundInThisIteration = true
+				currentTag = tag
+				break
+			}
 		}
-	}
-	if err != nil {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusNoContent,
-			Message:     "no job left in queue",
-			OriginError: err,
+
+		if !foundInThisIteration {
+			// No jobs available in any queue
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNoContent,
+				Message:     "no job left in queue",
+				OriginError: err,
+			}
 		}
+
+		// Try to acquire lock for this job
+		if err = self.jobQue.Lock(ctx, &job); err != nil {
+			// Lock acquisition failed - put job in retry queue
+			tracing.Logger.Ctx(ctx).
+				Debug("failed to acquire resource group lock, putting to retry queue",
+					zap.String("job.id", job.Id()),
+					zap.String("resourceGroup", job.ResourceGroup),
+					zap.Error(err))
+
+			if putErr := self.jobQue.PutRetryJob(ctx, job, currentTag); putErr != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to put job to retry queue",
+						zap.String("job.id", job.Id()),
+						zap.Error(putErr))
+			}
+			continue
+		}
+
+		// Lock acquired (or no lock needed)
+		jobFound = true
 	}
 
 	span := trace.SpanFromContext(ctx)

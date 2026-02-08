@@ -2165,6 +2165,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "resourceGroup": {
+                    "type": "string"
+                },
                 "scripts": {
                     "type": "array",
                     "items": {

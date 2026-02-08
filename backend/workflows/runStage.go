@@ -101,9 +101,10 @@ func RunStage(
 
 			Status: models.StatusPending,
 
-			Script:  jobScript,
-			Timeout: testcase.Timeout,
-			RefSHA1: submission.ProblemSHA1,
+			Script:        jobScript,
+			Timeout:       testcase.Timeout,
+			RefSHA1:       submission.ProblemSHA1,
+			ResourceGroup: testcase.ResourceGroup,
 		}
 
 		if err := jobs.UpdateJob(ctx, &job); err != nil {

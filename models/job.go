@@ -46,12 +46,13 @@ type Job struct {
 	Status JobStatus `json:"status" bun:"status"`
 
 	// On Schedule
-	Script     string `json:"script" bun:"script"`
-	Input      string `json:"input" bun:"input"`
-	Timeout    int64  `json:"timeout" bun:"-"`
-	RefSHA1    string `json:"refSHA1" bun:"-"`
-	RefFileURL string `json:"refFileUrl" bun:"-"`
-	JobFileURL string `json:"jobFileUrl" bun:"-"`
+	Script        string `json:"script" bun:"script"`
+	Input         string `json:"input" bun:"input"`
+	ResourceGroup string `json:"resourceGroup" bun:"-"`
+	Timeout       int64  `json:"timeout" bun:"-"`
+	RefSHA1       string `json:"refSHA1" bun:"-"`
+	RefFileURL    string `json:"refFileUrl" bun:"-"`
+	JobFileURL    string `json:"jobFileUrl" bun:"-"`
 
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`

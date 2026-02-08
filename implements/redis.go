@@ -5,8 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"time"
 
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
@@ -28,12 +31,26 @@ func queueKey(
 	return "queue-" + tag
 }
 
+func retryQueueKey(
+	tag string,
+) string {
+	return "retry-queue-" + tag
+}
+
+func resourceGroupKey(job *models.Job) string {
+	return fmt.Sprintf("rg-%d-%s", job.SubId, job.ResourceGroup)
+}
+
 type Redis struct {
 	rdb *redis.Client
+	rs  *redsync.Redsync
 }
 
 func NewRedis(rdb *redis.Client) *Redis {
-	return &Redis{rdb: rdb}
+	return &Redis{
+		rdb: rdb,
+		rs:  redsync.New(goredis.NewPool(rdb)),
+	}
 }
 
 func (self *Redis) GetJob(
@@ -463,4 +480,101 @@ func (self *Redis) GetWorkerJobs(
 		return nil, err
 	}
 	return res, nil
+}
+
+func (self *Redis) Lock(
+	ctx context.Context,
+	job *models.Job,
+) error {
+	// No locking needed if ResourceGroup is empty
+	if job.ResourceGroup == "" {
+		return nil
+	}
+
+	key := resourceGroupKey(job)
+	expiry := time.Duration(job.Timeout+60) * time.Second
+
+	// Use SETNX with expiry for simple distributed lock
+	ok, err := self.rdb.SetNX(ctx, key, job.Id(), expiry).Result()
+	if err != nil {
+		return err
+	}
+	if !ok {
+		// Key already exists, lock is held by another job
+		return types.LockAcquisitionError
+	}
+
+	return nil
+}
+
+func (self *Redis) Unlock(
+	ctx context.Context,
+	job *models.Job,
+) error {
+	// No unlocking needed if ResourceGroup is empty
+	if job.ResourceGroup == "" {
+		return nil
+	}
+
+	key := resourceGroupKey(job)
+
+	// Delete the lock key
+	_, err := self.rdb.Del(ctx, key).Result()
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Warn("failed to unlock resource group mutex",
+				zap.String("resourceGroup", job.ResourceGroup),
+				zap.Int64("subId", job.SubId),
+				zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (self *Redis) PutRetryJob(
+	ctx context.Context,
+	job models.Job,
+	tag string,
+) error {
+	b, err := json.Marshal(job)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to marshal job to json",
+				zap.Error(err))
+		return err
+	}
+
+	_, err = self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		_ = pipe.Set(ctx, job.Id(), b, 0)
+		_ = pipe.LPush(ctx, retryQueueKey(tag), job.Id())
+		return nil
+	})
+	return err
+}
+
+func (self *Redis) GetRetryJob(
+	ctx context.Context,
+	tag string,
+) (models.Job, error) {
+	jobkey, err := self.rdb.RPop(ctx, retryQueueKey(tag)).Result()
+	if err != nil {
+		return models.Job{}, err
+	}
+
+	jobRaw, err := self.rdb.Get(ctx, jobkey).Result()
+	if err != nil {
+		return models.Job{}, err
+	}
+
+	var job models.Job
+	err = json.Unmarshal([]byte(jobRaw), &job)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to unmarshal json to job",
+				zap.Error(err))
+		return models.Job{}, err
+	}
+
+	return job, nil
 }
