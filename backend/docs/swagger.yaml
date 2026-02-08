@@ -787,6 +787,28 @@ paths:
           description: Unauthorized
           schema:
             type: string
+  /api/admin/submission/cancel:
+    put:
+      parameters:
+      - description: Submission Id
+        format: int64
+        in: query
+        name: subId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
   /api/admin/submissions:
     get:
       parameters:
@@ -1229,6 +1251,32 @@ paths:
           description: Bad Request
         "404":
           description: Not Found
+  /api/submission/cancel:
+    put:
+      parameters:
+      - description: Submission Id
+        format: int64
+        in: query
+        name: subId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
   /api/submissions:
     get:
       parameters:
