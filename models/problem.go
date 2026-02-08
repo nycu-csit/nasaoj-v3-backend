@@ -10,21 +10,21 @@ import (
 )
 
 type Problem struct {
-	ProblemId   int64             `json:"problemId"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	PdfUrl      string            `json:"pdfUrl"`
-	Stages      map[string]Stage  `json:"stages"`
-	Args        map[string]string `json:"args"`
-	Tag         string            `json:"tag"`
-	PreScript   Content           `json:"preScript"`
-	PostScript  Content           `json:"postScript"`
-	Cooldown    int64             `json:"cooldown"`
-	Deadline    int64             `json:"deadline"`
+	ProblemId   int64             `json:"problemId" yaml:"problemId"`
+	Name        string            `json:"name" yaml:"name"`
+	Description string            `json:"description" yaml:"description"`
+	PdfUrl      string            `json:"pdfUrl" yaml:"pdfUrl"`
+	Stages      map[string]Stage  `json:"stages" yaml:"stages"`
+	Args        map[string]string `json:"args" yaml:"args"`
+	Tag         string            `json:"tag" yaml:"tag"`
+	PreScript   Content           `json:"preScript" yaml:"preScript"`
+	PostScript  Content           `json:"postScript" yaml:"postScript"`
+	Cooldown    int64             `json:"cooldown" yaml:"cooldown"`
+	Deadline    int64             `json:"deadline" yaml:"deadline"`
 
-	ImportedAt int64 `json:"importedAt"`
-	IsEnabled  bool  `json:"isEnabled"`
-	TotalScore int64 `json:"totalScore"`
+	ImportedAt int64 `json:"importedAt" yaml:"importedAt"`
+	IsEnabled  bool  `json:"isEnabled" yaml:"isEnabled"`
+	TotalScore int64 `json:"totalScore" yaml:"totalScore"`
 }
 
 type problemHash struct {

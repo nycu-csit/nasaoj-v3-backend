@@ -18,9 +18,10 @@ type Content struct {
 type testcase struct {
 	Content `yaml:",inline"`
 
-	Name    string            `yaml:"name"`
-	Args    map[string]string `yaml:"args"`
-	Timeout int64             `yaml:"timeout"`
+	Name          string            `yaml:"name"`
+	Args          map[string]string `yaml:"args"`
+	Timeout       int64             `yaml:"timeout"`
+	ResourceGroup string            `yaml:"resourceGroup,omitempty`
 }
 
 type Testcase struct {
@@ -80,9 +81,10 @@ func (self *Testcase) ToModelTestcase(
 	contentFiles map[string]models.ContentFile,
 ) (models.Testcase, error) {
 	ret := models.Testcase{
-		Name:    self.Name,
-		Args:    self.Args,
-		Timeout: self.Timeout,
+		Name:          self.Name,
+		Args:          self.Args,
+		Timeout:       self.Timeout,
+		ResourceGroup: self.ResourceGroup,
 	}
 
 	if res, err := self.Content.ToModelContent(ctx, contentFiles); err == nil {

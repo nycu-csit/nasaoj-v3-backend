@@ -32,6 +32,7 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(depsCmd)
+	RootCmd.AddCommand(parseCmd)
 
 	RootCmd.PersistentFlags().
 		String("problems-dir", "./problems", "Directory to read problems")

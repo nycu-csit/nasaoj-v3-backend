@@ -7,25 +7,26 @@ import (
 )
 
 type ContentFile struct {
-	bun.BaseModel `bun:"table:content_file"`
+	bun.BaseModel `bun:"table:content_file" json:"-" yaml:"-"`
 
-	SHA1       string `json:"sha1" bun:"sha1,pk"`
-	Name       string `json:"name" bun:"name"`
-	Payload    string `json:"payload,omitempty" bun:"payload"`
-	IsTemplate bool   `json:"isTemplate,omitempty" bun:"is_template"`
+	SHA1       string `json:"sha1" yaml:"sha1" bun:"sha1,pk"`
+	Name       string `json:"name" yaml:"name" bun:"name"`
+	Payload    string `json:"payload" yaml:"payload,omitempty" bun:"payload"`
+	IsTemplate bool   `json:"isTemplate" yaml:"isTemplate,omitempty" bun:"is_template"`
 
-	Template *template.Template `json:"-" bun:"-"`
+	Template *template.Template `json:"-" yaml:"-" bun:"-"`
 }
 
 type Content struct {
-	Files   []ContentFile `json:"files"`
-	Scripts []string      `json:"scripts"`
+	Files   []ContentFile `json:"files" yaml:"files"`
+	Scripts []string      `json:"scripts" yaml:"scripts"`
 }
 
 type Testcase struct {
-	Content `json:",inline"`
+	Content `json:",inline" yaml:"content,inline"`
 
-	Name    string            `json:"name"`
-	Args    map[string]string `json:"args"`
-	Timeout int64             `json:"timeout"`
+	Name          string            `json:"name" yaml:"name"`
+	Args          map[string]string `json:"args" yaml:"args"`
+	Timeout       int64             `json:"timeout" yaml:"timeout"`
+	ResourceGroup string            `json:"resourceGroup" yaml:"resourceGroup"`
 }

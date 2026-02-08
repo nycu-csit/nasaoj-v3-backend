@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var problemsCmd = &cobra.Command{
+var depsProblemsCmd = &cobra.Command{
 	Use:   "problems",
 	Short: "Check dependencies on problems",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -43,7 +43,7 @@ var problemsCmd = &cobra.Command{
 	},
 }
 
-var toolsCmd = &cobra.Command{
+var depsToolsCmd = &cobra.Command{
 	Use:   "tools",
 	Short: "Check dependencies on tools",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -78,6 +78,6 @@ var depsCmd = &cobra.Command{
 }
 
 func init() {
-	depsCmd.AddCommand(problemsCmd)
-	depsCmd.AddCommand(toolsCmd)
+	depsCmd.AddCommand(depsProblemsCmd)
+	depsCmd.AddCommand(depsToolsCmd)
 }
