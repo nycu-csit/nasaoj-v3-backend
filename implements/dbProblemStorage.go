@@ -75,6 +75,12 @@ func (self *DBProblemStorage) GetProblem(
 				return self.getProblem(ctx, sha1)
 			},
 		})
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to get problem",
+					zap.String("problem.sha1", sha1),
+					zap.Error(err))
+		}
 		return ret, err
 	} else {
 		return self.getProblem(ctx, sha1)
