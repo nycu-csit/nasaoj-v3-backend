@@ -12,8 +12,8 @@ import (
 )
 
 type PutUsersCSSSOInput struct {
-	CsId string            `json:"csId"`
-	Args map[string]string `json:"args"`
+	CsId string            `json:"csId" yaml:"csId"`
+	Args map[string]string `json:"args" yaml:"args`
 }
 
 // PutUsersCSSSO

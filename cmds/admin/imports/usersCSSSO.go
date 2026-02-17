@@ -45,7 +45,7 @@ var usersCSSSOCmd = &cobra.Command{
 		for _, input := range inputs {
 			if input.CsId == "" {
 				tracing.Logger.Ctx(ctx).
-					Error("csid cannot be empty")
+					Error("csId cannot be empty")
 				panic(types.WrongFormatError)
 			}
 		}
