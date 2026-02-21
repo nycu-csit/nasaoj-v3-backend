@@ -1015,7 +1015,7 @@ func (self *Postgres) getUserScoreWithStages(
 	var sub models.Submission
 	err := self.db.NewSelect().
 		Model(&sub).
-		Column("id", "owner_id", "problem_id", "problem_sha1").
+		Column("id", "owner_id", "problem_id", "problem_sha1", "created_at").
 		Where("problem_id = ?", refId).
 		Where("owner_id = ?", id).
 		OrderExpr("id DESC").
