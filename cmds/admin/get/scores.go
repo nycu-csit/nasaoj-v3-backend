@@ -47,20 +47,20 @@ var scoresCmd = &cobra.Command{
 		defer w.Flush()
 
 		if viper.GetBool("with-time") {
-			w.Write([]string{"cs_id", "score", "created_at"})
+			w.Write([]string{"username", "score", "created_at"})
 		} else {
-			w.Write([]string{"cs_id", "score"})
+			w.Write([]string{"username", "score"})
 		}
 		for _, score := range res {
 			if viper.GetBool("with-time") {
 				w.Write([]string{
-					strconv.FormatInt(score.Id, 10),
+					score.Username,
 					strconv.FormatInt(score.Score, 10),
 					time.Unix(score.CreatedAt, 0).String(),
 				})
 			} else {
 				w.Write([]string{
-					strconv.FormatInt(score.Id, 10),
+					score.Username,
 					strconv.FormatInt(score.Score, 10),
 				})
 			}

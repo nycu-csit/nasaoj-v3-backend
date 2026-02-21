@@ -18,7 +18,7 @@ TARGET := judge
 
 all: swagger docker install
 
-retest: docker-reset test
+retest: install docker-reset test
 
 docker-reset: docker-clean docker docker-init
 	sleep 1

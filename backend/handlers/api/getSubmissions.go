@@ -16,10 +16,10 @@ type SubmissionsOutputSubmission struct {
 	RefId   int64          `json:"refId" yaml:"refId"`
 	Type    models.RefType `json:"type" yaml:"type"`
 
-	OwnerId    string `json:"ownerId" yaml:"ownerId"`
-	CreatedAt  int64  `json:"createdAt" yaml:"createdAt"`
-	Score      int64  `json:"score" yaml:"score"`
-	TotalScore int64  `json:"totalScore" yaml:"totalScore"`
+	OwnerId    int64 `json:"ownerId" yaml:"ownerId"`
+	CreatedAt  int64 `json:"createdAt" yaml:"createdAt"`
+	Score      int64 `json:"score" yaml:"score"`
+	TotalScore int64 `json:"totalScore" yaml:"totalScore"`
 }
 
 type SubmissionsOutput struct {
@@ -171,7 +171,7 @@ func (self *Handlers) GetSubmissions(
 				Id:   sub.Id,
 				Type: sub.Type,
 
-				OwnerId:   strconv.FormatInt(sub.OwnerId, 10),
+				OwnerId:   sub.OwnerId,
 				CreatedAt: sub.CreatedAt,
 				Score:     score.Score,
 			}

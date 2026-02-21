@@ -1805,7 +1805,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "ownerId": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "refId": {
                     "type": "integer"
