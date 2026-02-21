@@ -159,15 +159,6 @@ func (self *Handlers) GetSubmissions(
 				}
 			}
 
-			score, err := self.scores.GetSubmissionScore(ctx, sub.Id)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "failed to query score",
-					OriginError: err,
-				}
-			}
-
 			user, err := self.db.GetUserResource(ctx, sub.OwnerId)
 			if err != nil {
 				return middlewares.HTTPError{
@@ -184,13 +175,22 @@ func (self *Handlers) GetSubmissions(
 				OwnerId:   sub.OwnerId,
 				Username:  user.Username,
 				CreatedAt: sub.CreatedAt,
-				Score:     score.Score,
 			}
 			switch sub.Type {
 			case models.RefTypeProblem:
 				output.RefSHA1 = sub.ProblemSHA1
 				output.RefId = sub.ProblemId
 				sha1s = append(sha1s, output.RefSHA1)
+
+				score, err := self.scores.GetSubmissionScore(ctx, sub.Id)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "failed to query score",
+						OriginError: err,
+					}
+				}
+				output.Score = score.Score
 			case models.RefTypeTool:
 				output.RefSHA1 = sub.ToolSHA1
 				output.RefId = sub.ToolId
