@@ -2213,6 +2213,9 @@ const docTemplate = `{
                 },
                 "score": {
                     "type": "integer"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -2234,6 +2237,9 @@ const docTemplate = `{
                         "type": "integer",
                         "format": "int64"
                     }
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }

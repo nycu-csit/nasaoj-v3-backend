@@ -2205,6 +2205,9 @@
                 },
                 "score": {
                     "type": "integer"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -2226,6 +2229,9 @@
                         "type": "integer",
                         "format": "int64"
                     }
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }

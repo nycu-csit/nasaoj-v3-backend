@@ -10,6 +10,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -61,6 +63,12 @@ func (self *Handlers) GetOutput(
 		}
 		stageName := req.URL.Query().Get("stage")
 		testName := req.URL.Query().Get("testcase")
+
+		span := trace.SpanFromContext(ctx)
+		span.SetAttributes(
+			attribute.Int64("submission.id", subId),
+			attribute.String("job.stage", stageName),
+			attribute.String("job.test", testName))
 
 		submission, err := self.submissions.GetSubmission(ctx, subId)
 		if err != nil {

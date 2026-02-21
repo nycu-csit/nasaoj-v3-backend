@@ -224,21 +224,28 @@ func Test_03_5_Check_stdout(t *testing.T) {
 
 			subId := subs.Submissions[0].Id
 
-			// Query stdout for the first testcase
-			resp, err = client.R().
-				SetQueryParam("subId", strconv.FormatInt(subId, 10)).
-				SetQueryParam("stage", firstStage).
-				SetQueryParam("testcase", firstTestcase).
-				Get("/api/stdout")
-			if err != nil || resp.StatusCode() != http.StatusOK {
-				t.Fatalf("failed to get /api/stdout: %v", resp)
-			}
+			// Query stdout for the first testcase with retry
+			maxRetries := 10
+			for i := 0; i < maxRetries; i++ {
+				resp, err = client.R().
+					SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+					SetQueryParam("stage", firstStage).
+					SetQueryParam("testcase", firstTestcase).
+					Get("/api/stdout")
+				if err == nil && resp.StatusCode() == http.StatusOK {
+					body := string(resp.Body())
+					if len(body) == 0 {
+						t.Fatal("stdout is empty")
+					}
+					t.Logf("stdout: %s", body)
+					return
+				}
 
-			body := string(resp.Body())
-			if len(body) == 0 {
-				t.Fatal("stdout is empty")
+				if i < maxRetries-1 {
+					time.Sleep(time.Duration(i+1) * 500 * time.Millisecond)
+				}
 			}
-			t.Logf("stdout: %s", body)
+			t.Fatalf("failed to get /api/stdout after %d retries: %v", maxRetries, resp)
 		})
 	}
 }
@@ -263,6 +270,11 @@ func Test_03_6_Check_scores(t *testing.T) {
 			// Check that the score matches expected
 			if result[0].Score != pres.Score {
 				t.Fatalf("expected score %d, got %d", pres.Score, result[0].Score)
+			}
+
+			// Check that username is populated
+			if result[0].Username == "" {
+				t.Fatal("username is empty")
 			}
 
 			t.Logf("scores for problem %d: %+v", pres.Id, result)

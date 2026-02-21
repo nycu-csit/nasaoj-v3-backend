@@ -964,11 +964,17 @@ func (self *Postgres) getSubmissionScore(
 		return models.UserScore{}, err
 	}
 
+	user, err := self.GetUserResource(ctx, sub.OwnerId)
+	if err != nil {
+		return models.UserScore{}, err
+	}
+
 	score, isFinal := utils.CalcScore(problem, sub)
 
 	return models.UserScore{
-		Score: score.Score,
-		Id:    sub.OwnerId,
+		Score:    score.Score,
+		Id:       sub.OwnerId,
+		Username: user.Username,
 
 		CreatedAt: sub.CreatedAt,
 		IsFinal:   isFinal,
@@ -1025,10 +1031,16 @@ func (self *Postgres) getUserScoreWithStages(
 		return models.UserScoreWithStages{}, err
 	}
 
+	user, err := self.GetUserResource(ctx, id)
+	if err != nil {
+		return models.UserScoreWithStages{}, err
+	}
+
 	score, isFinal := utils.CalcScore(problem, sub)
 	return models.UserScoreWithStages{
-		Id:    id,
-		Score: score,
+		Id:       id,
+		Username: user.Username,
+		Score:    score,
 
 		CreatedAt: sub.CreatedAt,
 		IsFinal:   isFinal,
@@ -1119,8 +1131,9 @@ func (self *Postgres) getScores(
 			return []models.UserScore{}, false, err
 		}
 		ret = append(ret, models.UserScore{
-			Id:    score.Id,
-			Score: score.Score.Score,
+			Id:       score.Id,
+			Username: score.Username,
+			Score:    score.Score.Score,
 
 			CreatedAt: score.CreatedAt,
 		})
@@ -1267,9 +1280,15 @@ func (self *Postgres) GetScoresWithDeadline(
 	for _, sub := range submissions {
 		score, _ := utils.CalcScore(problem, sub)
 
+		user, err := self.GetUserResource(ctx, sub.OwnerId)
+		if err != nil {
+			return []models.UserScore{}, err
+		}
+
 		ret = append(ret, models.UserScore{
 			Score:     score.Score,
 			Id:        sub.OwnerId,
+			Username:  user.Username,
 			CreatedAt: sub.CreatedAt,
 		})
 	}
