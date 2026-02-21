@@ -26,7 +26,7 @@ type ResultOutput struct {
 	RefId   int64          `json:"refId"`
 	Type    models.RefType `json:"type"`
 
-	OwnerId   string            `json:"ownerId"`
+	OwnerId   int64             `json:"ownerId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
 	CreatedAt  int64 `json:"createdAt"`
@@ -169,7 +169,7 @@ func (self *Handlers) GetResults(
 			Id:   submission.Id,
 			Type: submission.Type,
 
-			OwnerId:   strconv.FormatInt(submission.OwnerId, 10),
+			OwnerId:   submission.OwnerId,
 			InputArgs: submission.InputArgs,
 
 			CreatedAt: submission.CreatedAt,

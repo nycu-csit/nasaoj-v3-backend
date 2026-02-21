@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -35,8 +34,8 @@ type SubmitOutput struct {
 	RefId     int64             `json:"refId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
-	OwnerId   string `json:"ownerId"`
-	CreatedAt int64  `json:"createdAt"`
+	OwnerId   int64 `json:"ownerId"`
+	CreatedAt int64 `json:"createdAt"`
 }
 
 // PostAdminSubmit
@@ -302,7 +301,7 @@ func (self *Handlers) PostSubmit(
 				RefId:     submission.ProblemId,
 				InputArgs: submission.InputArgs,
 
-				OwnerId:   strconv.FormatInt(submission.OwnerId, 10),
+				OwnerId:   submission.OwnerId,
 				CreatedAt: submission.CreatedAt,
 			})
 		case models.RefTypeTool:
@@ -312,7 +311,7 @@ func (self *Handlers) PostSubmit(
 				RefId:     submission.ToolId,
 				InputArgs: submission.InputArgs,
 
-				OwnerId:   strconv.FormatInt(submission.OwnerId, 10),
+				OwnerId:   submission.OwnerId,
 				CreatedAt: submission.CreatedAt,
 			})
 		default:

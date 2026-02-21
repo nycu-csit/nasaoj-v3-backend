@@ -213,7 +213,7 @@ definitions:
           $ref: '#/definitions/api.ResultOutputJob'
         type: array
       ownerId:
-        type: string
+        type: integer
       refId:
         type: integer
       refSHA1:
@@ -291,7 +291,7 @@ definitions:
           type: string
         type: object
       ownerId:
-        type: string
+        type: integer
       refId:
         type: integer
       refSHA1:

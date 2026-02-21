@@ -1739,7 +1739,7 @@ const docTemplate = `{
                     }
                 },
                 "ownerId": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "refId": {
                     "type": "integer"
@@ -1858,7 +1858,7 @@ const docTemplate = `{
                     }
                 },
                 "ownerId": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "refId": {
                     "type": "integer"
