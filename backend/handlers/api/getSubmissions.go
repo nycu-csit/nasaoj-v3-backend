@@ -16,10 +16,11 @@ type SubmissionsOutputSubmission struct {
 	RefId   int64          `json:"refId" yaml:"refId"`
 	Type    models.RefType `json:"type" yaml:"type"`
 
-	OwnerId    int64 `json:"ownerId" yaml:"ownerId"`
-	CreatedAt  int64 `json:"createdAt" yaml:"createdAt"`
-	Score      int64 `json:"score" yaml:"score"`
-	TotalScore int64 `json:"totalScore" yaml:"totalScore"`
+	OwnerId    int64  `json:"ownerId" yaml:"ownerId"`
+	Username   string `json:"username" yaml:"username"`
+	CreatedAt  int64  `json:"createdAt" yaml:"createdAt"`
+	Score      int64  `json:"score" yaml:"score"`
+	TotalScore int64  `json:"totalScore" yaml:"totalScore"`
 }
 
 type SubmissionsOutput struct {
@@ -167,11 +168,21 @@ func (self *Handlers) GetSubmissions(
 				}
 			}
 
+			user, err := self.db.GetUserResource(ctx, sub.OwnerId)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to query user",
+					OriginError: err,
+				}
+			}
+
 			output := SubmissionsOutputSubmission{
 				Id:   sub.Id,
 				Type: sub.Type,
 
 				OwnerId:   sub.OwnerId,
+				Username:  user.Username,
 				CreatedAt: sub.CreatedAt,
 				Score:     score.Score,
 			}
