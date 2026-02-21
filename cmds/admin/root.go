@@ -39,7 +39,7 @@ func getLogin(
 		ctx := req.Context()
 
 		url, err := url.JoinPath(
-			viper.GetString("endpoint"), "/auth/login")
+			viper.GetString("endpoint"), "/auth/login/cssso")
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
@@ -50,11 +50,11 @@ func getLogin(
 
 		resp, err := client.R().
 			SetQueryParam("source", "cli").
-			Get(url)
+			Post(url)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
-				Message:     "GET /auth/login failed",
+				Message:     "POST /auth/login failed",
 				OriginError: err,
 			}
 		}

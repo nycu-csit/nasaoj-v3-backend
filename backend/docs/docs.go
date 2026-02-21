@@ -1984,9 +1984,6 @@ const docTemplate = `{
                         }
                     ]
                 },
-                "id": {
-                    "type": "integer"
-                },
                 "iss": {
                     "description": "the ` + "`" + `iss` + "`" + ` (Issuer) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1",
                     "type": "string"

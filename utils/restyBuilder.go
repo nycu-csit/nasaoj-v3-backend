@@ -37,6 +37,9 @@ func RestyBuilder(
 	req.Method = resty.MethodGet
 	req.URL = resourceURL
 	//ForceContentType("application/json")
+	if reqFunc == nil {
+		reqFunc = func(r *resty.Request) *resty.Request { return r }
+	}
 	resp, err := reqFunc(req).Send()
 	if err != nil {
 		tracing.Logger.Ctx(ctx).

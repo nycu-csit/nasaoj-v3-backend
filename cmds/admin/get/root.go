@@ -20,4 +20,5 @@ func init() {
 	RootCmd.AddCommand(stderrCmd)
 	RootCmd.AddCommand(submissionsCmd)
 	RootCmd.AddCommand(scoresCmd)
+	RootCmd.AddCommand(meCmd)
 }

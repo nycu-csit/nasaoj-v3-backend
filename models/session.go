@@ -27,7 +27,6 @@ type RefreshTokenClaim struct {
 }
 
 type AccessTokenClaimFields struct {
-	Id       int64        `json:"id"`
 	Resource UserResource `json:"resource"`
 	Privs    Privileges   `json:"privs"`
 }
@@ -64,7 +63,6 @@ func (self *Session) ToAccessToken(
 
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, AccessTokenClaim{
 		AccessTokenClaimFields: AccessTokenClaimFields{
-			Id:       self.Id,
 			Resource: resource,
 			Privs:    privs,
 		},
