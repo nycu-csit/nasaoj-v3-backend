@@ -5,7 +5,8 @@ description: Generate random string using openssl
 args:
   endpoint: 'http://backend:8080'
 inputArgs:
-  - test
+  - name: test
+    type: string
 testcase:
   name: generate
   files:

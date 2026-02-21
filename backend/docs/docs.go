@@ -1660,7 +1660,7 @@ const docTemplate = `{
                 "inputArgs": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/models.ToolInputArg"
                     }
                 },
                 "name": {
@@ -1883,7 +1883,7 @@ const docTemplate = `{
                 "inputArgs": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/models.ToolInputArg"
                     }
                 },
                 "isEnabled": {
@@ -2179,6 +2179,17 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ToolInputArg": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/types.ToolInputTypeType"
+                }
+            }
+        },
         "models.UserResource": {
             "type": "object",
             "properties": {
@@ -2245,6 +2256,19 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "types.ToolInputTypeType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "ToolInputTypeString",
+                "ToolInputTypeNumeric",
+                "ToolInputTypeBoolean"
+            ]
         }
     }
 }`

@@ -17,12 +17,12 @@ type ToolOutput struct {
 	SHA1       string `json:"sha1"`
 	ImportedAt int64  `json:"importedAt"`
 
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	Testcase    toolOutputTestcase `json:"testcase"`
-	InputArgs   []string           `json:"inputArgs"`
-	Tag         string             `json:"tag"`
-	IsEnabled   bool               `json:"isEnabled"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Testcase    toolOutputTestcase    `json:"testcase"`
+	InputArgs   []models.ToolInputArg `json:"inputArgs"`
+	Tag         string                `json:"tag"`
+	IsEnabled   bool                  `json:"isEnabled"`
 }
 
 // GetAdminTools

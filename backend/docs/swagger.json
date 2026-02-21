@@ -1652,7 +1652,7 @@
                 "inputArgs": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/models.ToolInputArg"
                     }
                 },
                 "name": {
@@ -1875,7 +1875,7 @@
                 "inputArgs": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/models.ToolInputArg"
                     }
                 },
                 "isEnabled": {
@@ -2171,6 +2171,17 @@
                 }
             }
         },
+        "models.ToolInputArg": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/types.ToolInputTypeType"
+                }
+            }
+        },
         "models.UserResource": {
             "type": "object",
             "properties": {
@@ -2237,6 +2248,19 @@
                     "type": "string"
                 }
             }
+        },
+        "types.ToolInputTypeType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "ToolInputTypeString",
+                "ToolInputTypeNumeric",
+                "ToolInputTypeBoolean"
+            ]
         }
     }
 }

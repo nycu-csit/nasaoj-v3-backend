@@ -14,6 +14,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type AdminSubmitInput struct {
@@ -254,6 +255,14 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 
+			if err := utils.ValidateInputArgs(tool.InputArgs, input.InputArgs); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     err.Error(),
+					OriginError: err,
+				}
+			}
+
 			submission = models.Submission{
 				ToolSHA1: input.RefSHA1,
 				ToolId:   tool.ToolId,
@@ -265,8 +274,8 @@ func (self *Handlers) PostSubmit(
 				InputArgs: make(map[string]string),
 			}
 
-			for _, key := range tool.InputArgs {
-				submission.InputArgs[key] = input.InputArgs[key]
+			for _, arg := range tool.InputArgs {
+				submission.InputArgs[arg.Name] = input.InputArgs[arg.Name]
 			}
 
 			for key, val := range resource.Map() {

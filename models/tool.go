@@ -7,7 +7,13 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
+
+type ToolInputArg struct {
+	Name string                  `json:"name"`
+	Type types.ToolInputTypeType `json:"type"`
+}
 
 type Tool struct {
 	ToolId      int64             `json:"toolId"`
@@ -15,7 +21,7 @@ type Tool struct {
 	Description string            `json:"description"`
 	Testcase    Testcase          `json:"testcase"`
 	Args        map[string]string `json:"args"`
-	InputArgs   []string          `json:"inputArgs"`
+	InputArgs   []ToolInputArg    `json:"inputArgs"`
 	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
@@ -31,7 +37,7 @@ type toolHash struct {
 	Description string            `json:"description"`
 	Testcase    Testcase          `json:"testcase"`
 	Args        map[string]string `json:"args"`
-	InputArgs   []string          `json:"inputArgs"`
+	InputArgs   []ToolInputArg    `json:"inputArgs"`
 	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`

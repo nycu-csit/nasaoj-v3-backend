@@ -161,7 +161,7 @@ definitions:
         type: string
       inputArgs:
         items:
-          type: string
+          $ref: '#/definitions/models.ToolInputArg'
         type: array
       name:
         type: string
@@ -307,7 +307,7 @@ definitions:
         type: integer
       inputArgs:
         items:
-          type: string
+          $ref: '#/definitions/models.ToolInputArg'
         type: array
       isEnabled:
         type: boolean
@@ -504,6 +504,13 @@ definitions:
       timeout:
         type: integer
     type: object
+  models.ToolInputArg:
+    properties:
+      name:
+        type: string
+      type:
+        $ref: '#/definitions/types.ToolInputTypeType'
+    type: object
   models.UserResource:
     properties:
       args:
@@ -548,6 +555,16 @@ definitions:
       username:
         type: string
     type: object
+  types.ToolInputTypeType:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - ToolInputTypeString
+    - ToolInputTypeNumeric
+    - ToolInputTypeBoolean
 info:
   contact: {}
   license:

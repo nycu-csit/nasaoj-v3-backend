@@ -51,7 +51,8 @@ func RestyBuilder(
 
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		tracing.Logger.Ctx(ctx).
-			Panic("resp.IsSuccess failed")
+			Panic("resp.IsSuccess failed",
+				zap.String("response", string(resp.Body())))
 		panic(types.HTTPRequestFailedError)
 	}
 

@@ -1,0 +1,19 @@
+---
+name: Typed args test
+toolId: 88
+description: Test tool with typed input args
+args:
+  endpoint: 'http://backend:8080'
+inputArgs:
+  - name: count
+    type: numeric
+  - name: enabled
+    type: boolean
+  - name: message
+    type: string
+testcase:
+  name: typed-args
+  files:
+    - typed-args.sh.tmpl
+  scripts:
+    - bash typed-args.sh.tmpl

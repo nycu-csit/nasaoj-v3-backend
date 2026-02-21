@@ -15,16 +15,16 @@ import (
 type PutToolsInputTool struct {
 	SHA1 string `json:"sha1"`
 
-	ToolId      int64             `json:"toolId"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Testcase    models.Testcase   `json:"testcase"`
-	Args        map[string]string `json:"args"`
-	InputArgs   []string          `json:"inputArgs"`
-	Tag         string            `json:"tag"`
-	PreScript   models.Content    `json:"preScript"`
-	PostScript  models.Content    `json:"postScript"`
-	Cooldown    int64             `json:"cooldown"`
+	ToolId      int64                 `json:"toolId"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Testcase    models.Testcase       `json:"testcase"`
+	Args        map[string]string     `json:"args"`
+	InputArgs   []models.ToolInputArg `json:"inputArgs"`
+	Tag         string                `json:"tag"`
+	PreScript   models.Content        `json:"preScript"`
+	PostScript  models.Content        `json:"postScript"`
+	Cooldown    int64                 `json:"cooldown"`
 }
 
 // PutTools
