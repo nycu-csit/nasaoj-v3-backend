@@ -156,15 +156,6 @@ func (self *Handlers) GetResults(
 			}
 		}
 
-		score, err := self.scores.GetSubmissionScore(ctx, submission.Id)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "failed to get submission score",
-				OriginError: err,
-			}
-		}
-
 		ret := ResultOutput{
 			Id:   submission.Id,
 			Type: submission.Type,
@@ -173,7 +164,6 @@ func (self *Handlers) GetResults(
 			InputArgs: submission.InputArgs,
 
 			CreatedAt: submission.CreatedAt,
-			Score:     score.Score,
 
 			Jobs: []ResultOutputJob{},
 		}
@@ -191,6 +181,16 @@ func (self *Handlers) GetResults(
 				}
 			}
 			ret.TotalScore = problem.TotalScore
+
+			score, err := self.scores.GetSubmissionScore(ctx, submission.Id)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to get submission score",
+					OriginError: err,
+				}
+			}
+			ret.Score = score.Score
 		case models.RefTypeTool:
 			ret.RefSHA1 = submission.ToolSHA1
 			ret.RefId = submission.ToolId
