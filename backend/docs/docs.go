@@ -435,7 +435,8 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
+                        "format": "int64",
                         "description": "Filter by OwnerId",
                         "name": "ownerId",
                         "in": "query"

@@ -34,7 +34,7 @@ const pageSize int = 20
 // GetAdminSubmissions
 //
 //	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		ownerId	query		string				false	"Filter by OwnerId"							attribute(optional)
+//	@Param		ownerId	query		int64				false	"Filter by OwnerId"							attribute(optional)
 //	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
 //	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
 //	@Success	200		{object}	SubmissionsOutput	"Submissions"

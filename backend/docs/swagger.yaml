@@ -842,9 +842,10 @@ paths:
         name: pageNum
         type: integer
       - description: Filter by OwnerId
+        format: int64
         in: query
         name: ownerId
-        type: string
+        type: integer
       - description: Filter by RefId
         format: int64
         in: query
