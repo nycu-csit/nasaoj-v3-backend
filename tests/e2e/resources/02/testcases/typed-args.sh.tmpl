@@ -1,9 +1,11 @@
 #!/usr/bin/bash
 set -o errexit
 
-echo "count={{ .count }}"
-echo "enabled={{ .enabled }}"
-echo "message={{ .message }}"
+JOB_INPUT='{{ .jobInput }}'
+
+echo "count=$(jq '.count' "$JOB_INPUT")"
+echo "enabled=$(jq '.enabled' "$JOB_INPUT")"
+echo "message=$(jq '.message' "$JOB_INPUT")"
 echo "success"
 
 # vim: syntax=bash
