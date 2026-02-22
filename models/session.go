@@ -1,7 +1,6 @@
 package models
 
 import (
-	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -12,15 +11,14 @@ import (
 type Session struct {
 	bun.BaseModel `bun:"table:session"`
 
-	CsId   string   `bun:"cs_id,pk"`
-	Groups []string `bun:"groups"`
+	Id int64 `bun:"id,pk"`
 
 	RefreshToken string `bun:"refresh_token"`
 	IsValid      bool   `bun:"is_valid"`
 }
 
 type RefreshTokenClaimFields struct {
-	CsId string `json:"csId"`
+	Id int64 `json:"id"`
 }
 
 type RefreshTokenClaim struct {
@@ -29,8 +27,6 @@ type RefreshTokenClaim struct {
 }
 
 type AccessTokenClaimFields struct {
-	CsId     string       `json:"csId"`
-	Groups   []string     `json:"groups"`
 	Resource UserResource `json:"resource"`
 	Privs    Privileges   `json:"privs"`
 }
@@ -45,13 +41,13 @@ func (self *Session) RotateRefreshToken() error {
 	self.RefreshToken, err =
 		jwt.NewWithClaims(jwt.SigningMethodHS256, RefreshTokenClaim{
 			RefreshTokenClaimFields: RefreshTokenClaimFields{
-				CsId: self.CsId,
+				Id: self.Id,
 			},
 			RegisteredClaims: jwt.RegisteredClaims{
-				IssuedAt: &jwt.NumericDate{time.Now()},
-				ExpiresAt: &jwt.NumericDate{time.Now().Add(time.Duration(
-					viper.GetInt64("REFRESH_TOKEN_TIMEOUT")) * time.Second)},
-			}}).SignedString([]byte(viper.GetString("REFRESH_TOKEN_SECRET")))
+				IssuedAt: jwt.NewNumericDate(time.Now()),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(
+					viper.GetInt64("refresh-token-timeout")) * time.Second)),
+			}}).SignedString([]byte(viper.GetString("refresh-token-secret")))
 	return err
 }
 
@@ -59,22 +55,20 @@ func (self *Session) ToAccessToken(
 	resource UserResource,
 ) (string, error) {
 	var privs Privileges
-	if slices.Contains(self.Groups, viper.GetString("admin-role")) {
-		privs = NewAdminPrivs(self.CsId)
+	if resource.IsAdmin {
+		privs = NewAdminPrivs(self.Id)
 	} else {
-		privs = NewUserPrivs(self.CsId)
+		privs = NewUserPrivs(self.Id)
 	}
 
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, AccessTokenClaim{
 		AccessTokenClaimFields: AccessTokenClaimFields{
-			CsId:     self.CsId,
-			Groups:   self.Groups,
 			Resource: resource,
 			Privs:    privs,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: &jwt.NumericDate{time.Now()},
-			ExpiresAt: &jwt.NumericDate{time.Now().Add(time.Duration(
-				viper.GetInt64("ACCESS_TOKEN_TIMEOUT")) * time.Second)},
-		}}).SignedString([]byte(viper.GetString("ACCESS_TOKEN_SECRET")))
+			IssuedAt: jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(
+				viper.GetInt64("access-token-timeout")) * time.Second)),
+		}}).SignedString([]byte(viper.GetString("access-token-secret")))
 }

@@ -37,12 +37,12 @@ type ProblemStorage interface {
 
 	UpdateProblemState(
 		ctx context.Context,
-		sha1 string,
+		sha1Prefix string,
 		isEnabled bool,
 	) error
 
 	DeleteProblemAndSubmissions(
 		ctx context.Context,
-		sha1 string,
+		sha1Prefix string,
 	) error
 }

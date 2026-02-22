@@ -7,46 +7,51 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
-func GetScheduleJob(
-	db interfaces.Database,
-	jobQue interfaces.JobQueue,
-	workers interfaces.WorkerStatusStorage,
-	s3 interfaces.ObjectStorage,
-) func(http.ResponseWriter, bunrouter.Request) error {
-	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		ctx := req.Context()
-		tags := req.URL.Query().Get("tags")
+func (self *Handlers) GetScheduleJob(
+	w http.ResponseWriter, req bunrouter.Request,
+) error {
+	ctx := req.Context()
+	tags := req.URL.Query().Get("tags")
+	tagList := strings.Split(tags, ",")
 
-		if err := workers.UpdateWorkerStatus(ctx,
-			utils.GetRemoteAddr(req),
-			strings.Split(tags, ",")); err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "worker status update failed",
-				OriginError: err,
-			}
-		}
+	// Get Job from retry queue or normal queue
+	var err error
+	var job models.Job
+	var jobFound bool
 
-		// Get Job from queue
-		var err error
-		var job models.Job
-		for _, tag := range strings.Split(tags, ",") {
-			job, err = jobQue.GetJob(ctx, tag)
+	for !jobFound {
+		var foundInThisIteration bool
+		var currentTag string
+
+		// Try each tag's retry queue first, then normal queue
+		for _, tag := range tagList {
+			// First check retry queue
+			job, err = self.jobQue.GetRetryJob(ctx, tag)
 			if err == nil {
+				foundInThisIteration = true
+				currentTag = tag
+				break
+			}
+
+			// Then check normal queue
+			job, err = self.jobQue.GetJob(ctx, tag)
+			if err == nil {
+				foundInThisIteration = true
+				currentTag = tag
 				break
 			}
 		}
-		if err != nil {
+
+		if !foundInThisIteration {
+			// No jobs available in any queue
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusNoContent,
 				Message:     "no job left in queue",
@@ -54,33 +59,69 @@ func GetScheduleJob(
 			}
 		}
 
-		span := trace.SpanFromContext(ctx)
-		span.SetAttributes(
-			attribute.Int64("submission.id", job.SubId),
-			attribute.String("job.stage", job.StageName),
-			attribute.String("job.test", job.TestName))
-
-		timeout := time.Duration(job.HardTL) * time.Second
-		job.FileURL, err = s3.GetFileURL(ctx, job.Filename(), timeout)
-		if err != nil {
+		// Try to acquire lock for this job
+		if err = self.jobQue.Lock(ctx, &job); err != nil {
+			// Lock acquisition failed - put job in retry queue
 			tracing.Logger.Ctx(ctx).
-				Error("failed to get file url",
-					zap.String("file.name", job.Filename()),
+				Debug("failed to acquire resource group lock, putting to retry queue",
+					zap.String("job.id", job.Id()),
+					zap.String("resourceGroup", job.ResourceGroup),
 					zap.Error(err))
-			return types.FileNotExistError
-		}
 
-		job.Deadline = time.Now().
-			Add(time.Duration(job.HardTL) * time.Second).Unix()
-		job.Status = models.StatusRunning
-		if err = db.UpdateJob(ctx, &job); err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusServiceUnavailable,
-				Message:     "job update failed",
-				OriginError: err,
+			if putErr := self.jobQue.PutRetryJob(ctx, job, currentTag); putErr != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to put job to retry queue",
+						zap.String("job.id", job.Id()),
+						zap.Error(putErr))
 			}
+			continue
 		}
 
-		return bunrouter.JSON(w, job)
+		// Lock acquired (or no lock needed)
+		jobFound = true
 	}
+
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(
+		attribute.Int64("submission.id", job.SubId),
+		attribute.String("job.stage", job.StageName),
+		attribute.String("job.test", job.TestName))
+
+	timeout := time.Duration(job.Timeout) * time.Second
+	job.RefFileURL, err = self.s3.GetFileURL(ctx, job.RefFilename(), timeout)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get ref file url",
+				zap.String("refFile.name", job.RefFilename()),
+				zap.Error(err))
+		return types.FileNotExistError
+	}
+	job.JobFileURL, err = self.s3.GetFileURL(ctx, job.JobFilename(), timeout)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get job file url",
+				zap.String("jobFile.name", job.JobFilename()),
+				zap.Error(err))
+		return types.FileNotExistError
+	}
+
+	job.Status = models.StatusRunning
+	if err = self.jobs.UpdateJob(ctx, &job); err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusServiceUnavailable,
+			Message:     "job update failed",
+			OriginError: err,
+		}
+	}
+
+	workerName := req.Header.Get("X-Worker-Name")
+	if err = self.workers.AddWorkerJob(ctx, workerName, job.Id()); err != nil {
+		tracing.Logger.Ctx(ctx).
+			Warn("failed to add worker job",
+				zap.String("worker", workerName),
+				zap.String("job.id", job.Id()),
+				zap.Error(err))
+	}
+
+	return bunrouter.JSON(w, job)
 }

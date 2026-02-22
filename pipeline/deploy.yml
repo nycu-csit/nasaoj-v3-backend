@@ -1,0 +1,26 @@
+---
+.deploy:
+  tags: [nasa]
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $BRANCH
+  stage: deploy
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/kubectl/3.21:main
+  script:
+    - >-
+      kubectl rollout restart deployment backend
+      --kubeconfig "$KUBECONFIG" --namespace "$NAMESPACE"
+    - >-
+      kubectl rollout restart deployment worker
+      --kubeconfig "$KUBECONFIG" --namespace "$NAMESPACE"
+
+deploy:alpha:
+  extends: .deploy
+  variables:
+    BRANCH: main
+    NAMESPACE: nasaoj-alpha
+
+deploy:production:
+  extends: .deploy
+  variables:
+    BRANCH: production
+    NAMESPACE: nasaoj-prod

@@ -39,4 +39,31 @@ type JobQueue interface {
 		ctx context.Context,
 		stageId string,
 	) (int64, error)
+
+	RemoveJob(
+		ctx context.Context,
+		jobId string,
+		tag string,
+	) error
+
+	Lock(
+		ctx context.Context,
+		job *models.Job,
+	) error
+
+	Unlock(
+		ctx context.Context,
+		job *models.Job,
+	) error
+
+	PutRetryJob(
+		ctx context.Context,
+		job models.Job,
+		tag string,
+	) error
+
+	GetRetryJob(
+		ctx context.Context,
+		tag string,
+	) (models.Job, error)
 }

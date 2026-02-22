@@ -187,18 +187,21 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/models.Problem"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutProblemsInputProblem"
                             }
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "success",
+                        "description": "SHA1s",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
@@ -386,6 +389,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/submission/cancel": {
+            "put": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Submission Id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/submissions": {
             "get": {
                 "parameters": [
@@ -398,9 +435,10 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "string",
-                        "description": "Filter by CsId",
-                        "name": "csId",
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Filter by OwnerId",
+                        "name": "ownerId",
                         "in": "query"
                     },
                     {
@@ -676,18 +714,21 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/models.Tool"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutToolsInputTool"
                             }
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "success",
+                        "description": "SHA1s",
                         "schema": {
-                            "type": "string"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
@@ -703,9 +744,10 @@ const docTemplate = `{
             "get": {
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "User CsId to be queried",
-                        "name": "csId",
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "User Id to be queried",
+                        "name": "id",
                         "in": "query",
                         "required": true
                     }
@@ -732,8 +774,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User CsId",
-                        "name": "csId",
+                        "description": "User Id",
+                        "name": "id",
                         "in": "query",
                         "required": true
                     },
@@ -785,21 +827,23 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/api/admin/users/cssso": {
             "put": {
                 "consumes": [
                     "application/json"
                 ],
                 "parameters": [
                     {
-                        "description": "User resources",
+                        "description": "request body",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.UserResource"
+                                "$ref": "#/definitions/api.PutUsersCSSSOInput"
                             }
                         }
                     }
@@ -816,6 +860,35 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    }
+                }
+            }
+        },
+        "/api/admin/users/plain": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "description": "request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutUsersPlainInput"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     }
                 }
             }
@@ -840,6 +913,15 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    }
+                }
+            }
+        },
+        "/api/healthz": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -1034,6 +1116,46 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/api/submission/cancel": {
+            "put": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Submission Id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -1233,8 +1355,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
-            "get": {
+        "/auth/login/cssso": {
+            "post": {
                 "description": "OAuth login endpoint",
                 "parameters": [
                     {
@@ -1247,6 +1369,29 @@ const docTemplate = `{
                 "responses": {
                     "302": {
                         "description": "302 Found",
+                        "schema": {
+                            "type": ""
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login/plain": {
+            "post": {
+                "parameters": [
+                    {
+                        "description": "query params",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginPlainInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found",
                         "schema": {
                             "type": ""
                         }
@@ -1272,8 +1417,8 @@ const docTemplate = `{
         "api.AdminSubmitInput": {
             "type": "object",
             "properties": {
-                "asCsId": {
-                    "type": "string"
+                "asOwnerId": {
+                    "type": "integer"
                 },
                 "inputArgs": {
                     "type": "object",
@@ -1293,6 +1438,9 @@ const docTemplate = `{
         "api.GetTokensOutput": {
             "type": "object",
             "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
                 "isEnabled": {
                     "type": "boolean"
                 },
@@ -1310,8 +1458,17 @@ const docTemplate = `{
                 "ip": {
                     "type": "string"
                 },
+                "jobs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "lastAccess": {
                     "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "tags": {
                     "type": "array",
@@ -1417,6 +1574,53 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PutProblemsInputProblem": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cooldown": {
+                    "type": "integer"
+                },
+                "deadline": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pdfUrl": {
+                    "type": "string"
+                },
+                "postScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "preScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "stages": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.Stage"
+                    }
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
         "api.PutTokenStateInput": {
             "type": "object",
             "properties": {
@@ -1439,14 +1643,86 @@ const docTemplate = `{
                 }
             }
         },
+        "api.PutToolsInputTool": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cooldown": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "inputArgs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ToolInputArg"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "postScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "preScript": {
+                    "$ref": "#/definitions/models.Content"
+                },
+                "sha1": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "testcase": {
+                    "$ref": "#/definitions/models.Testcase"
+                },
+                "toolId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.PutUsersCSSSOInput": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "csId": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PutUsersPlainInput": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "api.ResultOutput": {
             "type": "object",
             "properties": {
                 "createdAt": {
                     "type": "integer"
-                },
-                "csId": {
-                    "type": "string"
                 },
                 "id": {
                     "type": "integer"
@@ -1462,6 +1738,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/api.ResultOutputJob"
                     }
+                },
+                "ownerId": {
+                    "type": "integer"
                 },
                 "refId": {
                     "type": "integer"
@@ -1523,10 +1802,10 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
-                },
                 "id": {
+                    "type": "integer"
+                },
+                "ownerId": {
                     "type": "integer"
                 },
                 "refId": {
@@ -1543,6 +1822,9 @@ const docTemplate = `{
                 },
                 "type": {
                     "$ref": "#/definitions/models.RefType"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -1570,9 +1852,6 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -1581,6 +1860,9 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "ownerId": {
+                    "type": "integer"
                 },
                 "refId": {
                     "type": "integer"
@@ -1602,7 +1884,7 @@ const docTemplate = `{
                 "inputArgs": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/models.ToolInputArg"
                     }
                 },
                 "isEnabled": {
@@ -1661,6 +1943,17 @@ const docTemplate = `{
                 }
             }
         },
+        "auth.LoginPlainInput": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "jwt.NumericDate": {
             "type": "object",
             "properties": {
@@ -1679,9 +1972,6 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "csId": {
-                    "type": "string"
-                },
                 "exp": {
                     "description": "the ` + "`" + `exp` + "`" + ` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4",
                     "allOf": [
@@ -1689,12 +1979,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/jwt.NumericDate"
                         }
                     ]
-                },
-                "groups": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "iat": {
                     "description": "the ` + "`" + `iat` + "`" + ` (Issued At) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.6",
@@ -1752,7 +2036,13 @@ const docTemplate = `{
         "models.ContentFile": {
             "type": "object",
             "properties": {
+                "isTemplate": {
+                    "type": "boolean"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "payload": {
                     "type": "string"
                 },
                 "sha1": {
@@ -1784,6 +2074,17 @@ const docTemplate = `{
                 "StatusMissing"
             ]
         },
+        "models.LoginSourceType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "LoginSourcePlain",
+                "LoginSourceCSSSO"
+            ]
+        },
         "models.Privileges": {
             "type": "object",
             "properties": {
@@ -1799,51 +2100,7 @@ const docTemplate = `{
                 "canUserArgsWrite": {
                     "type": "integer"
                 },
-                "ownerCsId": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Problem": {
-            "type": "object",
-            "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "deadline": {
-                    "type": "integer"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "pdfUrl": {
-                    "type": "string"
-                },
-                "postScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "preScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "problemId": {
-                    "type": "integer"
-                },
-                "stages": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "$ref": "#/definitions/models.Stage"
-                    }
-                },
-                "tag": {
-                    "type": "string"
-                },
-                "timeout": {
+                "ownerId": {
                     "type": "integer"
                 }
             }
@@ -1906,10 +2163,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.ContentFile"
                     }
                 },
-                "hardTL": {
-                    "type": "integer"
-                },
                 "name": {
+                    "type": "string"
+                },
+                "resourceGroup": {
                     "type": "string"
                 },
                 "scripts": {
@@ -1918,49 +2175,19 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "softTL": {
+                "timeout": {
                     "type": "integer"
                 }
             }
         },
-        "models.Tool": {
+        "models.ToolInputArg": {
             "type": "object",
             "properties": {
-                "args": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "description": {
-                    "type": "string"
-                },
-                "inputArgs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "name": {
                     "type": "string"
                 },
-                "postScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "preScript": {
-                    "$ref": "#/definitions/models.Content"
-                },
-                "tag": {
-                    "type": "string"
-                },
-                "testcase": {
-                    "$ref": "#/definitions/models.Testcase"
-                },
-                "timeout": {
-                    "type": "integer"
-                },
-                "toolId": {
-                    "type": "integer"
+                "type": {
+                    "$ref": "#/definitions/types.ToolInputTypeType"
                 }
             }
         },
@@ -1973,7 +2200,19 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "csId": {
+                "id": {
+                    "type": "integer"
+                },
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "source": {
+                    "$ref": "#/definitions/models.LoginSourceType"
+                },
+                "sourceId": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -1984,11 +2223,14 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
+                "id": {
+                    "type": "integer"
                 },
                 "score": {
                     "type": "integer"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -1998,8 +2240,8 @@ const docTemplate = `{
                 "createdAt": {
                     "type": "integer"
                 },
-                "csId": {
-                    "type": "string"
+                "id": {
+                    "type": "integer"
                 },
                 "score": {
                     "type": "integer"
@@ -2010,8 +2252,24 @@ const docTemplate = `{
                         "type": "integer",
                         "format": "int64"
                     }
+                },
+                "username": {
+                    "type": "string"
                 }
             }
+        },
+        "types.ToolInputTypeType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "ToolInputTypeString",
+                "ToolInputTypeNumeric",
+                "ToolInputTypeBoolean"
+            ]
         }
     }
 }`

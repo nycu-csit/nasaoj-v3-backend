@@ -1,0 +1,68 @@
+package workflows
+
+import (
+	"context"
+	"fmt"
+
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
+	"go.uber.org/zap"
+)
+
+func HandleStageDone(
+	ctx context.Context,
+	db interfaces.Database,
+	jobQue interfaces.JobQueue,
+	s3 interfaces.ObjectStorage,
+	problems interfaces.ProblemStorage,
+	contents interfaces.ContentFileStorage,
+	jobs interfaces.JobStorage,
+	tokens interfaces.TokenStorage,
+
+	submission models.Submission,
+	stageName string,
+) error {
+	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("problem not exist",
+				zap.String("problem.sha1", submission.ProblemSHA1),
+				zap.Error(err))
+		return err
+	}
+
+	stage, ok := problem.Stages[stageName]
+	if !ok {
+		tracing.Logger.Ctx(ctx).
+			Error("stage not exist",
+				zap.String("stage.name", stageName))
+		return types.StageNotExistError
+	}
+
+	for _, next := range stage.Before {
+		jobdep, err := jobQue.StageDone(ctx,
+			fmt.Sprintf("%d-%s", submission.Id, next))
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to decrease jobDep",
+					zap.Error(err))
+			return err
+		}
+
+		if jobdep <= 0 {
+			err = RunStage(ctx, jobQue, db, s3, problems, contents, jobs, tokens,
+				submission, next)
+			if err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to run stage",
+						zap.String("stage.name", next),
+						zap.Error(err))
+				return err
+			}
+		}
+	}
+
+	return nil
+}

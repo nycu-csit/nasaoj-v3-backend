@@ -1,0 +1,42 @@
+---
+go-test:
+  tags: [e2e]
+  stage: test
+  variables:
+    COMPOSE_ARGS: '-p judge'
+    DOCKER_BUILD_ARGS: '--quiet'
+  before_script:
+    - |
+      echo '[INFO] Setup env'
+      cp "$BACKEND_ENV" ./backend/.env
+      cp "$WORKER_ENV" ./worker/.env
+    - |
+      echo '[INFO] Setup docker environment'
+      make docker-quiet
+    - |
+      echo '[INFO] Initialize database and worker'
+      make docker-init
+  script:
+    - |
+      echo '[INFO] Run test'
+      make test
+  after_script:
+    - |
+      echo '[INFO] Cleanup docker environment'
+      make docker-clean
+
+swag-test:
+  stage: test
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
+  script:
+    - make swagger
+    - |
+      if ! git diff --exit-code; then
+        echo "ERROR: /go/bin/swag command introduced uncommitted changes!"
+        echo "Please commit the generated files or update your .gitignore."
+        git status
+        git diff
+        exit 1 # Fail the job
+      else
+        echo "No uncommitted changes detected. OpenAPI is up-to-date."
+      fi

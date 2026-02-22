@@ -11,15 +11,15 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/workflows"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
 type AdminSubmitInput struct {
 	SubmitInput `json:",inline"`
-	AsCsId      string `json:"asCsId"`
+	AsOwnerId   int64 `json:"asOwnerId"`
 }
 
 type SubmitInput struct {
@@ -35,8 +35,8 @@ type SubmitOutput struct {
 	RefId     int64             `json:"refId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
-	CsId      string `json:"csId"`
-	CreatedAt int64  `json:"createdAt"`
+	OwnerId   int64 `json:"ownerId"`
+	CreatedAt int64 `json:"createdAt"`
 }
 
 // PostAdminSubmit
@@ -61,15 +61,7 @@ func putAdminSubmitPlaceholder() {}
 //	@Failure	429
 //
 //	@Router		/api/submit [post]
-func PostSubmit(
-	db interfaces.Database,
-	jobQue interfaces.JobQueue,
-	s3 interfaces.ObjectStorage,
-	problems interfaces.ProblemStorage,
-	tools interfaces.ToolStorage,
-	contents interfaces.ContentFileStorage,
-	tokens interfaces.TokenStorage,
-
+func (self *Handlers) PostSubmit(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -85,7 +77,7 @@ func PostSubmit(
 		}
 
 		var input SubmitInput
-		var csId string
+		var ownerId int64
 		if isAdmin {
 			var adminInput AdminSubmitInput
 			if err := json.Unmarshal(b, &adminInput); err != nil {
@@ -96,7 +88,7 @@ func PostSubmit(
 				}
 			}
 			input = adminInput.SubmitInput
-			csId = adminInput.AsCsId
+			ownerId = adminInput.AsOwnerId
 		} else {
 			if err := json.Unmarshal(b, &input); err != nil {
 				return middlewares.HTTPError{
@@ -115,10 +107,10 @@ func PostSubmit(
 				}
 			}
 
-			csId = privs.OwnerCsId
+			ownerId = privs.OwnerId
 		}
 
-		resource, err := db.GetUserResource(ctx, csId)
+		resource, err := self.db.GetUserResource(ctx, ownerId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
@@ -130,7 +122,7 @@ func PostSubmit(
 		var submission models.Submission
 		switch input.Type {
 		case models.RefTypeProblem:
-			problem, err := problems.GetProblem(ctx, input.RefSHA1)
+			problem, err := self.problems.GetProblem(ctx, input.RefSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -148,23 +140,27 @@ func PostSubmit(
 
 			if !isAdmin {
 				// Check last submission
-				lastSubmit, err := db.GetLastSubmission(ctx,
-					resource.CsId, problem.ProblemId, models.RefTypeProblem)
+				lastSubmit, err := self.submissions.GetLastSubmission(ctx,
+					resource.Id, problem.ProblemId, models.RefTypeProblem)
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
-						return job.Status == models.StatusPending ||
-							job.Status == models.StatusRunning
+						return !job.IsDone()
 					}) {
-						availableAt := time.Unix(lastSubmit.CreatedAt, 0).
-							Add(time.Duration(problem.Timeout) * time.Second)
-						if time.Now().Unix() < availableAt.Unix() {
-							w.Header().Set("Retry-After", fmt.Sprintf("%d",
-								int64(availableAt.Sub(time.Now()).Seconds())))
-							return middlewares.HTTPError{
-								StatusCode: http.StatusTooManyRequests,
-								Message:    "submit in cooldown",
-							}
+						return middlewares.HTTPError{
+							StatusCode: http.StatusPreconditionFailed,
+							Message:    "wait for previous request to finish",
+						}
+					}
+
+					availableAt := time.Unix(lastSubmit.CreatedAt, 0).
+						Add(time.Duration(problem.Cooldown) * time.Second)
+					if time.Now().Unix() < availableAt.Unix() {
+						w.Header().Set("Retry-After", fmt.Sprintf("%d",
+							int64(availableAt.Sub(time.Now()).Seconds())))
+						return middlewares.HTTPError{
+							StatusCode: http.StatusTooManyRequests,
+							Message:    "submit in cooldown",
 						}
 					}
 				} else if err != sql.ErrNoRows {
@@ -181,21 +177,16 @@ func PostSubmit(
 				ProblemId:   problem.ProblemId,
 				Type:        models.RefTypeProblem,
 
-				CsId:      resource.CsId,
+				OwnerId:   resource.Id,
 				CreatedAt: time.Now().Unix(),
 				Args:      make(map[string]string),
-
-				Score: models.Score{
-					Score:  0,
-					Stages: make(map[string]int64),
-				},
 			}
 
 			for key, val := range resource.Map() {
 				submission.Args[key] = val
 			}
 
-			if err := db.InsertSubmissionByProblem(
+			if err := self.submissions.InsertSubmissionByProblem(
 				ctx, &submission, problem); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -204,8 +195,9 @@ func PostSubmit(
 				}
 			}
 
-			if err := workflows.RunProblem(ctx, jobQue, db, s3, problems, contents,
-				tokens, submission); err != nil {
+			if err := workflows.RunProblem(ctx, self.jobQue, self.db, self.s3,
+				self.problems, self.contents, self.jobs,
+				self.tokens, submission); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to run problem",
@@ -214,7 +206,7 @@ func PostSubmit(
 			}
 
 		case models.RefTypeTool:
-			tool, err := tools.GetTool(ctx, input.RefSHA1)
+			tool, err := self.tools.GetTool(ctx, input.RefSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusBadRequest,
@@ -232,23 +224,26 @@ func PostSubmit(
 
 			if !isAdmin {
 				// Check last submission
-				lastSubmit, err := db.GetLastSubmission(ctx,
-					resource.CsId, tool.ToolId, models.RefTypeTool)
+				lastSubmit, err := self.submissions.GetLastSubmission(ctx,
+					resource.Id, tool.ToolId, models.RefTypeTool)
 				if err == nil {
 					// Check Job status
 					if slices.ContainsFunc(lastSubmit.Jobs, func(job *models.Job) bool {
-						return job.Status == models.StatusPending ||
-							job.Status == models.StatusRunning
+						return !job.IsDone()
 					}) {
-						availableAt := time.Unix(lastSubmit.CreatedAt, 0).
-							Add(time.Duration(tool.Timeout) * time.Second)
-						if time.Now().Unix() < availableAt.Unix() {
-							w.Header().Set("Retry-After", fmt.Sprintf("%d",
-								int64(availableAt.Sub(time.Now()).Seconds())))
-							return middlewares.HTTPError{
-								StatusCode: http.StatusTooManyRequests,
-								Message:    "submit in cooldown",
-							}
+						return middlewares.HTTPError{
+							StatusCode: http.StatusPreconditionFailed,
+							Message:    "wait for previous request to finish",
+						}
+					}
+					availableAt := time.Unix(lastSubmit.CreatedAt, 0).
+						Add(time.Duration(tool.Cooldown) * time.Second)
+					if time.Now().Unix() < availableAt.Unix() {
+						w.Header().Set("Retry-After", fmt.Sprintf("%d",
+							int64(availableAt.Sub(time.Now()).Seconds())))
+						return middlewares.HTTPError{
+							StatusCode: http.StatusTooManyRequests,
+							Message:    "submit in cooldown",
 						}
 					}
 				} else if err != sql.ErrNoRows {
@@ -260,31 +255,35 @@ func PostSubmit(
 				}
 			}
 
+			if err := utils.ValidateInputArgs(tool.InputArgs, input.InputArgs); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusBadRequest,
+					Message:     err.Error(),
+					OriginError: err,
+				}
+			}
+
 			submission = models.Submission{
 				ToolSHA1: input.RefSHA1,
 				ToolId:   tool.ToolId,
 				Type:     models.RefTypeTool,
 
-				CsId:      resource.CsId,
+				OwnerId:   resource.Id,
 				CreatedAt: time.Now().Unix(),
 				Args:      make(map[string]string),
 				InputArgs: make(map[string]string),
-
-				Score: models.Score{
-					Score:  0,
-					Stages: make(map[string]int64),
-				},
 			}
 
-			for _, key := range tool.InputArgs {
-				submission.InputArgs[key] = input.InputArgs[key]
+			for _, arg := range tool.InputArgs {
+				submission.InputArgs[arg.Name] = input.InputArgs[arg.Name]
 			}
 
 			for key, val := range resource.Map() {
 				submission.Args[key] = val
 			}
 
-			if err := db.InsertSubmissionByTool(ctx, &submission, tool); err != nil {
+			if err := self.submissions.InsertSubmissionByTool(
+				ctx, &submission, tool); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to insert tool submission",
@@ -292,7 +291,8 @@ func PostSubmit(
 				}
 			}
 
-			if err := workflows.RunTool(ctx, jobQue, db, s3, tools, contents, tokens,
+			if err := workflows.RunTool(ctx, self.jobQue, self.db, self.s3,
+				self.tools, self.contents, self.jobs, self.tokens,
 				submission); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -310,7 +310,7 @@ func PostSubmit(
 				RefId:     submission.ProblemId,
 				InputArgs: submission.InputArgs,
 
-				CsId:      submission.CsId,
+				OwnerId:   submission.OwnerId,
 				CreatedAt: submission.CreatedAt,
 			})
 		case models.RefTypeTool:
@@ -320,7 +320,7 @@ func PostSubmit(
 				RefId:     submission.ToolId,
 				InputArgs: submission.InputArgs,
 
-				CsId:      submission.CsId,
+				OwnerId:   submission.OwnerId,
 				CreatedAt: submission.CreatedAt,
 			})
 		default:

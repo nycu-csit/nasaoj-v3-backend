@@ -8,6 +8,21 @@ import (
 
 type JobStatus = int64
 
+/*
+	(Generate jobs)
+		-> (With dependencies) StatusBlocked
+			-> (Trigger by prev stage completion) StatusPending
+			-> (Trigger by failed or timeout) StatusSkip
+		-> (With no dependencies) StatusPending
+			-> (GET /schedule/job) StatusRunning
+				-> (Worker Timeout) StatusMissing
+				-> (PUT /schedule/result)
+					-> (If RetCode == 0) StatusSuccess
+						-> (Trigger next stage to run)
+					-> (If RetCode != 0) StatusFailed
+					-> (If timeout) StatusTimeout
+*/
+
 const (
 	StatusPending JobStatus = 260
 	StatusRunning JobStatus = 261
@@ -31,12 +46,13 @@ type Job struct {
 	Status JobStatus `json:"status" bun:"status"`
 
 	// On Schedule
-	Script   string `json:"script" bun:"script"`
-	Input    string `json:"input" bun:"input"`
-	Deadline int64  `json:"deadline" bun:"deadline"`
-	FileURL  string `json:"fileurl" bun:"-"`
-	HardTL   int64  `json:"hardtl" bun:"-"`
-	SoftTL   int64  `json:"softtl" bun:"-"`
+	Script        string `json:"script" bun:"script"`
+	Input         string `json:"input" bun:"input"`
+	ResourceGroup string `json:"resourceGroup" bun:"-"`
+	Timeout       int64  `json:"timeout" bun:"-"`
+	RefSHA1       string `json:"refSHA1" bun:"-"`
+	RefFileURL    string `json:"refFileUrl" bun:"-"`
+	JobFileURL    string `json:"jobFileUrl" bun:"-"`
 
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`
@@ -54,8 +70,13 @@ func (self Job) Id() string {
 	return fmt.Sprintf("%d-%s-%s", self.SubId, self.StageName, self.TestName)
 }
 
-func (self Job) Filename() string {
-	return fmt.Sprintf("%s.tar", self.Id())
+func (self Job) JobFilename() string {
+	return fmt.Sprintf("job-%s.tar", self.Id())
+}
+
+func (self Job) RefFilename() string {
+	return fmt.Sprintf("ref-%s-%s-%s.tar", self.RefSHA1, self.StageName,
+		self.TestName)
 }
 
 // Jobcnt key for stage
@@ -75,5 +96,6 @@ func (self Job) IsDone() bool {
 	return self.Status == StatusSuccess ||
 		self.Status == StatusFailed ||
 		self.Status == StatusSkip ||
-		self.Status == StatusTimeout
+		self.Status == StatusTimeout ||
+		self.Status == StatusMissing
 }

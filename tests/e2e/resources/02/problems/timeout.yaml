@@ -1,0 +1,14 @@
+---
+name: Timeout
+problemId: 6
+description: Test for timeout handling
+stages:
+  stage1:
+    testcases:
+      - name: test1
+        files:
+          - timeout.sh
+        scripts:
+          - bash timeout.sh
+        timeout: 2
+    score: 100

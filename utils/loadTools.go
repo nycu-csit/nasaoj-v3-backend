@@ -28,7 +28,7 @@ func LoadTools(
 	}
 
 	err = filepath.WalkDir(toolDir,
-		func(path string, d fs.DirEntry, err error) error {
+		func(cur string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -37,11 +37,20 @@ func LoadTools(
 				return nil
 			}
 
-			b, err := os.ReadFile(path)
+			if d.Type()&fs.ModeSymlink != 0 {
+				realPath, err := filepath.EvalSymlinks(cur)
+				if err != nil {
+					return err
+				}
+
+				return LoadTools(ctx, tools, contents, realPath, testcaseDir)
+			}
+
+			b, err := os.ReadFile(cur)
 			if err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to read file",
-						zap.String("file.path", path),
+						zap.String("file.path", cur),
 						zap.Error(err))
 				return err
 			}

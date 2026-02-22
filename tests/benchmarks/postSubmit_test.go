@@ -37,13 +37,35 @@ func BenchmarkPostSubmitParallel(b *testing.B) {
 	}
 	problem := problems[0]
 
-	// Import user
-	utils.RestyBuilder(ctx, "/api/admin/users",
+	// Import user via CSSSO endpoint
+	utils.RestyBuilder(ctx, "/api/admin/users/cssso",
 		func(r *resty.Request) *resty.Request {
 			r.Method = resty.MethodPut
 			return r.
 				SetBody(`[{"csId": "test"}]`)
 		})
+
+	// Get user ID for the imported user
+	var users []models.UserResource
+	utils.RestyBuilder(ctx, "/api/admin/users",
+		func(r *resty.Request) *resty.Request {
+			return r.
+				SetResult(&users).
+				ForceContentType("application/json")
+		})
+
+	var testUserId int64
+	for _, user := range users {
+		if user.Username == "test" {
+			testUserId = user.Id
+			break
+		}
+	}
+	if testUserId == 0 {
+		tracing.Logger.Ctx(ctx).
+			Panic("test user not found")
+		panic("test user not found")
+	}
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -52,7 +74,7 @@ func BenchmarkPostSubmitParallel(b *testing.B) {
 					r.Method = resty.MethodPost
 					return r.
 						SetBody(api.AdminSubmitInput{
-							AsCsId: "test",
+							AsOwnerId: testUserId,
 							SubmitInput: api.SubmitInput{
 								RefSHA1: problem.SHA1,
 								Type:    models.RefTypeProblem,

@@ -1,0 +1,17 @@
+---
+build:
+  stage: build
+  image: dockersource.cc.cs.nctu.edu.tw/devops/images/golang/1.24.3:main
+  cache:
+    - key:
+        files:
+          - go.mod
+          - go.sum
+      paths:
+        - /go/pkg/
+  script:
+    - CGO_ENABLED=0 go build -o judge
+  artifacts:
+    paths:
+      - judge
+    expire_in: 1 week

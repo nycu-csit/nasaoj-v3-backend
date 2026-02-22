@@ -7,23 +7,41 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
-type Tool struct {
-	ToolId int64 `json:"toolId"`
+type ToolInputArg struct {
+	Name string                  `json:"name"`
+	Type types.ToolInputTypeType `json:"type"`
+}
 
+type Tool struct {
+	ToolId      int64             `json:"toolId"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	Testcase    Testcase          `json:"testcase"`
 	Args        map[string]string `json:"args"`
-	InputArgs   []string          `json:"inputArgs"`
+	InputArgs   []ToolInputArg    `json:"inputArgs"`
 	Tag         string            `json:"tag"`
 	PreScript   Content           `json:"preScript"`
 	PostScript  Content           `json:"postScript"`
-	Timeout     int64             `json:"timeout"`
+	Cooldown    int64             `json:"cooldown"`
 
-	ImportedAt int64 `json:"-" msgpack:"importedAt"`
-	IsEnabled  bool  `json:"-" msgpack:"isEnabled"`
+	ImportedAt int64 `json:"importedAt"`
+	IsEnabled  bool  `json:"isEnabled"`
+}
+
+type toolHash struct {
+	ToolId      int64             `json:"toolId"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Testcase    Testcase          `json:"testcase"`
+	Args        map[string]string `json:"args"`
+	InputArgs   []ToolInputArg    `json:"inputArgs"`
+	Tag         string            `json:"tag"`
+	PreScript   Content           `json:"preScript"`
+	PostScript  Content           `json:"postScript"`
+	Cooldown    int64             `json:"cooldown"`
 }
 
 type ToolMarshaled struct {
@@ -43,7 +61,18 @@ func (self Tool) Marshal() (ToolMarshaled, error) {
 		IsEnabled:  false,
 	}
 
-	b, err := json.Marshal(self)
+	b, err := json.Marshal(toolHash{
+		ToolId:      self.ToolId,
+		Name:        self.Name,
+		Description: self.Description,
+		Testcase:    self.Testcase,
+		Args:        self.Args,
+		InputArgs:   self.InputArgs,
+		Tag:         self.Tag,
+		PreScript:   self.PreScript,
+		PostScript:  self.PostScript,
+		Cooldown:    self.Cooldown,
+	})
 	if err != nil {
 		return ret, err
 	}

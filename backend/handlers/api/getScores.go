@@ -6,7 +6,6 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 )
 
 // GetAdminScores
@@ -23,8 +22,7 @@ func getAdminScoresPlaceholder() {}
 //	@Success	200			{object}	[]models.UserScore	"Scores"
 //	@Failure	400			{object}	string				"Invalid problem id"
 //	@Router		/api/scores [get]
-func GetScores(
-	db interfaces.Database,
+func (self *Handlers) GetScores(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -41,7 +39,7 @@ func GetScores(
 		}
 
 		if isAdmin {
-			scores, err := db.GetScoresWithStages(ctx, problemId)
+			scores, err := self.scores.GetScoresWithStages(ctx, problemId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -52,7 +50,7 @@ func GetScores(
 
 			return bunrouter.JSON(w, scores)
 		} else {
-			scores, err := db.GetScores(ctx, problemId)
+			scores, err := self.scores.GetScores(ctx, problemId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,

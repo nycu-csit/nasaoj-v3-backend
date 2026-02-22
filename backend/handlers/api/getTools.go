@@ -5,7 +5,6 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
@@ -18,12 +17,12 @@ type ToolOutput struct {
 	SHA1       string `json:"sha1"`
 	ImportedAt int64  `json:"importedAt"`
 
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	Testcase    toolOutputTestcase `json:"testcase"`
-	InputArgs   []string           `json:"inputArgs"`
-	Tag         string             `json:"tag"`
-	IsEnabled   bool               `json:"isEnabled"`
+	Name        string                `json:"name"`
+	Description string                `json:"description"`
+	Testcase    toolOutputTestcase    `json:"testcase"`
+	InputArgs   []models.ToolInputArg `json:"inputArgs"`
+	Tag         string                `json:"tag"`
+	IsEnabled   bool                  `json:"isEnabled"`
 }
 
 // GetAdminTools
@@ -40,8 +39,7 @@ func getAdminToolsPlaceholder() {}
 //	@Success	200	{object}	[]ToolOutput
 //	@Failure	401
 //	@Router		/api/tools [get]
-func GetTools(
-	tools interfaces.ToolStorage,
+func (self *Handlers) GetTools(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -50,9 +48,9 @@ func GetTools(
 		var resTools map[string]models.Tool
 		var err error
 		if isAdmin {
-			resTools, err = tools.GetAllTools(ctx)
+			resTools, err = self.tools.GetAllTools(ctx)
 		} else {
-			resTools, err = tools.GetTools(ctx)
+			resTools, err = self.tools.GetTools(ctx)
 		}
 		if err != nil {
 			return middlewares.HTTPError{

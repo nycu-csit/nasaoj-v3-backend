@@ -10,7 +10,7 @@ const (
 )
 
 type Privileges struct {
-	OwnerCsId string `json:"ownerCsId"`
+	OwnerId int64 `json:"ownerId"`
 
 	CanAPIRead       int `json:"canAPIRead"`
 	CanAPIWrite      int `json:"canAPIWrite"`
@@ -21,6 +21,7 @@ type Privileges struct {
 type Token struct {
 	Privs     Privileges `json:"privs" yaml:"privs"`
 	IsEnabled bool       `json:"isEnabled" yaml:"isEnabled"`
+	CreatedAt int64      `json:"createdAt" yaml:"createdAt"`
 }
 
 func NewWorkerPrivs() Privileges {
@@ -29,24 +30,24 @@ func NewWorkerPrivs() Privileges {
 	}
 }
 
-func NewJobPrivs(owner string) Privileges {
+func NewJobPrivs(owner int64) Privileges {
 	return Privileges{
-		OwnerCsId:        owner,
+		OwnerId:          owner,
 		CanUserArgsWrite: ScopeSelf,
 	}
 }
 
-func NewUserPrivs(owner string) Privileges {
+func NewUserPrivs(owner int64) Privileges {
 	return Privileges{
-		OwnerCsId:   owner,
+		OwnerId:     owner,
 		CanAPIRead:  ScopeSelf,
 		CanAPIWrite: ScopeSelf,
 	}
 }
 
-func NewAdminPrivs(owner string) Privileges {
+func NewAdminPrivs(owner int64) Privileges {
 	return Privileges{
-		OwnerCsId:   owner,
+		OwnerId:     owner,
 		CanAPIRead:  ScopeAll,
 		CanAPIWrite: ScopeAll,
 	}

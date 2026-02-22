@@ -37,6 +37,9 @@ func RestyBuilder(
 	req.Method = resty.MethodGet
 	req.URL = resourceURL
 	//ForceContentType("application/json")
+	if reqFunc == nil {
+		reqFunc = func(r *resty.Request) *resty.Request { return r }
+	}
 	resp, err := reqFunc(req).Send()
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -48,7 +51,8 @@ func RestyBuilder(
 
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		tracing.Logger.Ctx(ctx).
-			Panic("resp.IsSuccess failed")
+			Panic("resp.IsSuccess failed",
+				zap.String("response", string(resp.Body())))
 		panic(types.HTTPRequestFailedError)
 	}
 

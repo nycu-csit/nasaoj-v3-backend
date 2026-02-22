@@ -6,7 +6,6 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
@@ -27,7 +26,7 @@ type ResultOutput struct {
 	RefId   int64          `json:"refId"`
 	Type    models.RefType `json:"type"`
 
-	CsId      string            `json:"csId"`
+	OwnerId   int64             `json:"ownerId"`
 	InputArgs map[string]string `json:"inputArgs"`
 
 	CreatedAt  int64 `json:"createdAt"`
@@ -57,9 +56,7 @@ func getAdminResultsPlaceholder() {}
 //	@Failure	401
 //	@Failure	404
 //	@Router		/api/results [get]
-func GetResults(
-	db interfaces.Database,
-	problems interfaces.ProblemStorage,
+func (self *Handlers) GetResults(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -77,7 +74,7 @@ func GetResults(
 				}
 			}
 
-			submission, err = db.GetSubmission(ctx, subId)
+			submission, err = self.submissions.GetSubmission(ctx, subId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusNotFound,
@@ -109,7 +106,7 @@ func GetResults(
 					}
 				}
 
-				submission, err = db.GetSubmission(ctx, subId)
+				submission, err = self.submissions.GetSubmission(ctx, subId)
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusNotFound,
@@ -118,7 +115,7 @@ func GetResults(
 					}
 				}
 
-				if submission.CsId != privs.OwnerCsId {
+				if submission.OwnerId != privs.OwnerId {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusForbidden,
 						Message:     "submission author mismatch",
@@ -142,8 +139,8 @@ func GetResults(
 						OriginError: err,
 					}
 				}
-				submission, err = db.GetLastSubmission(
-					ctx, privs.OwnerCsId, refId, int(subType))
+				submission, err = self.submissions.GetLastSubmission(
+					ctx, privs.OwnerId, refId, int(subType))
 				if err != nil {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusNotFound,
@@ -163,11 +160,10 @@ func GetResults(
 			Id:   submission.Id,
 			Type: submission.Type,
 
-			CsId:      submission.CsId,
+			OwnerId:   submission.OwnerId,
 			InputArgs: submission.InputArgs,
 
 			CreatedAt: submission.CreatedAt,
-			Score:     submission.Score.Score,
 
 			Jobs: []ResultOutputJob{},
 		}
@@ -176,7 +172,7 @@ func GetResults(
 		case models.RefTypeProblem:
 			ret.RefSHA1 = submission.ProblemSHA1
 			ret.RefId = submission.ProblemId
-			problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
+			problem, err := self.problems.GetProblem(ctx, submission.ProblemSHA1)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -185,6 +181,16 @@ func GetResults(
 				}
 			}
 			ret.TotalScore = problem.TotalScore
+
+			score, err := self.scores.GetSubmissionScore(ctx, submission.Id)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to get submission score",
+					OriginError: err,
+				}
+			}
+			ret.Score = score.Score
 		case models.RefTypeTool:
 			ret.RefSHA1 = submission.ToolSHA1
 			ret.RefId = submission.ToolId

@@ -2,9 +2,7 @@ package api
 
 import (
 	"net/http"
-	"slices"
 
-	"github.com/spf13/viper"
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -21,7 +19,9 @@ type MeOutput struct {
 //	@Success	200	{object}	MeOutput
 //	@Failure	401	{object}	string	"missing credential"
 //	@Router		/api/me [get]
-func GetMe(w http.ResponseWriter, req bunrouter.Request) error {
+func (self *Handlers) GetMe(
+	w http.ResponseWriter, req bunrouter.Request,
+) error {
 	claim, ok := req.Context().
 		Value(types.AccessToken("")).(models.AccessTokenClaim)
 	if !ok {
@@ -32,8 +32,7 @@ func GetMe(w http.ResponseWriter, req bunrouter.Request) error {
 	}
 
 	return bunrouter.JSON(w, MeOutput{
-		IsAdmin: slices.Contains(
-			claim.Groups, viper.GetString("admin-role")),
+		IsAdmin:          claim.Resource.IsAdmin,
 		AccessTokenClaim: claim,
 	})
 }

@@ -32,7 +32,7 @@ func CheckRefreshToken(
 			var claim models.RefreshTokenClaim
 			token, err := jwt.ParseWithClaims(refreshTokenCookie.Value, &claim,
 				func(*jwt.Token) (interface{}, error) {
-					return []byte(viper.GetString("REFRESH_TOKEN_SECRET")), nil
+					return []byte(viper.GetString("refresh-token-secret")), nil
 				})
 			if err != nil {
 				return HTTPError{
@@ -50,8 +50,8 @@ func CheckRefreshToken(
 
 			// check time and refresh
 			timeLeft := claim.ExpiresAt.Time.Sub(time.Now()) / time.Second
-			if int64(timeLeft) < viper.GetInt64("REFRESH_TOKEN_TIMEOUT")/2 {
-				session, err := db.UpdateRefreshToken(ctx, claim.CsId)
+			if int64(timeLeft) < viper.GetInt64("refresh-token-timeout")/2 {
+				session, err := db.UpdateRefreshToken(ctx, claim.Id)
 				if err != nil {
 					return HTTPError{
 						StatusCode:  http.StatusInternalServerError,

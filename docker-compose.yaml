@@ -10,6 +10,14 @@ services:
     volumes:
       - ./docker/postgres/:/docker-entrypoint-initdb.d/
       - postgres:/var/lib/postgresql/data
+    healthcheck:
+      interval: 10s
+      retries: 6
+      test: 
+        - CMD-SHELL
+        - |
+          echo '\d' | psql -v ON_ERROR_STOP=1 \
+            postgres://nasaoj:nasaoj@postgres:5432/nasaoj?sslmode=disable
     restart: unless-stopped
 
   redis:
@@ -18,6 +26,10 @@ services:
       - 6379:6379
     volumes:
       - redis:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli --raw incr ping
     restart: unless-stopped
 
   minio:
@@ -31,6 +43,10 @@ services:
       - 9001:9001
     volumes:
       - minio:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mc ready local
     restart: unless-stopped
 
   clickhouse:
@@ -74,6 +90,10 @@ services:
       - minio
       - redis
       - uptrace
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /judge migrate init
     restart: unless-stopped
 
   worker:

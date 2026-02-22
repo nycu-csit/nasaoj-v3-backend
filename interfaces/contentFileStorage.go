@@ -35,4 +35,16 @@ type ContentFileStorage interface {
 		ctx context.Context,
 		tool *models.Tool,
 	) error
+
+	DehydrateContentFiles(
+		contentFiles *[]models.ContentFile,
+	)
+
+	DehydrateProblem(
+		problem *models.Problem,
+	)
+
+	DehydrateTool(
+		tool *models.Tool,
+	)
 }

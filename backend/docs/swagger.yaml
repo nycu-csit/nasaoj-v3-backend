@@ -2,8 +2,8 @@ basePath: /
 definitions:
   api.AdminSubmitInput:
     properties:
-      asCsId:
-        type: string
+      asOwnerId:
+        type: integer
       inputArgs:
         additionalProperties:
           type: string
@@ -16,6 +16,8 @@ definitions:
     type: object
   api.GetTokensOutput:
     properties:
+      createdAt:
+        type: integer
       isEnabled:
         type: boolean
       privs:
@@ -27,8 +29,14 @@ definitions:
     properties:
       ip:
         type: string
+      jobs:
+        items:
+          type: string
+        type: array
       lastAccess:
         type: integer
+      name:
+        type: string
       tags:
         items:
           type: string
@@ -96,6 +104,37 @@ definitions:
       problemSHA1:
         type: string
     type: object
+  api.PutProblemsInputProblem:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      cooldown:
+        type: integer
+      deadline:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+      pdfUrl:
+        type: string
+      postScript:
+        $ref: '#/definitions/models.Content'
+      preScript:
+        $ref: '#/definitions/models.Content'
+      problemId:
+        type: integer
+      sha1:
+        type: string
+      stages:
+        additionalProperties:
+          $ref: '#/definitions/models.Stage'
+        type: object
+      tag:
+        type: string
+    type: object
   api.PutTokenStateInput:
     properties:
       state:
@@ -110,12 +149,59 @@ definitions:
       toolSHA1:
         type: string
     type: object
+  api.PutToolsInputTool:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      cooldown:
+        type: integer
+      description:
+        type: string
+      inputArgs:
+        items:
+          $ref: '#/definitions/models.ToolInputArg'
+        type: array
+      name:
+        type: string
+      postScript:
+        $ref: '#/definitions/models.Content'
+      preScript:
+        $ref: '#/definitions/models.Content'
+      sha1:
+        type: string
+      tag:
+        type: string
+      testcase:
+        $ref: '#/definitions/models.Testcase'
+      toolId:
+        type: integer
+    type: object
+  api.PutUsersCSSSOInput:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      csId:
+        type: string
+    type: object
+  api.PutUsersPlainInput:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      password:
+        type: string
+      username:
+        type: string
+    type: object
   api.ResultOutput:
     properties:
       createdAt:
         type: integer
-      csId:
-        type: string
       id:
         type: integer
       inputArgs:
@@ -126,6 +212,8 @@ definitions:
         items:
           $ref: '#/definitions/api.ResultOutputJob'
         type: array
+      ownerId:
+        type: integer
       refId:
         type: integer
       refSHA1:
@@ -165,9 +253,9 @@ definitions:
     properties:
       createdAt:
         type: integer
-      csId:
-        type: string
       id:
+        type: integer
+      ownerId:
         type: integer
       refId:
         type: integer
@@ -179,6 +267,8 @@ definitions:
         type: integer
       type:
         $ref: '#/definitions/models.RefType'
+      username:
+        type: string
     type: object
   api.SubmitInput:
     properties:
@@ -196,14 +286,14 @@ definitions:
     properties:
       createdAt:
         type: integer
-      csId:
-        type: string
       id:
         type: integer
       inputArgs:
         additionalProperties:
           type: string
         type: object
+      ownerId:
+        type: integer
       refId:
         type: integer
       refSHA1:
@@ -217,7 +307,7 @@ definitions:
         type: integer
       inputArgs:
         items:
-          type: string
+          $ref: '#/definitions/models.ToolInputArg'
         type: array
       isEnabled:
         type: boolean
@@ -255,6 +345,13 @@ definitions:
       name:
         type: string
     type: object
+  auth.LoginPlainInput:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
   jwt.NumericDate:
     properties:
       time.Time:
@@ -267,16 +364,10 @@ definitions:
         items:
           type: string
         type: array
-      csId:
-        type: string
       exp:
         allOf:
         - $ref: '#/definitions/jwt.NumericDate'
         description: the `exp` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
-      groups:
-        items:
-          type: string
-        type: array
       iat:
         allOf:
         - $ref: '#/definitions/jwt.NumericDate'
@@ -312,7 +403,11 @@ definitions:
     type: object
   models.ContentFile:
     properties:
+      isTemplate:
+        type: boolean
       name:
+        type: string
+      payload:
         type: string
       sha1:
         type: string
@@ -338,6 +433,14 @@ definitions:
     - StatusSkip
     - StatusTimeout
     - StatusMissing
+  models.LoginSourceType:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - LoginSourcePlain
+    - LoginSourceCSSSO
   models.Privileges:
     properties:
       canAPIRead:
@@ -348,36 +451,7 @@ definitions:
         type: integer
       canUserArgsWrite:
         type: integer
-      ownerCsId:
-        type: string
-    type: object
-  models.Problem:
-    properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
-      deadline:
-        type: integer
-      description:
-        type: string
-      name:
-        type: string
-      pdfUrl:
-        type: string
-      postScript:
-        $ref: '#/definitions/models.Content'
-      preScript:
-        $ref: '#/definitions/models.Content'
-      problemId:
-        type: integer
-      stages:
-        additionalProperties:
-          $ref: '#/definitions/models.Stage'
-        type: object
-      tag:
-        type: string
-      timeout:
+      ownerId:
         type: integer
     type: object
   models.RefType:
@@ -419,43 +493,23 @@ definitions:
         items:
           $ref: '#/definitions/models.ContentFile'
         type: array
-      hardTL:
-        type: integer
       name:
+        type: string
+      resourceGroup:
         type: string
       scripts:
         items:
           type: string
         type: array
-      softTL:
-        type: integer
-    type: object
-  models.Tool:
-    properties:
-      args:
-        additionalProperties:
-          type: string
-        type: object
-      description:
-        type: string
-      inputArgs:
-        items:
-          type: string
-        type: array
-      name:
-        type: string
-      postScript:
-        $ref: '#/definitions/models.Content'
-      preScript:
-        $ref: '#/definitions/models.Content'
-      tag:
-        type: string
-      testcase:
-        $ref: '#/definitions/models.Testcase'
       timeout:
         type: integer
-      toolId:
-        type: integer
+    type: object
+  models.ToolInputArg:
+    properties:
+      name:
+        type: string
+      type:
+        $ref: '#/definitions/types.ToolInputTypeType'
     type: object
   models.UserResource:
     properties:
@@ -463,24 +517,34 @@ definitions:
         additionalProperties:
           type: string
         type: object
-      csId:
+      id:
+        type: integer
+      isAdmin:
+        type: boolean
+      source:
+        $ref: '#/definitions/models.LoginSourceType'
+      sourceId:
+        type: string
+      username:
         type: string
     type: object
   models.UserScore:
     properties:
       createdAt:
         type: integer
-      csId:
-        type: string
+      id:
+        type: integer
       score:
         type: integer
+      username:
+        type: string
     type: object
   models.UserScoreWithStages:
     properties:
       createdAt:
         type: integer
-      csId:
-        type: string
+      id:
+        type: integer
       score:
         type: integer
       stages:
@@ -488,7 +552,19 @@ definitions:
           format: int64
           type: integer
         type: object
+      username:
+        type: string
     type: object
+  types.ToolInputTypeType:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - ToolInputTypeString
+    - ToolInputTypeNumeric
+    - ToolInputTypeBoolean
 info:
   contact: {}
   license:
@@ -606,14 +682,16 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            $ref: '#/definitions/models.Problem'
-          type: object
+          items:
+            $ref: '#/definitions/api.PutProblemsInputProblem'
+          type: array
       responses:
         "200":
-          description: success
+          description: SHA1s
           schema:
-            type: string
+            items:
+              type: string
+            type: array
         "401":
           description: Unauthorized
           schema:
@@ -732,6 +810,28 @@ paths:
           description: Unauthorized
           schema:
             type: string
+  /api/admin/submission/cancel:
+    put:
+      parameters:
+      - description: Submission Id
+        format: int64
+        in: query
+        name: subId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
   /api/admin/submissions:
     get:
       parameters:
@@ -741,10 +841,11 @@ paths:
         in: query
         name: pageNum
         type: integer
-      - description: Filter by CsId
+      - description: Filter by OwnerId
+        format: int64
         in: query
-        name: csId
-        type: string
+        name: ownerId
+        type: integer
       - description: Filter by RefId
         format: int64
         in: query
@@ -919,14 +1020,16 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            $ref: '#/definitions/models.Tool'
-          type: object
+          items:
+            $ref: '#/definitions/api.PutToolsInputTool'
+          type: array
       responses:
         "200":
-          description: success
+          description: SHA1s
           schema:
-            type: string
+            items:
+              type: string
+            type: array
         "401":
           description: Unauthorized
           schema:
@@ -934,9 +1037,9 @@ paths:
   /api/admin/user:
     delete:
       parameters:
-      - description: User CsId
+      - description: User Id
         in: query
-        name: csId
+        name: id
         required: true
         type: string
       - description: If delete submissions
@@ -958,11 +1061,12 @@ paths:
             type: string
     get:
       parameters:
-      - description: User CsId to be queried
+      - description: User Id to be queried
+        format: int64
         in: query
-        name: csId
+        name: id
         required: true
-        type: string
+        type: integer
       responses:
         "200":
           description: OK
@@ -987,17 +1091,18 @@ paths:
           description: not admin or not login
           schema:
             type: string
+  /api/admin/users/cssso:
     put:
       consumes:
       - application/json
       parameters:
-      - description: User resources
+      - description: request body
         in: body
         name: request
         required: true
         schema:
           items:
-            $ref: '#/definitions/models.UserResource'
+            $ref: '#/definitions/api.PutUsersCSSSOInput'
           type: array
       responses:
         "200":
@@ -1008,6 +1113,24 @@ paths:
           description: Unauthorized
           schema:
             type: string
+  /api/admin/users/plain:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: request body
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/api.PutUsersPlainInput'
+          type: array
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
   /api/admin/worker/state:
     get:
       produces:
@@ -1023,6 +1146,11 @@ paths:
           description: Unauthorized
           schema:
             type: string
+  /api/healthz:
+    get:
+      responses:
+        "200":
+          description: OK
   /api/me:
     get:
       responses:
@@ -1147,6 +1275,32 @@ paths:
           description: Bad Request
         "404":
           description: Not Found
+  /api/submission/cancel:
+    put:
+      parameters:
+      - description: Submission Id
+        format: int64
+        in: query
+        name: subId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
   /api/submissions:
     get:
       parameters:
@@ -1271,8 +1425,8 @@ paths:
           description: 302 Found
           schema:
             type: ""
-  /auth/login:
-    get:
+  /auth/login/cssso:
+    post:
       description: OAuth login endpoint
       parameters:
       - description: Login source
@@ -1282,6 +1436,20 @@ paths:
       responses:
         "302":
           description: 302 Found
+          schema:
+            type: ""
+  /auth/login/plain:
+    post:
+      parameters:
+      - description: query params
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginPlainInput'
+      responses:
+        "302":
+          description: Found
           schema:
             type: ""
   /auth/logout:

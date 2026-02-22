@@ -1,0 +1,42 @@
+---
+name: Complex dependencies
+problemId: 12
+description: Check parsing complex dependencies
+stages:
+  head1:
+    testcases: &test
+      - name: echo
+        scripts:
+          - echo poop
+    before: [group1]
+    score: 20
+  head2:
+    testcases: *test
+    before: [group1]
+    score: 20
+  head3:
+    testcases: *test
+    before: [group1]
+    score: 20
+  group1:
+    score: 0
+  mid1:
+    testcases: *test
+    after: [group1]
+    before: [group2]
+    score: 0
+  mid2:
+    testcases: *test
+    after: [group1]
+    before: [group2]
+    score: 0
+  group2:
+    score: 20
+  tail1:
+    testcases: *test
+    after: [group2]
+    score: 10
+  tail2:
+    testcases: *test
+    after: [group2]
+    score: 10

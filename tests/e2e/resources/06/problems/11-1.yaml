@@ -1,0 +1,11 @@
+---
+name: Test admin get problems dup 1
+problemId: 11
+description: Test admin CLI get problems dup auto hide
+stages:
+  stage1:
+    testcases:
+      - name: test1
+        scripts:
+          - echo test 11-1
+    score: 100

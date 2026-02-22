@@ -1,0 +1,27 @@
+---
+name: Resource group test
+problemId: 15
+description: Test resource group mutex
+cooldown: 0
+stages:
+  main:
+    testcases:
+      - name: test1
+        resourceGroup: exclusive
+        files:
+          - run.sh
+        scripts:
+          - bash run.sh
+      - name: test2
+        resourceGroup: exclusive
+        files:
+          - run.sh
+        scripts:
+          - bash run.sh
+      - name: test3
+        resourceGroup: exclusive
+        files:
+          - run.sh
+        scripts:
+          - bash run.sh
+    score: 100

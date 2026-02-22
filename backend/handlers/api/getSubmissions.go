@@ -6,27 +6,27 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 )
 
 type SubmissionsOutputSubmission struct {
-	Id      int64          `json:"id"`
-	RefSHA1 string         `json:"refSHA1"`
-	RefId   int64          `json:"refId"`
-	Type    models.RefType `json:"type"`
+	Id      int64          `json:"id" yaml:"id"`
+	RefSHA1 string         `json:"refSHA1" yaml:"refSHA1"`
+	RefId   int64          `json:"refId" yaml:"refId"`
+	Type    models.RefType `json:"type" yaml:"type"`
 
-	CsId       string `json:"csId"`
-	CreatedAt  int64  `json:"createdAt"`
-	Score      int64  `json:"score"`
-	TotalScore int64  `json:"totalScore"`
+	OwnerId    int64  `json:"ownerId" yaml:"ownerId"`
+	Username   string `json:"username" yaml:"username"`
+	CreatedAt  int64  `json:"createdAt" yaml:"createdAt"`
+	Score      int64  `json:"score" yaml:"score"`
+	TotalScore int64  `json:"totalScore" yaml:"totalScore"`
 }
 
 type SubmissionsOutput struct {
-	PageSize    int                           `json:"pageSize"`
-	TotalRowCnt int                           `json:"totalRowCnt"`
-	Submissions []SubmissionsOutputSubmission `json:"submissions"`
+	PageSize    int                           `json:"pageSize" yaml:"pageSize"`
+	TotalRowCnt int                           `json:"totalRowCnt" yaml:"totalRowCnt"`
+	Submissions []SubmissionsOutputSubmission `json:"submissions" yaml:"submissions"`
 }
 
 const pageSize int = 20
@@ -34,7 +34,7 @@ const pageSize int = 20
 // GetAdminSubmissions
 //
 //	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		csId	query		string				false	"Filter by CsId"							attribute(optional)
+//	@Param		ownerId	query		int64				false	"Filter by OwnerId"							attribute(optional)
 //	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
 //	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
 //	@Success	200		{object}	SubmissionsOutput	"Submissions"
@@ -52,9 +52,7 @@ func getAdminSubmissionsPlaceHolder() {}
 //	@Failure	400		{object}	string				"Problem Id invalid"
 //	@Failure	401		{object}	string				"didn't login"
 //	@Router		/api/submissions [get]
-func GetSubmissions(
-	db interfaces.Database,
-	problems interfaces.ProblemStorage,
+func (self *Handlers) GetSubmissions(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
@@ -63,12 +61,19 @@ func GetSubmissions(
 		queryValues := req.URL.Query()
 		var err error
 
-		var csId string
-		var isCsId bool = false
+		var ownerId int64
+		var isOwnerId bool = false
 		if isAdmin {
-			if queryValues.Has("csId") {
-				csId = queryValues.Get("csId")
-				isCsId = true
+			if queryValues.Has("ownerId") {
+				ownerId, err = strconv.ParseInt(queryValues.Get("ownerId"), 10, 64)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusBadRequest,
+						Message:     "invalid owner id",
+						OriginError: err,
+					}
+				}
+				isOwnerId = true
 			}
 		} else {
 			privs, ok := req.Context().
@@ -79,8 +84,8 @@ func GetSubmissions(
 					Message:    "privs missing",
 				}
 			}
-			csId = privs.OwnerCsId
-			isCsId = true
+			ownerId = privs.OwnerId
+			isOwnerId = true
 		}
 
 		var pageNum int
@@ -130,15 +135,15 @@ func GetSubmissions(
 			isRefId = true
 		}
 
-		subs, count, err := db.GetSubmissionsAndCount(ctx,
-			csId, isCsId,
+		subs, count, err := self.submissions.GetSubmissionsAndCount(ctx,
+			ownerId, isOwnerId,
 			pageNum, isPageNum, pageSize,
 			refId, isRefId,
 			refType, isRefType)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
-				Message:     "db query failed",
+				Message:     "failed to query submissions",
 				OriginError: err,
 			}
 		}
@@ -146,19 +151,46 @@ func GetSubmissions(
 		submissions := []SubmissionsOutputSubmission{}
 		sha1s := []string{}
 		for _, sub := range subs {
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to query problem",
+					OriginError: err,
+				}
+			}
+
+			user, err := self.db.GetUserResource(ctx, sub.OwnerId)
+			if err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to query user",
+					OriginError: err,
+				}
+			}
+
 			output := SubmissionsOutputSubmission{
 				Id:   sub.Id,
 				Type: sub.Type,
 
-				CsId:      sub.CsId,
+				OwnerId:   sub.OwnerId,
+				Username:  user.Username,
 				CreatedAt: sub.CreatedAt,
-				Score:     sub.Score.Score,
 			}
 			switch sub.Type {
 			case models.RefTypeProblem:
 				output.RefSHA1 = sub.ProblemSHA1
 				output.RefId = sub.ProblemId
 				sha1s = append(sha1s, output.RefSHA1)
+
+				score, err := self.scores.GetSubmissionScore(ctx, sub.Id)
+				if err != nil {
+					return middlewares.HTTPError{
+						StatusCode:  http.StatusInternalServerError,
+						Message:     "failed to query score",
+						OriginError: err,
+					}
+				}
+				output.Score = score.Score
 			case models.RefTypeTool:
 				output.RefSHA1 = sub.ToolSHA1
 				output.RefId = sub.ToolId
@@ -166,7 +198,7 @@ func GetSubmissions(
 			submissions = append(submissions, output)
 		}
 
-		scores, err := problems.GetProblemScores(ctx, sha1s)
+		scores, err := self.problems.GetProblemScores(ctx, sha1s)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
