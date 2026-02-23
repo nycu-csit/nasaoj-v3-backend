@@ -66,7 +66,7 @@ func init() {
 		ToolId      int64  `bun:"tool_id"`
 		Type        int    `bun:"type"`
 
-		CsId      int64             `bun:"cs_id"`
+		CsId      string            `bun:"cs_id"`
 		CreatedAt int64             `bun:"created_at"`
 		Args      map[string]string `bun:"args"`
 		InputArgs map[string]string `bun:"input_args"`

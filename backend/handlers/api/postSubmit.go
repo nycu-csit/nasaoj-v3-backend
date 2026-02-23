@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -163,7 +164,7 @@ func (self *Handlers) PostSubmit(
 							Message:    "submit in cooldown",
 						}
 					}
-				} else if err != sql.ErrNoRows {
+				} else if !errors.Is(err, sql.ErrNoRows) {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusInternalServerError,
 						Message:     "failed to query last submission",
@@ -246,7 +247,7 @@ func (self *Handlers) PostSubmit(
 							Message:    "submit in cooldown",
 						}
 					}
-				} else if err != sql.ErrNoRows {
+				} else if !errors.Is(err, sql.ErrNoRows) {
 					return middlewares.HTTPError{
 						StatusCode:  http.StatusInternalServerError,
 						Message:     "failed to query last submission",
