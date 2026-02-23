@@ -1756,6 +1756,9 @@ const docTemplate = `{
                 },
                 "type": {
                     "$ref": "#/definitions/models.RefType"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },

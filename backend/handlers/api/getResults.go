@@ -27,6 +27,7 @@ type ResultOutput struct {
 	Type    models.RefType `json:"type"`
 
 	OwnerId   int64             `json:"ownerId"`
+	Username  string            `json:"username"`
 	InputArgs map[string]string `json:"inputArgs"`
 
 	CreatedAt  int64 `json:"createdAt"`
@@ -156,10 +157,20 @@ func (self *Handlers) GetResults(
 			}
 		}
 
+		user, err := self.db.GetUserResource(ctx, submission.OwnerId)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to get user",
+				OriginError: err,
+			}
+		}
+
 		ret := ResultOutput{
 			Id:   submission.Id,
 			Type: submission.Type,
 
+			Username:  user.Username,
 			OwnerId:   submission.OwnerId,
 			InputArgs: submission.InputArgs,
 

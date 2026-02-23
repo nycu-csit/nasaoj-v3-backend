@@ -224,6 +224,8 @@ definitions:
         type: integer
       type:
         $ref: '#/definitions/models.RefType'
+      username:
+        type: string
     type: object
   api.ResultOutputJob:
     properties:
