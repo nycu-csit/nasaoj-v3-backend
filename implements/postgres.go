@@ -968,11 +968,17 @@ func (self *Postgres) getSubmissionScore(
 
 	problem, err := self.GetProblem(ctx, sub.ProblemSHA1)
 	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get problem",
+				zap.Error(err))
 		return models.UserScore{}, err
 	}
 
 	user, err := self.GetUserResource(ctx, sub.OwnerId)
 	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get user resource",
+				zap.Error(err))
 		return models.UserScore{}, err
 	}
 
