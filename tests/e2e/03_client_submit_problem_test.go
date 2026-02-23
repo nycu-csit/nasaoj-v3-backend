@@ -2,7 +2,9 @@ package tests
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -192,10 +194,17 @@ func Test_03_5_Check_stdout(t *testing.T) {
 				t.Fatal("problem has no stages")
 			}
 
-			// Get the first stage and first testcase
+			// Get the first stage and first testcase (sorted by stage name)
+			stageNames := make([]string, 0, len(problem.Stages))
+			for stageName := range problem.Stages {
+				stageNames = append(stageNames, stageName)
+			}
+			sort.Strings(stageNames)
+
 			var firstStage string
 			var firstTestcase string
-			for stageName, stage := range problem.Stages {
+			for _, stageName := range stageNames {
+				stage := problem.Stages[stageName]
 				if len(stage.Testcases) > 0 {
 					firstStage = stageName
 					firstTestcase = stage.Testcases[0].Name
@@ -225,6 +234,7 @@ func Test_03_5_Check_stdout(t *testing.T) {
 			subId := subs.Submissions[0].Id
 
 			// Query stdout for the first testcase with retry
+			var errs strings.Builder
 			maxRetries := 10
 			for i := 0; i < maxRetries; i++ {
 				resp, err = client.R().
@@ -241,10 +251,12 @@ func Test_03_5_Check_stdout(t *testing.T) {
 					return
 				}
 
+				errs.WriteString(string(resp.Body()))
 				if i < maxRetries-1 {
 					time.Sleep(time.Duration(i+1) * 500 * time.Millisecond)
 				}
 			}
+			t.Logf("%s", errs.String())
 			t.Fatalf("failed to get /api/stdout after %d retries: %v", maxRetries, resp)
 		})
 	}

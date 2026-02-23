@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -104,10 +105,10 @@ func (self *Handlers) GetOutput(
 
 		output, err := self.s3.GetFile(ctx, fileName)
 		if err != nil {
-			if err == types.FileNotExistError {
+			if errors.Is(err, types.FileNotExistError) {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusNotFound,
-					Message:     "failed to get output",
+					Message:     "file not found",
 					OriginError: err,
 				}
 			}
