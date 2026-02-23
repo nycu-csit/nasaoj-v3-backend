@@ -11,8 +11,6 @@ CMD ["serve", "backend"]
 
 FROM dockersource.cc.cs.nctu.edu.tw/nasa/nasaoj-v3/worker-base:main AS worker_runtime
 
-RUN mkdir -p /var/run/nasaoj-worker
-
 ADD judge /work/judge
 WORKDIR /work
 

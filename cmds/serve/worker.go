@@ -26,6 +26,13 @@ var workerCmd = &cobra.Command{
 			defer tracing.DeferUptrace(ctx)
 		}
 
+		if err := os.MkdirAll(viper.GetString("running-dir"), 0700); err != nil {
+			tracing.Logger.Ctx(ctx).
+				Panic("failed to mkdir running dir",
+					zap.Error(err))
+			panic(err)
+		}
+
 		client := resty.New()
 		client.SetHeader("X-Worker-Name", viper.GetString("name"))
 		client.SetAuthScheme("Bearer")
