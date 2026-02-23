@@ -557,7 +557,11 @@ func (self *Postgres) DeleteProblemAndSubmissions(
 		func(ctx context.Context, tx bun.Tx) error {
 			res, err := tx.NewDelete().
 				Model(&problem).
-				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Where("sha1 = (?)", tx.NewSelect().
+					Model((*models.ProblemMarshaled)(nil)).
+					Column("sha1").
+					Where("sha1 LIKE ?", sha1Prefix+"%").
+					Limit(1)).
 				Returning("sha1", "problem_id").
 				Exec(ctx)
 			if err != nil {
@@ -865,9 +869,12 @@ func (self *Postgres) DeleteToolAndSubmissions(
 		func(ctx context.Context, tx bun.Tx) error {
 			res, err := tx.NewDelete().
 				Model(&tool).
-				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Where("sha1 = (?)", tx.NewSelect().
+					Model((*models.ToolMarshaled)(nil)).
+					Column("sha1").
+					Where("sha1 LIKE ?", sha1Prefix+"%").
+					Limit(1)).
 				Returning("sha1", "tool_id").
-				Limit(1).
 				Exec(ctx)
 			if err != nil {
 				return err
