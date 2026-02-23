@@ -9,6 +9,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"go.uber.org/zap"
 )
 
@@ -62,6 +63,9 @@ func (self *MinIO) GetFile(
 	buf, err := self.GetObject(ctx, viper.GetString("minio-bucket"),
 		filename, minio.GetObjectOptions{})
 	if err != nil {
+		if minio.ToErrorResponse(err).Code == minio.NoSuchKey {
+			return []byte{}, types.FileNotExistError
+		}
 		return []byte{}, err
 	}
 	b, err := io.ReadAll(buf)

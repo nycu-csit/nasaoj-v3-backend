@@ -104,17 +104,16 @@ func (self *Handlers) GetOutput(
 
 		output, err := self.s3.GetFile(ctx, fileName)
 		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusNotFound,
-				Message:     "get output failed",
-				OriginError: err,
+			if err == types.FileNotExistError {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusNotFound,
+					Message:     "failed to get output",
+					OriginError: err,
+				}
 			}
-		}
-
-		if err != nil {
 			return middlewares.HTTPError{
-				StatusCode:  http.StatusNotFound,
-				Message:     "get output failed",
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to get output",
 				OriginError: err,
 			}
 		}
