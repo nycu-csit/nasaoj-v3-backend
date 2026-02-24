@@ -93,5 +93,5 @@ func (self *Handlers) PostLoginPlain(
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	return utils.Redirect(w, "/")
+	return utils.Success(w)
 }

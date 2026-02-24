@@ -58,7 +58,7 @@ func Test_01_2_Login(t *testing.T) {
 				Password: "poop",
 			}).
 			Post("/auth/login/plain")
-		if resp.StatusCode() != http.StatusFound {
+		if resp.StatusCode() != http.StatusOK {
 			t.Logf("%v\n", resp)
 			t.Fatalf("failed to post /auth/login/plain, %v", err)
 		}
