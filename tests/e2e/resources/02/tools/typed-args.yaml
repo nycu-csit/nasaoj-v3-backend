@@ -2,6 +2,7 @@
 name: Typed args test
 toolId: 88
 description: Test tool with typed input args
+cooldown: 0
 args:
   endpoint: 'http://backend:8080'
 inputArgs:
