@@ -393,12 +393,13 @@ const docTemplate = `{
             "put": {
                 "parameters": [
                     {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Submission Id",
-                        "name": "subId",
-                        "in": "query",
-                        "required": true
+                        "description": "query body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PutCancelSubmissionInput"
+                        }
                     }
                 ],
                 "responses": {
@@ -1124,12 +1125,13 @@ const docTemplate = `{
             "put": {
                 "parameters": [
                     {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Submission Id",
-                        "name": "subId",
-                        "in": "query",
-                        "required": true
+                        "description": "query body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PutCancelSubmissionInput"
+                        }
                     }
                 ],
                 "responses": {
@@ -1542,6 +1544,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "totalScore": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.PutCancelSubmissionInput": {
+            "type": "object",
+            "properties": {
+                "subId": {
                     "type": "integer"
                 }
             }

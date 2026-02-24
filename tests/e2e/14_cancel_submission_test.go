@@ -185,7 +185,9 @@ func Test_14_4_Submit_and_cancel_via_user_API(t *testing.T) {
 
 	// Cancel the submission using user API
 	resp, err = client.R().
-		SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+		SetBody(api.PutCancelSubmissionInput{
+			SubId: subId,
+		}).
 		Put("/api/submission/cancel")
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		t.Logf("%v", resp)

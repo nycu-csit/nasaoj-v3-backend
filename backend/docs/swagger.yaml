@@ -86,6 +86,11 @@ definitions:
       totalScore:
         type: integer
     type: object
+  api.PutCancelSubmissionInput:
+    properties:
+      subId:
+        type: integer
+    type: object
   api.PutContentFilesInput:
     properties:
       isTemplate:
@@ -815,12 +820,12 @@ paths:
   /api/admin/submission/cancel:
     put:
       parameters:
-      - description: Submission Id
-        format: int64
-        in: query
-        name: subId
+      - description: query body
+        in: body
+        name: request
         required: true
-        type: integer
+        schema:
+          $ref: '#/definitions/api.PutCancelSubmissionInput'
       responses:
         "200":
           description: OK
@@ -1280,12 +1285,12 @@ paths:
   /api/submission/cancel:
     put:
       parameters:
-      - description: Submission Id
-        format: int64
-        in: query
-        name: subId
+      - description: query body
+        in: body
+        name: request
         required: true
-        type: integer
+        schema:
+          $ref: '#/definitions/api.PutCancelSubmissionInput'
       responses:
         "200":
           description: OK

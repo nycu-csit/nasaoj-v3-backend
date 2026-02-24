@@ -1,8 +1,9 @@
 package api
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -11,9 +12,13 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
+type PutCancelSubmissionInput struct {
+	SubId int64 `json:"subId"`
+}
+
 // PutAdminCancelSubmission
 //
-//	@Param		subId	query		int64	true	"Submission Id"
+//	@Param		request	body		PutCancelSubmissionInput	true	"query body"
 //	@Success	200		{object}	string
 //	@Failure	400		{object}	string
 //	@Failure	401		{object}	string
@@ -22,7 +27,7 @@ func putAdminCancelSubmissionPlaceholder() {}
 
 // PutCancelSubmission
 //
-//	@Param		subId	query		int64	true	"Submission Id"
+//	@Param		request	body		PutCancelSubmissionInput	true	"query body"
 //	@Success	200		{object}	string
 //	@Failure	400		{object}	string
 //	@Failure	401		{object}	string
@@ -34,16 +39,25 @@ func (self *Handlers) PutCancelSubmission(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
-		subId, err := strconv.ParseInt(req.URL.Query().Get("subId"), 10, 64)
+		b, err := io.ReadAll(req.Body)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
-				Message:     "submission id parse failed",
+				Message:     "failed to read payload",
 				OriginError: err,
 			}
 		}
 
-		submission, err := self.submissions.GetSubmission(ctx, subId)
+		var input PutCancelSubmissionInput
+		if err := json.Unmarshal(b, &input); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "failed to unmarshal json",
+				OriginError: err,
+			}
+		}
+
+		submission, err := self.submissions.GetSubmission(ctx, input.SubId)
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
@@ -98,7 +112,8 @@ func (self *Handlers) PutCancelSubmission(
 			}
 		}
 
-		if err := self.submissions.CancelSubmission(ctx, subId, ownerId); err != nil {
+		if err := self.submissions.CancelSubmission(ctx,
+			input.SubId, ownerId); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusForbidden,
 				Message:     "submission cancel failed",
