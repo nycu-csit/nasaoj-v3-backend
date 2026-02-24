@@ -45,5 +45,5 @@ func (self *Handlers) PutLogout(
 		MaxAge: -1,
 	})
 
-	return utils.Redirect(w, "/")
+	return utils.Success(w)
 }
