@@ -40,12 +40,6 @@ type JobQueue interface {
 		stageId string,
 	) (int64, error)
 
-	RemoveJob(
-		ctx context.Context,
-		jobId string,
-		tag string,
-	) error
-
 	Lock(
 		ctx context.Context,
 		job *models.Job,

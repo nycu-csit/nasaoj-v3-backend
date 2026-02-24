@@ -1,8 +1,7 @@
 ---
 name: Long awaiting
-problemId: 14
+problemId: 9
 description: Check long awaiting problem
-cooldown: 0
 stages:
   stage01:
     testcases:

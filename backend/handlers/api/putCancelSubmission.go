@@ -80,44 +80,24 @@ func (self *Handlers) PutCancelSubmission(
 			ownerId = privs.OwnerId
 		}
 
-		// Get problem tag for removing jobs from queue
-		var tag string
-		switch submission.Type {
-		case models.RefTypeProblem:
-			problem, err := self.problems.GetProblem(ctx, submission.ProblemSHA1)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "problem not found",
-					OriginError: err,
-				}
-			}
-			tag = problem.Tag
-		case models.RefTypeTool:
-			tool, err := self.tools.GetTool(ctx, submission.ToolSHA1)
-			if err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "tool not found",
-					OriginError: err,
-				}
-			}
-			tag = tool.Tag
-		}
-
-		// Remove pending jobs from the queue
-		for _, job := range submission.Jobs {
-			if job.Status == models.StatusPending {
-				_ = self.jobQue.RemoveJob(ctx, job.Id(), tag)
-			}
-		}
-
-		if err := self.submissions.CancelSubmission(ctx,
-			input.SubId, ownerId); err != nil {
+		runningJobIds, err := self.submissions.CancelSubmission(ctx,
+			input.SubId, ownerId)
+		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusForbidden,
 				Message:     "submission cancel failed",
 				OriginError: err,
+			}
+		}
+
+		// Add running jobs to cancelled set so workers can be notified
+		if len(runningJobIds) > 0 {
+			if err := self.workers.AddCancelledJobs(ctx, runningJobIds); err != nil {
+				return middlewares.HTTPError{
+					StatusCode:  http.StatusInternalServerError,
+					Message:     "failed to add cancelled jobs",
+					OriginError: err,
+				}
 			}
 		}
 

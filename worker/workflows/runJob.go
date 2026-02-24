@@ -22,6 +22,7 @@ func RunJob(
 	pctx context.Context,
 	retCh chan error,
 	job *models.JobWithFile,
+	cancelRegistry *CancelRegistry,
 ) {
 	// Setup environment
 	refpath := path.Join(viper.GetString("running-dir"), job.RefFilename())
@@ -110,6 +111,12 @@ func RunJob(
 	ctx, cancel := context.WithTimeout(pctx, duration)
 	defer cancel()
 
+	// Register cancel function so heartbeat can cancel this job
+	if cancelRegistry != nil {
+		cancelRegistry.Register(job.Id(), cancel)
+		defer cancelRegistry.Unregister(job.Id())
+	}
+
 	span := trace.SpanFromContext(ctx)
 	span.SetAttributes(
 		attribute.Int64("submission.id", job.SubId),
@@ -134,17 +141,28 @@ func RunJob(
 
 	var ret error = nil
 	select {
-	case <-ctx.Done(): // timeout
-		job.Status = models.StatusTimeout
+	case <-ctx.Done(): // timeout or cancel
+		job.RetCode = -1
+		// Determine if this was a timeout or manual cancel
+		isTimeout := ctx.Err() == context.DeadlineExceeded
+		if isTimeout {
+			tracing.Logger.Ctx(ctx).
+				Warn("worker thread timeout")
+			job.Status = models.StatusTimeout
+		} else {
+			tracing.Logger.Ctx(ctx).
+				Warn("worker thread cancelled")
+			job.Status = models.StatusFailed
+		}
+
 		if cmd.Process != nil {
 			if err := cmd.Process.Kill(); err != nil {
 				tracing.Logger.Ctx(ctx).
-					Warn("worker thread timeout",
+					Error("worker thread failed to kill process",
 						zap.Error(err))
 				ret = err
 			}
 		}
-		tracing.Logger.Ctx(ctx).Warn("worker thread timeout")
 	case err := <-done:
 		if err != nil {
 			switch t := err.(type) {

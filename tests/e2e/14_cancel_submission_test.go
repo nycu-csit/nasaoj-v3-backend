@@ -90,6 +90,76 @@ func Test_14_2_Enable_problem(t *testing.T) {
 	}
 }
 
+func waitForFirstJobComplete(t *testing.T, subId int64) {
+	maxRetries := 30
+	for i := 0; i < maxRetries; i++ {
+		var result api.ResultOutput
+		resp, err := client.R().
+			SetResult(&result).
+			SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+			Get("/api/results")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		// Check if any job has completed (not Pending, Running, or Blocked)
+		for _, job := range result.Jobs {
+			switch job.Status {
+			case models.StatusSuccess, models.StatusFailed, models.StatusTimeout, models.StatusMissing:
+				t.Logf("first job completed with status %d", job.Status)
+				return
+			}
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+	t.Fatal("timed out waiting for first job to complete")
+}
+
+func verifyJobRunningOnWorker(t *testing.T, subId int64) {
+	type WorkerStatus struct {
+		Name string   `yaml:"name"`
+		Jobs []string `yaml:"jobs"`
+	}
+
+	jobPrefix := strconv.FormatInt(subId, 10) + "-"
+
+	maxRetries := 30
+	for i := 0; i < maxRetries; i++ {
+		cmd := exec.Command(
+			"judge", "admin", "get", "workers",
+			"--access-token", viper.GetString("admin-token"),
+			"--endpoint", "http://localhost:8080")
+
+		var stdout strings.Builder
+		cmd.Stdout = &stdout
+		if err := cmd.Run(); err != nil {
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+
+		var workers []WorkerStatus
+		if err := yaml.Unmarshal([]byte(stdout.String()), &workers); err != nil {
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+
+		// Check if any worker has a job from this submission running
+		for _, worker := range workers {
+			for _, jobId := range worker.Jobs {
+				if strings.HasPrefix(jobId, jobPrefix) {
+					t.Logf("found job %s running on worker %s", jobId, worker.Name)
+					return
+				}
+			}
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+	t.Fatal("timed out waiting for job to be running on a worker")
+}
+
 func Test_14_3_Submit_and_cancel_via_admin_CLI(t *testing.T) {
 	// Submit the problem
 	var submitOutput api.SubmitOutput
@@ -108,8 +178,11 @@ func Test_14_3_Submit_and_cancel_via_admin_CLI(t *testing.T) {
 	subId := submitOutput.Id
 	t.Logf("submitted problem refId: %d, subId: %d", submitOutput.RefId, subId)
 
-	// Wait a moment to let the first job start
-	time.Sleep(500 * time.Millisecond)
+	// Wait for the first job to complete
+	waitForFirstJobComplete(t, subId)
+
+	// Verify the second job is running on a worker
+	verifyJobRunningOnWorker(t, subId)
 
 	// Cancel the submission using admin CLI
 	cmd := exec.Command(
@@ -132,33 +205,58 @@ func Test_14_3_Submit_and_cancel_via_admin_CLI(t *testing.T) {
 
 	t.Logf("cancel output: %s", stdout.String())
 
-	// Wait for the cancellation to propagate
-	time.Sleep(time.Second)
-
-	// Check that all jobs are now skipped
+	// Wait for cancellation to propagate and second job to return
 	var result api.ResultOutput
-	resp, err = client.R().
-		SetResult(&result).
-		SetQueryParam("refId", strconv.FormatInt(problem14RefId, 10)).
-		SetQueryParam("type", "0").
-		Get("/api/results")
-	if err != nil || resp.StatusCode() != http.StatusOK {
-		t.Fatalf("failed to get results: %v\n", resp)
+	maxRetries := 30
+	foundCancelledJob := false
+	for i := 0; i < maxRetries; i++ {
+		resp, err = client.R().
+			SetResult(&result).
+			SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+			Get("/api/results")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		// Check if we have a failed job (cancelled while running)
+		for _, job := range result.Jobs {
+			if job.Status == models.StatusFailed && job.RetCode != 0 {
+				foundCancelledJob = true
+				t.Logf("found cancelled job: stage=%s test=%s retCode=%d",
+					job.StageName, job.TestName, job.RetCode)
+				break
+			}
+		}
+
+		if foundCancelledJob {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	// Count job statuses
 	skipCount := 0
+	failedCount := 0
 	for _, job := range result.Jobs {
-		if job.Status == models.StatusSkip {
+		switch job.Status {
+		case models.StatusSkipped:
 			skipCount++
+		case models.StatusFailed:
+			failedCount++
 		}
 	}
 
-	t.Logf("jobs skipped: %d/%d", skipCount, len(result.Jobs))
+	t.Logf("jobs skipped: %d, failed: %d, total: %d", skipCount, failedCount, len(result.Jobs))
 
 	// At least some jobs should be skipped (the pending/blocked ones)
 	if skipCount == 0 {
 		t.Fatal("expected some jobs to be skipped after cancellation")
+	}
+
+	// Should have at least one failed job (the one that was running and got cancelled)
+	if !foundCancelledJob {
+		t.Fatal("expected a cancelled job with non-zero return code")
 	}
 }
 
@@ -180,8 +278,11 @@ func Test_14_4_Submit_and_cancel_via_user_API(t *testing.T) {
 	subId := submitOutput.Id
 	t.Logf("submitted problem refId: %d, subId: %d", submitOutput.RefId, subId)
 
-	// Wait a moment to let the first job start
-	time.Sleep(500 * time.Millisecond)
+	// Wait for the first job to complete
+	waitForFirstJobComplete(t, subId)
+
+	// Verify the second job is running on a worker
+	verifyJobRunningOnWorker(t, subId)
 
 	// Cancel the submission using user API
 	resp, err = client.R().
@@ -196,32 +297,57 @@ func Test_14_4_Submit_and_cancel_via_user_API(t *testing.T) {
 
 	t.Logf("cancel API response: %s", string(resp.Body()))
 
-	// Wait for the cancellation to propagate
-	time.Sleep(time.Second)
-
-	// Check that all jobs are now skipped
+	// Wait for cancellation to propagate and second job to return
 	var result api.ResultOutput
-	resp, err = client.R().
-		SetResult(&result).
-		SetQueryParam("refId", strconv.FormatInt(problem14RefId, 10)).
-		SetQueryParam("type", "0").
-		Get("/api/results")
-	if err != nil || resp.StatusCode() != http.StatusOK {
-		t.Fatalf("failed to get results: %v\n", resp)
+	maxRetries := 30
+	foundCancelledJob := false
+	for i := 0; i < maxRetries; i++ {
+		resp, err = client.R().
+			SetResult(&result).
+			SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+			Get("/api/results")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		// Check if we have a failed job (cancelled while running)
+		for _, job := range result.Jobs {
+			if job.Status == models.StatusFailed && job.RetCode != 0 {
+				foundCancelledJob = true
+				t.Logf("found cancelled job: stage=%s test=%s retCode=%d",
+					job.StageName, job.TestName, job.RetCode)
+				break
+			}
+		}
+
+		if foundCancelledJob {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	// Count job statuses
 	skipCount := 0
+	failedCount := 0
 	for _, job := range result.Jobs {
-		if job.Status == models.StatusSkip {
+		switch job.Status {
+		case models.StatusSkipped:
 			skipCount++
+		case models.StatusFailed:
+			failedCount++
 		}
 	}
 
-	t.Logf("jobs skipped: %d/%d", skipCount, len(result.Jobs))
+	t.Logf("jobs skipped: %d, failed: %d, total: %d", skipCount, failedCount, len(result.Jobs))
 
 	// At least some jobs should be skipped (the pending/blocked ones)
 	if skipCount == 0 {
 		t.Fatal("expected some jobs to be skipped after cancellation")
+	}
+
+	// Should have at least one failed job (the one that was running and got cancelled)
+	if !foundCancelledJob {
+		t.Fatal("expected a cancelled job with non-zero return code")
 	}
 }

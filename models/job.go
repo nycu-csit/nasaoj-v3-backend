@@ -12,7 +12,7 @@ type JobStatus = int64
 	(Generate jobs)
 		-> (With dependencies) StatusBlocked
 			-> (Trigger by prev stage completion) StatusPending
-			-> (Trigger by failed or timeout) StatusSkip
+			-> (Trigger by failed or timeout) StatusSkipped
 		-> (With no dependencies) StatusPending
 			-> (GET /schedule/job) StatusRunning
 				-> (Worker Timeout) StatusMissing
@@ -29,10 +29,33 @@ const (
 	StatusSuccess JobStatus = 262
 	StatusBlocked JobStatus = 263
 	StatusFailed  JobStatus = 460
-	StatusSkip    JobStatus = 461
+	StatusSkipped JobStatus = 461
 	StatusTimeout JobStatus = 462
 	StatusMissing JobStatus = 560
 )
+
+func JobStatusName(status JobStatus) string {
+	switch status {
+	case StatusPending:
+		return "Pending"
+	case StatusRunning:
+		return "Running"
+	case StatusSuccess:
+		return "Success"
+	case StatusBlocked:
+		return "Blocked"
+	case StatusFailed:
+		return "Failed"
+	case StatusSkipped:
+		return "Skipped"
+	case StatusTimeout:
+		return "Timeout"
+	case StatusMissing:
+		return "Missing"
+	default:
+		return fmt.Sprintf("Unknown(%d)", status)
+	}
+}
 
 // Testcase that schedule to worker
 type Job struct {
@@ -95,7 +118,7 @@ func (self Job) StderrKey() string {
 func (self Job) IsDone() bool {
 	return self.Status == StatusSuccess ||
 		self.Status == StatusFailed ||
-		self.Status == StatusSkip ||
+		self.Status == StatusSkipped ||
 		self.Status == StatusTimeout ||
 		self.Status == StatusMissing
 }

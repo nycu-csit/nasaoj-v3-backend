@@ -9,9 +9,11 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 func (self *Handlers) PutScheduleResult(
@@ -57,6 +59,9 @@ func (self *Handlers) PutScheduleResult(
 	if err = self.jobQue.Unlock(ctx, &job); err != nil {
 		// Log warning but don't fail - job is done, mutex will expire
 		// Note: This is logged as debug since the mutex may have expired
+		tracing.Logger.Ctx(ctx).
+			Debug("failed to unlock jobque",
+				zap.Error(err))
 	}
 
 	if job.Status != models.StatusSuccess {

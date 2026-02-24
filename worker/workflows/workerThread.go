@@ -12,6 +12,7 @@ func WorkerThread(
 	ctx context.Context,
 	jobIn chan models.JobWithFile,
 	jobOut chan models.JobWithFile,
+	cancelRegistry *CancelRegistry,
 ) {
 	tracing.Logger.Ctx(ctx).
 		Info("worker thread is running")
@@ -34,7 +35,7 @@ func WorkerThread(
 					zap.String("testcase.name", job.TestName))
 
 			retCh := make(chan error, 1)
-			go RunJob(ctx, retCh, &job)
+			go RunJob(ctx, retCh, &job, cancelRegistry)
 			ret := <-retCh
 
 			tracing.Logger.Ctx(ctx).

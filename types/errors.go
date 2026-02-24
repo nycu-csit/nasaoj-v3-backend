@@ -16,4 +16,6 @@ var (
 	WrongFormatError          = fmt.Errorf("wrong format")
 	HTTPRequestFailedError    = fmt.Errorf("http request failed")
 	LockAcquisitionError      = fmt.Errorf("lock acquisition failed")
+
+	JobAlreadySkippedError = fmt.Errorf("job has already skipped")
 )

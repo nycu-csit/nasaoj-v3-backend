@@ -133,19 +133,6 @@ func (self *Redis) StageDone(
 	return self.rdb.HIncrBy(ctx, "jobdep", stageId, -1).Result()
 }
 
-func (self *Redis) RemoveJob(
-	ctx context.Context,
-	jobId string,
-	tag string,
-) error {
-	_, err := self.rdb.Pipelined(ctx, func(pipe redis.Pipeliner) error {
-		_ = pipe.Del(ctx, jobId)
-		_ = pipe.LRem(ctx, queueKey(tag), 0, jobId)
-		return nil
-	})
-	return err
-}
-
 func (self *Redis) GetTokens(
 	ctx context.Context,
 ) (map[string]models.Token, error) {
@@ -480,6 +467,58 @@ func (self *Redis) GetWorkerJobs(
 		return nil, err
 	}
 	return res, nil
+}
+
+const cancelledJobsKey = "cancelled-jobs"
+
+func (self *Redis) AddCancelledJobs(
+	ctx context.Context,
+	jobIds []string,
+) error {
+	if len(jobIds) == 0 {
+		return nil
+	}
+	members := make([]interface{}, len(jobIds))
+	for i, id := range jobIds {
+		members[i] = id
+	}
+	_, err := self.rdb.SAdd(ctx, cancelledJobsKey, members...).Result()
+	return err
+}
+
+func (self *Redis) GetCancelledJobs(
+	ctx context.Context,
+	jobIds []string,
+) ([]string, error) {
+	if len(jobIds) == 0 {
+		return nil, nil
+	}
+	var cancelled []string
+	for _, jobId := range jobIds {
+		exists, err := self.rdb.SIsMember(ctx, cancelledJobsKey, jobId).Result()
+		if err != nil {
+			return nil, err
+		}
+		if exists {
+			cancelled = append(cancelled, jobId)
+		}
+	}
+	return cancelled, nil
+}
+
+func (self *Redis) RemoveCancelledJobs(
+	ctx context.Context,
+	jobIds []string,
+) error {
+	if len(jobIds) == 0 {
+		return nil
+	}
+	members := make([]interface{}, len(jobIds))
+	for i, id := range jobIds {
+		members[i] = id
+	}
+	_, err := self.rdb.SRem(ctx, cancelledJobsKey, members...).Result()
+	return err
 }
 
 func (self *Redis) Lock(

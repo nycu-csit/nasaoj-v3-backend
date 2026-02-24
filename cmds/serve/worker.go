@@ -42,7 +42,8 @@ var workerCmd = &cobra.Command{
 		jobIn := make(chan models.JobWithFile)
 		jobOut := make(chan models.JobWithFile, viper.GetInt64("threads")*2)
 
-		go workflows.Heartbeat(client, ctx)
+		cancelRegistry := workflows.NewCancelRegistry()
+		go workflows.Heartbeat(client, ctx, cancelRegistry)
 
 		go func() { // FetchJob threads
 			retCh := make(chan error)
@@ -73,12 +74,10 @@ var workerCmd = &cobra.Command{
 		}()
 
 		for i := int64(0); i < viper.GetInt64("threads"); i++ {
-			go workflows.WorkerThread(ctx, jobIn, jobOut)
+			go workflows.WorkerThread(ctx, jobIn, jobOut, cancelRegistry)
 		}
 
-		select {
-		case <-ctx.Done():
-		}
+		<-ctx.Done()
 	},
 }
 
@@ -94,7 +93,7 @@ func init() {
 	workerCmd.Flags().
 		Int64("thread-backoff", 2, "Thread backoff seconds")
 	workerCmd.Flags().
-		Int64("heartbeat-sec", 10, "Heartbeat interval in seconds")
+		Int64("heartbeat-sec", 5, "Heartbeat interval in seconds")
 	workerCmd.Flags().
 		Int("putjob-retry", 3, "How many times to retry if put job failed")
 	workerCmd.Flags().

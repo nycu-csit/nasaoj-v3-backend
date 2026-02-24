@@ -1583,7 +1583,7 @@ func (self *Postgres) SkipJobs(
 
 		_, err = tx.NewUpdate().
 			Model((*models.Job)(nil)).
-			Set("status = ?", models.StatusSkip).
+			Set("status = ?", models.StatusSkipped).
 			Where("sub_id = ?", subId).
 			WhereGroup(" AND ", func(q *bun.UpdateQuery) *bun.UpdateQuery {
 				return q.
@@ -1629,12 +1629,21 @@ func (self *Postgres) UpdateJob(
 		if err != nil {
 			return err
 		}
-		_, err = tx.NewUpdate().
+
+		res, err := tx.NewUpdate().
 			Model(job).
 			WherePK().
+			Where("status != ?", models.StatusSkipped).
 			Exec(ctx)
 		if err != nil {
 			return err
+		}
+		cnt, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if cnt == 0 {
+			return types.JobAlreadySkippedError
 		}
 		return nil
 	})
@@ -1661,7 +1670,7 @@ func (self *Postgres) CancelSubmission(
 	ctx context.Context,
 	subId int64,
 	ownerId int64,
-) error {
+) ([]string, error) {
 	var sub models.Submission
 	err := self.db.NewSelect().
 		Model(&sub).
@@ -1669,22 +1678,37 @@ func (self *Postgres) CancelSubmission(
 		Where("owner_id = ?", ownerId).
 		Scan(ctx)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	// Get running jobs before marking them as skipped
+	var runningJobs []models.Job
+	err = self.db.NewSelect().
+		Model(&runningJobs).
+		Where("sub_id = ?", subId).
+		Where("status = ?", models.StatusRunning).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	runningJobIds := make([]string, len(runningJobs))
+	for i, job := range runningJobs {
+		runningJobIds[i] = job.Id()
 	}
 
 	_, err = self.db.NewUpdate().
 		Model((*models.Job)(nil)).
-		Set("status = ?", models.StatusSkip).
+		Set("status = ?", models.StatusSkipped).
 		Where("sub_id = ?", subId).
 		WhereGroup(" AND ", func(q *bun.UpdateQuery) *bun.UpdateQuery {
 			return q.
 				Where("status = ?", models.StatusBlocked).
-				WhereOr("status = ?", models.StatusPending).
-				WhereOr("status = ?", models.StatusRunning)
+				WhereOr("status = ?", models.StatusPending)
 		}).
 		Exec(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	pending := []string{
@@ -1695,11 +1719,11 @@ func (self *Postgres) CancelSubmission(
 
 	for _, key := range pending {
 		if err := self.cache.Delete(ctx, key); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return runningJobIds, nil
 }
 
 func (self *Postgres) TimeoutJobById(

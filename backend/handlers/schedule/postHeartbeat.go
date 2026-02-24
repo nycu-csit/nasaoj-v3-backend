@@ -14,6 +14,10 @@ type HeartbeatRequest struct {
 	Tags []string `json:"tags"`
 }
 
+type HeartbeatResponse struct {
+	CancelJobs []string `json:"cancelJobs"`
+}
+
 func (self *Handlers) PostScheduleHeartbeat(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {
@@ -37,8 +41,10 @@ func (self *Handlers) PostScheduleHeartbeat(
 		}
 	}
 
+	workerName := req.Header.Get("X-Worker-Name")
+
 	if err := self.workers.UpdateWorkerStatus(ctx,
-		req.Header.Get("X-Worker-Name"),
+		workerName,
 		utils.GetRemoteAddr(req),
 		heartbeat.Tags); err != nil {
 		return middlewares.HTTPError{
@@ -48,5 +54,36 @@ func (self *Handlers) PostScheduleHeartbeat(
 		}
 	}
 
-	return utils.Success(w)
+	// Get jobs running on this worker
+	workerJobs, err := self.workers.GetWorkerJobs(ctx, workerName)
+	if err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Message:     "failed to get worker jobs",
+			OriginError: err,
+		}
+	}
+
+	// Check which jobs should be cancelled
+	cancelJobs, err := self.workers.GetCancelledJobs(ctx, workerJobs)
+	if err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Message:     "failed to get cancelled jobs",
+			OriginError: err,
+		}
+	}
+
+	// Remove cancelled jobs from the set (they will be handled by the worker)
+	if len(cancelJobs) > 0 {
+		if err := self.workers.RemoveCancelledJobs(ctx, cancelJobs); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to remove cancelled jobs",
+				OriginError: err,
+			}
+		}
+	}
+
+	return bunrouter.JSON(w, HeartbeatResponse{CancelJobs: cancelJobs})
 }

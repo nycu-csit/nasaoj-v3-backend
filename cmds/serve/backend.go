@@ -35,7 +35,7 @@ import (
 )
 
 //	@title			NASAOJ v3
-//	@version		2.0
+//	@version		3.0
 //	@termsOfService	http://swagger.io/terms/
 
 // @license.name	0BSD
@@ -120,6 +120,9 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.BunrouterOtel).
 			Use(middlewares.AccessLog).
 			Use(middlewares.CORSHandler)
+
+		backend.GET("/",
+			utils.Error404)
 
 		if viper.GetBool("swagger") {
 			backend.GET("/swagger/*any",

@@ -1,0 +1,29 @@
+---
+name: Test cancel
+problemId: 14
+description: Test cancel mechanism
+cooldown: 0
+stages:
+  stage01:
+    testcases:
+      - name: sleep
+        files:
+          - wait.sh
+        scripts:
+          - bash wait.sh
+    before:
+      - stage02
+    score: 10
+  stage02:
+    testcases:
+      - name: sleep-longer
+        scripts:
+          - sleep 10
+    before:
+      - stage03
+    score: 10
+  stage03:
+    testcases:
+      - name: skipped
+        scripts:
+          - echo poop

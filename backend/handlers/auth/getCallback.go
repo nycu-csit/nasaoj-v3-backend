@@ -183,6 +183,5 @@ func (self *Handlers) GetCallback(
 			}
 			return utils.Redirect(w, cookie.Value)
 		}
-
 	}
 }

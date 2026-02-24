@@ -7,7 +7,7 @@
         "license": {
             "name": "0BSD"
         },
-        "version": "2.0"
+        "version": "3.0"
     },
     "basePath": "/",
     "paths": {
@@ -2074,7 +2074,7 @@
                 "StatusSuccess",
                 "StatusBlocked",
                 "StatusFailed",
-                "StatusSkip",
+                "StatusSkipped",
                 "StatusTimeout",
                 "StatusMissing"
             ]

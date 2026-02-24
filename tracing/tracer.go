@@ -15,7 +15,7 @@ var (
 	Tracer trace.Tracer
 	Logger *otelzap.Logger
 
-	version string = "v2.1.0-rc0"
+	version string = "v3.0.0"
 )
 
 func InitTracer(appname string) {

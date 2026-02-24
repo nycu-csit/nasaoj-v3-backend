@@ -3,6 +3,7 @@ package workflows
 import (
 	"bytes"
 	"context"
+	"errors"
 	"time"
 
 	"github.com/spf13/viper"
@@ -108,6 +109,11 @@ func RunStage(
 		}
 
 		if err := jobs.UpdateJob(ctx, &job); err != nil {
+			if errors.Is(err, types.JobAlreadySkippedError) {
+				tracing.Logger.Ctx(ctx).
+					Warn("job has already skipped")
+				return nil
+			}
 			tracing.Logger.Ctx(ctx).
 				Error("failed to update job status",
 					zap.Error(err))

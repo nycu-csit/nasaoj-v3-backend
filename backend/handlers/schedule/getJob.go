@@ -87,7 +87,7 @@ func (self *Handlers) GetScheduleJob(
 		attribute.String("job.stage", job.StageName),
 		attribute.String("job.test", job.TestName))
 
-	timeout := time.Duration(job.Timeout) * time.Second
+	timeout := time.Duration(job.Timeout+1) * time.Second
 	job.RefFileURL, err = self.s3.GetFileURL(ctx, job.RefFilename(), timeout)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
