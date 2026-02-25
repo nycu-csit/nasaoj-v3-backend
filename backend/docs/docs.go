@@ -507,8 +507,14 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized"
                     },
+                    "412": {
+                        "description": "Precondition Failed"
+                    },
                     "429": {
-                        "description": "Too Many Requests"
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/api.SubmitTimeoutOutput"
+                        }
                     }
                 }
             }
@@ -1881,6 +1887,23 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "refSHA1": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.SubmitTimeoutOutput": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "retryAfter": {
+                    "type": "integer"
+                },
+                "traceId": {
                     "type": "string"
                 }
             }
