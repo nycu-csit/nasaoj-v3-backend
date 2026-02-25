@@ -509,9 +509,12 @@ func (self *Postgres) UpdateProblemState(
 		var problem models.ProblemMarshaled
 		_, err := self.db.NewUpdate().
 			Model(&problem).
-			Where("sha1 LIKE ?", sha1Prefix+"%").
+			Where("sha1 = (?)", self.db.NewSelect().
+				Column("sha1").
+				Model((*models.ProblemMarshaled)(nil)).
+				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Limit(1)).
 			Set("is_enabled = ?", false).
-			Limit(1).
 			Returning("sha1").
 			Exec(ctx)
 		if err != nil {
@@ -837,9 +840,12 @@ func (self *Postgres) UpdateToolState(
 		var tool models.ToolMarshaled
 		_, err := self.db.NewUpdate().
 			Model(&tool).
-			Where("sha1 LIKE ?", sha1Prefix+"%").
+			Where("sha1 = (?)", self.db.NewSelect().
+				Column("sha1").
+				Model((*models.ToolMarshaled)(nil)).
+				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Limit(1)).
 			Set("is_enabled = ?", false).
-			Limit(1).
 			Returning("sha1").
 			Exec(ctx)
 		if err != nil {
