@@ -60,12 +60,19 @@ func (self *MinIO) GetFile(
 	ctx context.Context,
 	filename string,
 ) ([]byte, error) {
+	// GetObject won't fail if the key not exist, only fail when the buf being
+	// fetched, like WTF is this inhuman design?
+	ok, err := self.ExistFile(ctx, filename)
+	if err != nil {
+		return []byte{}, err
+	}
+	if !ok {
+		return []byte{}, types.FileNotExistError
+	}
+
 	buf, err := self.GetObject(ctx, viper.GetString("minio-bucket"),
 		filename, minio.GetObjectOptions{})
 	if err != nil {
-		if minio.ToErrorResponse(err).Code == minio.NoSuchKey {
-			return []byte{}, types.FileNotExistError
-		}
 		return []byte{}, err
 	}
 	b, err := io.ReadAll(buf)
