@@ -1,0 +1,13 @@
+---
+.go-cache:
+  variables:
+    GOMODCACHE: $CI_PROJECT_DIR/.gomodcache
+  cache:
+    key:
+      files:
+        - go.mod
+        - go.sum
+    paths:
+      - ${GOMODCACHE}/
+  before_script:
+    - mkdir -p ${GOMODCACHE}
