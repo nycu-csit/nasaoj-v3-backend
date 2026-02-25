@@ -2066,6 +2066,7 @@
                 460,
                 461,
                 462,
+                463,
                 560
             ],
             "x-enum-varnames": [
@@ -2076,6 +2077,7 @@
                 "StatusFailed",
                 "StatusSkipped",
                 "StatusTimeout",
+                "StatusCancelled",
                 "StatusMissing"
             ]
         },

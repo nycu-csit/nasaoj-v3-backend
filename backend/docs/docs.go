@@ -2074,6 +2074,7 @@ const docTemplate = `{
                 460,
                 461,
                 462,
+                463,
                 560
             ],
             "x-enum-varnames": [
@@ -2084,6 +2085,7 @@ const docTemplate = `{
                 "StatusFailed",
                 "StatusSkipped",
                 "StatusTimeout",
+                "StatusCancelled",
                 "StatusMissing"
             ]
         },

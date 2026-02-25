@@ -24,14 +24,15 @@ type JobStatus = int64
 */
 
 const (
-	StatusPending JobStatus = 260
-	StatusRunning JobStatus = 261
-	StatusSuccess JobStatus = 262
-	StatusBlocked JobStatus = 263
-	StatusFailed  JobStatus = 460
-	StatusSkipped JobStatus = 461
-	StatusTimeout JobStatus = 462
-	StatusMissing JobStatus = 560
+	StatusPending   JobStatus = 260
+	StatusRunning   JobStatus = 261
+	StatusSuccess   JobStatus = 262
+	StatusBlocked   JobStatus = 263
+	StatusFailed    JobStatus = 460
+	StatusSkipped   JobStatus = 461
+	StatusTimeout   JobStatus = 462
+	StatusCancelled JobStatus = 463
+	StatusMissing   JobStatus = 560
 )
 
 func JobStatusName(status JobStatus) string {
@@ -50,6 +51,8 @@ func JobStatusName(status JobStatus) string {
 		return "Skipped"
 	case StatusTimeout:
 		return "Timeout"
+	case StatusCancelled:
+		return "Cancelled"
 	case StatusMissing:
 		return "Missing"
 	default:
@@ -120,5 +123,6 @@ func (self Job) IsDone() bool {
 		self.Status == StatusFailed ||
 		self.Status == StatusSkipped ||
 		self.Status == StatusTimeout ||
+		self.Status == StatusCancelled ||
 		self.Status == StatusMissing
 }

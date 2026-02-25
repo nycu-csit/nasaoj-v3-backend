@@ -428,6 +428,7 @@ definitions:
     - 460
     - 461
     - 462
+    - 463
     - 560
     format: int64
     type: integer
@@ -439,6 +440,7 @@ definitions:
     - StatusFailed
     - StatusSkipped
     - StatusTimeout
+    - StatusCancelled
     - StatusMissing
   models.LoginSourceType:
     enum:

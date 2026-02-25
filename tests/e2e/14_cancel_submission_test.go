@@ -219,9 +219,9 @@ func Test_14_3_Submit_and_cancel_via_admin_CLI(t *testing.T) {
 			continue
 		}
 
-		// Check if we have a failed job (cancelled while running)
+		// Check if we have a cancelled job
 		for _, job := range result.Jobs {
-			if job.Status == models.StatusFailed && job.RetCode != 0 {
+			if job.Status == models.StatusCancelled {
 				foundCancelledJob = true
 				t.Logf("found cancelled job: stage=%s test=%s retCode=%d",
 					job.StageName, job.TestName, job.RetCode)
@@ -237,17 +237,17 @@ func Test_14_3_Submit_and_cancel_via_admin_CLI(t *testing.T) {
 
 	// Count job statuses
 	skipCount := 0
-	failedCount := 0
+	cancelCount := 0
 	for _, job := range result.Jobs {
 		switch job.Status {
 		case models.StatusSkipped:
 			skipCount++
-		case models.StatusFailed:
-			failedCount++
+		case models.StatusCancelled:
+			cancelCount++
 		}
 	}
 
-	t.Logf("jobs skipped: %d, failed: %d, total: %d", skipCount, failedCount, len(result.Jobs))
+	t.Logf("jobs skipped: %d, cancelled: %d, total: %d", skipCount, cancelCount, len(result.Jobs))
 
 	// At least some jobs should be skipped (the pending/blocked ones)
 	if skipCount == 0 {
@@ -311,9 +311,9 @@ func Test_14_4_Submit_and_cancel_via_user_API(t *testing.T) {
 			continue
 		}
 
-		// Check if we have a failed job (cancelled while running)
+		// Check if we have a cancelled job
 		for _, job := range result.Jobs {
-			if job.Status == models.StatusFailed && job.RetCode != 0 {
+			if job.Status == models.StatusCancelled {
 				foundCancelledJob = true
 				t.Logf("found cancelled job: stage=%s test=%s retCode=%d",
 					job.StageName, job.TestName, job.RetCode)
@@ -329,17 +329,17 @@ func Test_14_4_Submit_and_cancel_via_user_API(t *testing.T) {
 
 	// Count job statuses
 	skipCount := 0
-	failedCount := 0
+	cancelCount := 0
 	for _, job := range result.Jobs {
 		switch job.Status {
 		case models.StatusSkipped:
 			skipCount++
-		case models.StatusFailed:
-			failedCount++
+		case models.StatusCancelled:
+			cancelCount++
 		}
 	}
 
-	t.Logf("jobs skipped: %d, failed: %d, total: %d", skipCount, failedCount, len(result.Jobs))
+	t.Logf("jobs skipped: %d, cancelled: %d, total: %d", skipCount, cancelCount, len(result.Jobs))
 
 	// At least some jobs should be skipped (the pending/blocked ones)
 	if skipCount == 0 {

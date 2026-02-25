@@ -152,7 +152,7 @@ func RunJob(
 		} else {
 			tracing.Logger.Ctx(ctx).
 				Warn("worker thread cancelled")
-			job.Status = models.StatusFailed
+			job.Status = models.StatusCancelled
 		}
 
 		if cmd.Process != nil {
