@@ -31,6 +31,7 @@ type UserResource struct {
 
 func (self UserResource) Map() map[string]string {
 	ret := map[string]string{
+		"userId":   strconv.FormatInt(self.Id, 10),
 		"username": self.Username,
 		"source":   strconv.FormatInt(int64(self.Source), 10),
 		"sourceId": self.SourceId,
