@@ -58,8 +58,6 @@ type SubmitTimeoutOutput struct {
 //	@Success	200	{object}	SubmitOutput
 //	@Failure	400
 //	@Failure	401
-//	@Failure	412
-//	@Failure	429	{object}	SubmitTimeoutOutput
 //
 //	@Router		/api/admin/submit [post]
 func putAdminSubmitPlaceholder() {}
@@ -71,7 +69,8 @@ func putAdminSubmitPlaceholder() {}
 //	@Success	200	{object}	SubmitOutput
 //	@Failure	400
 //	@Failure	401
-//	@Failure	429
+//	@Failure	412
+//	@Failure	429	{object}	SubmitTimeoutOutput
 //
 //	@Router		/api/submit [post]
 func (self *Handlers) PostSubmit(

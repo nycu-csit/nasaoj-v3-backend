@@ -506,15 +506,6 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized"
-                    },
-                    "412": {
-                        "description": "Precondition Failed"
-                    },
-                    "429": {
-                        "description": "Too Many Requests",
-                        "schema": {
-                            "$ref": "#/definitions/api.SubmitTimeoutOutput"
-                        }
                     }
                 }
             }
@@ -1244,8 +1235,14 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized"
                     },
+                    "412": {
+                        "description": "Precondition Failed"
+                    },
                     "429": {
-                        "description": "Too Many Requests"
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/api.SubmitTimeoutOutput"
+                        }
                     }
                 }
             }
