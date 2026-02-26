@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"slices"
@@ -167,13 +166,29 @@ func (self *Handlers) PostSubmit(
 
 					availableAt := time.Unix(lastSubmit.CreatedAt, 0).
 						Add(time.Duration(problem.Cooldown) * time.Second)
+					afterSec := int64(availableAt.Sub(time.Now()).Seconds())
 					if time.Now().Unix() < availableAt.Unix() {
-						w.Header().Set("Retry-After", fmt.Sprintf("%d",
-							int64(availableAt.Sub(time.Now()).Seconds())))
-						return middlewares.HTTPError{
-							StatusCode: http.StatusTooManyRequests,
-							Message:    "submit in cooldown",
+						httpErr := SubmitTimeoutOutput{
+							HTTPError: middlewares.HTTPError{
+								StatusCode: http.StatusTooManyRequests,
+								Message:    "submit in cooldown",
+							},
+							RetryAfter: afterSec,
 						}
+
+						span := trace.SpanFromContext(ctx)
+						httpErr.TraceID = span.SpanContext().TraceID().String()
+						span.SetAttributes(
+							attribute.Int("http.response.status_code", httpErr.StatusCode),
+						)
+						tracing.Logger.Ctx(ctx).
+							Warn(httpErr.Message,
+								zap.Error(httpErr.OriginError))
+
+						w.Header().Set("Retry-After", strconv.FormatInt(afterSec, 10))
+						_ = bunrouter.JSON(w, httpErr)
+
+						return nil
 					}
 				} else if !errors.Is(err, sql.ErrNoRows) {
 					return middlewares.HTTPError{
