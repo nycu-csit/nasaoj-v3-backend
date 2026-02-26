@@ -185,6 +185,7 @@ func (self *Handlers) PostSubmit(
 							Warn(httpErr.Message,
 								zap.Error(httpErr.OriginError))
 
+						w.WriteHeader(http.StatusTooManyRequests)
 						w.Header().Set("Retry-After", strconv.FormatInt(afterSec, 10))
 						_ = bunrouter.JSON(w, httpErr)
 
@@ -284,6 +285,7 @@ func (self *Handlers) PostSubmit(
 							Warn(httpErr.Message,
 								zap.Error(httpErr.OriginError))
 
+						w.WriteHeader(http.StatusTooManyRequests)
 						w.Header().Set("Retry-After", strconv.FormatInt(afterSec, 10))
 						_ = bunrouter.JSON(w, httpErr)
 
