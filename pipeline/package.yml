@@ -7,6 +7,8 @@ variables:
 
 .kaniko:
   rules:
+    - if: $CI_PIPELINE_SOURCE != "push"
+      when: never
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
   stage: package
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/utils/kaniko
