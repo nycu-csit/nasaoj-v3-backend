@@ -19,7 +19,7 @@ type PutProblemsInputProblem struct {
 	ProblemId   int64                   `json:"problemId"`
 	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
-	PdfUrl      string                  `json:"pdfUrl"`
+	Spec        models.ProblemSpec      `json:"spec"`
 	Stages      map[string]models.Stage `json:"stages"`
 	Args        map[string]string       `json:"args"`
 	Tag         string                  `json:"tag"`
@@ -65,7 +65,7 @@ func (self *Handlers) PutProblems(
 			ProblemId:   input.ProblemId,
 			Name:        input.Name,
 			Description: input.Description,
-			PdfUrl:      input.PdfUrl,
+			Spec:        input.Spec,
 			Stages:      input.Stages,
 			Args:        input.Args,
 			Tag:         input.Tag,

@@ -87,7 +87,7 @@ var problemsCmd = &cobra.Command{
 				ProblemId:   problem.ProblemId,
 				Name:        problem.Name,
 				Description: problem.Description,
-				PdfUrl:      problem.PdfUrl,
+				Spec:        problem.Spec,
 				Stages:      problem.Stages,
 				Args:        problem.Args,
 				Tag:         problem.Tag,

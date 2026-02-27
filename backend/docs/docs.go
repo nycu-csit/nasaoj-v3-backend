@@ -1528,14 +1528,14 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "pdfUrl": {
-                    "type": "string"
-                },
                 "problemId": {
                     "type": "integer"
                 },
                 "sha1": {
                     "type": "string"
+                },
+                "spec": {
+                    "$ref": "#/definitions/api.ProblemOutputSpec"
                 },
                 "stages": {
                     "type": "object",
@@ -1548,6 +1548,17 @@ const docTemplate = `{
                 },
                 "totalScore": {
                     "type": "integer"
+                }
+            }
+        },
+        "api.ProblemOutputSpec": {
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -1608,9 +1619,6 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "pdfUrl": {
-                    "type": "string"
-                },
                 "postScript": {
                     "$ref": "#/definitions/models.Content"
                 },
@@ -1622,6 +1630,9 @@ const docTemplate = `{
                 },
                 "sha1": {
                     "type": "string"
+                },
+                "spec": {
+                    "$ref": "#/definitions/models.ProblemSpec"
                 },
                 "stages": {
                     "type": "object",
@@ -2137,6 +2148,17 @@ const docTemplate = `{
                 },
                 "ownerId": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.ProblemSpec": {
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },

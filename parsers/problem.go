@@ -2,6 +2,7 @@ package parsers
 
 import (
 	"context"
+	"fmt"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
@@ -11,12 +12,18 @@ import (
 
 type ProblemIdType = int64
 type TagType = string
+
+type ProblemSpec struct {
+	Type string `yaml:"type"`
+	Link string `yaml:"link"`
+}
+
 type problem struct {
 	ProblemId ProblemIdType `yaml:"problemId"`
 
 	Name        string            `yaml:"name"`
 	Description string            `yaml:"description"`
-	PdfUrl      string            `yaml:"pdfUrl"`
+	Spec        ProblemSpec       `yaml:"spec"`
 	Stages      map[string]Stage  `yaml:"stages"`
 	Args        map[string]string `yaml:"args"`
 	Tag         TagType           `yaml:"tag"`
@@ -57,6 +64,17 @@ func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
 		self.problem.Cooldown = 300
 	}
 
+	switch self.problem.Spec.Type {
+	case "pdf", "site":
+	case "":
+		if self.problem.Spec.Link != "" {
+			return fmt.Errorf("missing spec.type, must be 'pdf' or 'site'")
+		}
+	default:
+		return fmt.Errorf("invalid spec.type: %q, must be 'pdf' or 'site'",
+			self.problem.Spec.Type)
+	}
+
 	return nil
 }
 
@@ -69,12 +87,15 @@ func (self *Problem) ToModelProblem(
 
 		Name:        self.Name,
 		Description: self.Description,
-		PdfUrl:      self.PdfUrl,
-		Stages:      make(map[string]models.Stage),
-		Args:        self.Args,
-		Tag:         self.Tag,
-		Deadline:    self.Deadline,
-		Cooldown:    self.Cooldown,
+		Spec: models.ProblemSpec{
+			Type: self.Spec.Type,
+			Link: self.Spec.Link,
+		},
+		Stages:   make(map[string]models.Stage),
+		Args:     self.Args,
+		Tag:      self.Tag,
+		Deadline: self.Deadline,
+		Cooldown: self.Cooldown,
 	}
 
 	if res, err := self.PreScript.ToModelContent(ctx, contentFiles); err == nil {

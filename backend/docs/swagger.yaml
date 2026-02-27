@@ -71,12 +71,12 @@ definitions:
         type: boolean
       name:
         type: string
-      pdfUrl:
-        type: string
       problemId:
         type: integer
       sha1:
         type: string
+      spec:
+        $ref: '#/definitions/api.ProblemOutputSpec'
       stages:
         additionalProperties:
           $ref: '#/definitions/api.problemOutputStage'
@@ -85,6 +85,13 @@ definitions:
         type: string
       totalScore:
         type: integer
+    type: object
+  api.ProblemOutputSpec:
+    properties:
+      link:
+        type: string
+      type:
+        type: string
     type: object
   api.PutCancelSubmissionInput:
     properties:
@@ -123,8 +130,6 @@ definitions:
         type: string
       name:
         type: string
-      pdfUrl:
-        type: string
       postScript:
         $ref: '#/definitions/models.Content'
       preScript:
@@ -133,6 +138,8 @@ definitions:
         type: integer
       sha1:
         type: string
+      spec:
+        $ref: '#/definitions/models.ProblemSpec'
       stages:
         additionalProperties:
           $ref: '#/definitions/models.Stage'
@@ -473,6 +480,13 @@ definitions:
         type: integer
       ownerId:
         type: integer
+    type: object
+  models.ProblemSpec:
+    properties:
+      link:
+        type: string
+      type:
+        type: string
     type: object
   models.RefType:
     enum:

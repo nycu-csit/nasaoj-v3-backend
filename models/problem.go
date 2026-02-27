@@ -9,11 +9,16 @@ import (
 	"github.com/uptrace/bun"
 )
 
+type ProblemSpec struct {
+	Type string `json:"type" yaml:"type"`
+	Link string `json:"link" yaml:"link"`
+}
+
 type Problem struct {
 	ProblemId   int64             `json:"problemId" yaml:"problemId"`
 	Name        string            `json:"name" yaml:"name"`
 	Description string            `json:"description" yaml:"description"`
-	PdfUrl      string            `json:"pdfUrl" yaml:"pdfUrl"`
+	Spec        ProblemSpec       `json:"spec" yaml:"spec"`
 	Stages      map[string]Stage  `json:"stages" yaml:"stages"`
 	Args        map[string]string `json:"args" yaml:"args"`
 	Tag         string            `json:"tag" yaml:"tag"`
@@ -31,7 +36,7 @@ type problemHash struct {
 	ProblemId   int64             `json:"problemId"`
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
-	PdfUrl      string            `json:"pdfUrl"`
+	Spec        ProblemSpec       `json:"spec"`
 	Stages      map[string]Stage  `json:"stages"`
 	Args        map[string]string `json:"args"`
 	Tag         string            `json:"tag"`
@@ -63,7 +68,7 @@ func (self Problem) Marshal() (ProblemMarshaled, error) {
 		ProblemId:   self.ProblemId,
 		Name:        self.Name,
 		Description: self.Description,
-		PdfUrl:      self.PdfUrl,
+		Spec:        self.Spec,
 		Stages:      self.Stages,
 		Args:        self.Args,
 		Tag:         self.Tag,

@@ -18,6 +18,11 @@ type problemOutputStage struct {
 	Testcases []problemOutputStageTestcase `json:"testcases"`
 }
 
+type ProblemOutputSpec struct {
+	Type string `json:"type"`
+	Link string `json:"link"`
+}
+
 type ProblemOutput struct {
 	ProblemId  int64  `json:"problemId"`
 	SHA1       string `json:"sha1"`
@@ -25,7 +30,7 @@ type ProblemOutput struct {
 
 	Name        string                        `json:"name"`
 	Description string                        `json:"description"`
-	PdfUrl      string                        `json:"pdfUrl"`
+	Spec        ProblemOutputSpec             `json:"spec"`
 	Stages      map[string]problemOutputStage `json:"stages"`
 	Tag         string                        `json:"tag"`
 	TotalScore  int64                         `json:"totalScore"`
@@ -76,12 +81,15 @@ func (self *Handlers) GetProblems(
 				ImportedAt:  problem.ImportedAt,
 				ProblemId:   problem.ProblemId,
 				Description: problem.Description,
-				PdfUrl:      problem.PdfUrl,
-				Stages:      make(map[string]problemOutputStage),
-				Tag:         problem.Tag,
-				TotalScore:  problem.TotalScore,
-				IsEnabled:   problem.IsEnabled,
-				Deadline:    problem.Deadline,
+				Spec: ProblemOutputSpec{
+					Type: problem.Spec.Type,
+					Link: problem.Spec.Link,
+				},
+				Stages:     make(map[string]problemOutputStage),
+				Tag:        problem.Tag,
+				TotalScore: problem.TotalScore,
+				IsEnabled:  problem.IsEnabled,
+				Deadline:   problem.Deadline,
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{

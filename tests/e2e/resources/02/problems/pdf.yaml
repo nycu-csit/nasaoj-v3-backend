@@ -5,7 +5,9 @@ description: |
   this is a 
   multiline
   description
-pdfUrl: https://www.nycu.edu.tw/userfiles/aach/files/20231011094945834.pdf
+spec:
+  type: pdf
+  link: https://www.nycu.edu.tw/userfiles/aach/files/20231011094945834.pdf
 deadline: 1893427200
 stages:
   stage1:

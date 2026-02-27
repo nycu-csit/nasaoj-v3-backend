@@ -43,12 +43,15 @@ func (self *Handlers) GetProblem(
 		ImportedAt:  problem.ImportedAt,
 		ProblemId:   problem.ProblemId,
 		Description: problem.Description,
-		PdfUrl:      problem.PdfUrl,
-		Stages:      make(map[string]problemOutputStage),
-		Tag:         problem.Tag,
-		TotalScore:  problem.TotalScore,
-		IsEnabled:   problem.IsEnabled,
-		Deadline:    problem.Deadline,
+		Spec: ProblemOutputSpec{
+			Type: problem.Spec.Type,
+			Link: problem.Spec.Link,
+		},
+		Stages:     make(map[string]problemOutputStage),
+		Tag:        problem.Tag,
+		TotalScore: problem.TotalScore,
+		IsEnabled:  problem.IsEnabled,
+		Deadline:   problem.Deadline,
 	}
 	for stageName, stage := range problem.Stages {
 		retStage := problemOutputStage{
