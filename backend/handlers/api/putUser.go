@@ -50,11 +50,11 @@ func (self *Handlers) PutUser(
 		}
 	}
 
-	if err := self.db.InsertUserResources(ctx,
-		[]models.UserResource{{
+	if err := self.db.UpdateUserArgsById(ctx,
+		models.UserResource{
 			Id:   privs.OwnerId,
 			Args: inputArgs,
-		}}, nil); err != nil {
+		}); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "insert user resources failed",

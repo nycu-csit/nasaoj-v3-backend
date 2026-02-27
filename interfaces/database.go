@@ -50,6 +50,11 @@ type Database interface {
 		creds []models.PlainCred,
 	) error
 
+	UpdateUserArgsById(
+		ctx context.Context,
+		user models.UserResource,
+	) error
+
 	UpsertUser(
 		ctx context.Context,
 		user models.UserResource,

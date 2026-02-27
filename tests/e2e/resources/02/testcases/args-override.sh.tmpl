@@ -1,0 +1,23 @@
+#!/usr/bin/bash
+set -o errexit
+
+ENDPOINT='{{ .endpoint }}'
+JOB_TOKEN='{{ .jobToken }}'
+
+put_args() {
+  curl "$ENDPOINT/api/user" -X PUT \
+    -H "Authorization: Bearer $JOB_TOKEN" \
+    --fail --no-progress-meter --json @-
+}
+
+# Override existing 'poop' arg with new value
+put_args <<EOF
+  {"poop": "overridden"}
+EOF
+
+# Add a new arg
+put_args <<EOF
+  {"newarg": "hello"}
+EOF
+
+# vim: syntax=bash

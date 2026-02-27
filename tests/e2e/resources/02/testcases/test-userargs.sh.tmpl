@@ -27,8 +27,11 @@ put_args <<EOF
   {"pass": "$randomString"}
 EOF
 
+TEST="$(jq -r '.test' "$JOB_INPUT")"
+echo "test: $TEST"
+
 put_args <<EOF
-  {"poop": "poop"}
+  {"poop": "$TEST"}
 EOF
 
 # vim: syntax=bash

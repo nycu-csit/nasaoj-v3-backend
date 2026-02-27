@@ -1768,8 +1768,10 @@ func (self *Postgres) GetUserResource(
 	id int64,
 ) (models.UserResource, error) {
 	var ret models.UserResource
-	err := self.db.NewSelect().Model(&ret).
-		Where("id = ?", id).Scan(ctx)
+	err := self.db.NewSelect().
+		Model(&ret).
+		Where("id = ?", id).
+		Scan(ctx)
 	return ret, err
 }
 
@@ -2002,4 +2004,47 @@ func (self *Postgres) DeleteUser(
 		Where("id = ?", id).
 		Exec(ctx)
 	return err
+}
+
+func (self *Postgres) UpdateUserArgsById(
+	ctx context.Context,
+	user models.UserResource,
+) error {
+	return self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		var oldUser models.UserResource
+		err := tx.NewSelect().
+			Model(&oldUser).
+			Where("id = ?", user.Id).
+			Scan(ctx)
+		if err != nil {
+			return err
+		}
+
+		b, err := utils.JSONMerge(ctx, oldUser, user)
+		if err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to merge json",
+					zap.Error(err))
+			return err
+		}
+
+		var mergedUser models.UserResource
+		if err := json.Unmarshal(b, &mergedUser); err != nil {
+			tracing.Logger.Ctx(ctx).
+				Error("failed to unmarshal json to user resource",
+					zap.Error(err))
+			return err
+		}
+
+		_, err = tx.NewUpdate().
+			Column("args").
+			Model(&mergedUser).
+			Where("id = ?", user.Id).
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

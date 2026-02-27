@@ -88,7 +88,7 @@ func RunStage(
 
 		jobToken, err := tokens.GenerateToken(
 			ctx, models.NewJobPrivs(submission.OwnerId), time.Duration(
-				testcase.Timeout+viper.GetInt64("worker-timeout"))*time.Second)
+				2*testcase.Timeout+viper.GetInt64("worker-timeout"))*time.Second)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to generate token",

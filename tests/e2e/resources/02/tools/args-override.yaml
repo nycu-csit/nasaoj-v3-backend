@@ -1,0 +1,15 @@
+---
+name: Args Override Test
+toolId: 89
+description: Test tool that overrides existing args and adds new ones
+args:
+  endpoint: 'http://backend:8080'
+inputArgs:
+  - name: dummy
+    type: string
+testcase:
+  name: override
+  files:
+    - args-override.sh.tmpl
+  scripts:
+    - bash args-override.sh.tmpl
