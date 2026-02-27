@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/parsers"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 func TestProblem(t *testing.T) {
