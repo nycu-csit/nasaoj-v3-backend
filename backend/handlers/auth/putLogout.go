@@ -36,12 +36,15 @@ func (self *Handlers) PutLogout(
 		}
 	}
 
+	w.Header()["Set-Cookie"] = []string{}
 	http.SetCookie(w, &http.Cookie{
 		Name:   "access_token",
+		Path:   "/",
 		MaxAge: -1,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:   "refresh_token",
+		Path:   "/",
 		MaxAge: -1,
 	})
 
