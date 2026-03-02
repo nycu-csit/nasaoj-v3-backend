@@ -70,10 +70,15 @@ func LoadTestcases(
 				Info("found file",
 					zap.String("file.name", name))
 
-			h := sha1.Sum(b)
+			h := sha1.New()
+			if _, err := h.Write(b); err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to copy file",
+						zap.Error(err))
+			}
 			contentFile := models.ContentFile{
 				Name:    name,
-				SHA1:    hex.EncodeToString(h[:]),
+				SHA1:    hex.EncodeToString(h.Sum([]byte(name))),
 				Payload: string(b[:]),
 			}
 			if path.Ext(name) == ".tmpl" {
