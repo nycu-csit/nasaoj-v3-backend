@@ -70,6 +70,7 @@ func (self *Content) ToModelContent(
 			return models.Content{},
 				types.FileNotExistError
 		}
+		contentFile.Name = file
 		ret.Files = append(ret.Files, contentFile)
 	}
 

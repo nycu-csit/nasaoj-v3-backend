@@ -163,7 +163,11 @@ func (self *Postgres) HydrateContentFiles(
 		return err
 	}
 
+	for i, file := range *contentFiles {
+		res[i].Name = file.Name
+	}
 	*contentFiles = res
+
 	return nil
 }
 
@@ -366,14 +370,14 @@ func (self *Postgres) GetProblemById(
 func (self *Postgres) InsertProblem(
 	ctx context.Context,
 	problem models.Problem,
-) error {
+) (string, error) {
 	problemMarshaled, err := problem.Marshal()
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to marshal problem",
 				zap.String("problem.name", problem.Name),
 				zap.Error(err))
-		return err
+		return "", err
 	}
 
 	_, err = self.db.NewInsert().
@@ -381,19 +385,19 @@ func (self *Postgres) InsertProblem(
 		On("CONFLICT (sha1) DO NOTHING").
 		Exec(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if self.cache != nil {
 		if err := self.cache.Delete(
 			ctx, cacheProblemSHA1Key(problemMarshaled.SHA1)); err != nil {
-			return err
+			return "", err
 		}
 		if err := self.cache.Delete(ctx, cacheProblemEnabledKey()); err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return problemMarshaled.SHA1, nil
 }
 
 func (self *Postgres) getProblemsEnabled(

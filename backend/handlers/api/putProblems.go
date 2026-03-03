@@ -81,14 +81,15 @@ func (self *Handlers) PutProblems(
 				OriginError: err,
 			}
 		}
-		if err := self.problems.InsertProblem(ctx, problem); err != nil {
+		sha1, err := self.problems.InsertProblem(ctx, problem)
+		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
-				Message:     fmt.Sprintf("insert problem '%s' failed", input.SHA1),
+				Message:     fmt.Sprintf("insert problem '%s' failed", input.Name),
 				OriginError: err,
 			}
 		}
-		io.WriteString(&res, input.SHA1+"\n")
+		io.WriteString(&res, sha1+"\n")
 	}
 
 	_, err = io.WriteString(w, res.String())

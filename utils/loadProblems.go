@@ -78,7 +78,7 @@ func LoadProblems(
 				return err
 			}
 
-			if err := problems.InsertProblem(ctx, problem); err != nil {
+			if _, err := problems.InsertProblem(ctx, problem); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to insert problem",
 						zap.Error(err))

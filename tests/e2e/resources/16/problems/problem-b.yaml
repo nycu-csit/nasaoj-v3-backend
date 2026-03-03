@@ -1,0 +1,13 @@
+---
+name: identical-testcase-b
+problemId: 17
+description: Problem B with identical testcase in path2
+stages:
+  stage1:
+    testcases:
+      - name: test1
+        files:
+          - path2/run.sh
+        scripts:
+          - bash path2/run.sh
+    score: 100

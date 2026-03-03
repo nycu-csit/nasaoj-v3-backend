@@ -33,7 +33,7 @@ type ProblemStorage interface {
 	InsertProblem(
 		ctx context.Context,
 		problem models.Problem,
-	) error
+	) (string, error)
 
 	UpdateProblemState(
 		ctx context.Context,
