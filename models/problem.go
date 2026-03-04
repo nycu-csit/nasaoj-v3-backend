@@ -9,6 +9,13 @@ import (
 	"github.com/uptrace/bun"
 )
 
+type ScoreTypeType = int
+
+const (
+	ScoreTypeDefault ScoreTypeType = iota
+	ScoreTypeSelfManaged
+)
+
 type ProblemSpec struct {
 	Type string `json:"type" yaml:"type"`
 	Link string `json:"link" yaml:"link"`
@@ -26,6 +33,7 @@ type Problem struct {
 	PostScript  Content           `json:"postScript" yaml:"postScript"`
 	Cooldown    int64             `json:"cooldown" yaml:"cooldown"`
 	Deadline    int64             `json:"deadline" yaml:"deadline"`
+	ScoreType   ScoreTypeType     `json:"scoreType" yaml:"scoreType"`
 
 	ImportedAt int64 `json:"importedAt" yaml:"importedAt"`
 	IsEnabled  bool  `json:"isEnabled" yaml:"isEnabled"`
@@ -44,6 +52,7 @@ type problemHash struct {
 	PostScript  Content           `json:"postScript"`
 	Cooldown    int64             `json:"cooldown"`
 	Deadline    int64             `json:"deadline"`
+	ScoreType   ScoreTypeType     `json:"scoreType"`
 }
 
 type ProblemMarshaled struct {
@@ -76,6 +85,7 @@ func (self Problem) Marshal() (ProblemMarshaled, error) {
 		PostScript:  self.PostScript,
 		Cooldown:    self.Cooldown,
 		Deadline:    self.Deadline,
+		ScoreType:   self.ScoreType,
 	})
 	if err != nil {
 		return ret, err

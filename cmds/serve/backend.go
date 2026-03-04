@@ -181,12 +181,14 @@ var backendCmd = &cobra.Command{
 		apiWriteGroup.PUT("/submission/cancel",
 			apiHandlers.PutCancelSubmission(false))
 
-		apiUserArgsGroup := apiGroup.NewGroup("").
+		apiJobGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanUserArgsWrite: models.ScopeSelf,
 			}))
-		apiUserArgsGroup.PUT("/user",
+		apiJobGroup.PUT("/user",
 			apiHandlers.PutUser)
+		apiJobGroup.PUT("/score",
+			apiHandlers.PutScore)
 
 		apiAdminGroup := apiGroup.NewGroup("/admin")
 		apiAdminReadGroup := apiAdminGroup.NewGroup("").

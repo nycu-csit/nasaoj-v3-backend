@@ -20,16 +20,16 @@ type problemResult struct {
 
 var (
 	results = []problemResult{
-		{1, "45c67215240c475aa238a564fec6059e71efc081", 92},
-		{2, "370272aab2b329ad1fe0d83abdf86c0d4b129b7e", 92},
-		{3, "3225172a487d8926dbb23249cafe775a25ec63ea", 0},
-		{4, "7a0c169a2f7c56d714bba7a5d3666435e4d8ea36", 100},
-		{5, "aaea7df04e76d6f53ba637fdb09f112dd3384b5c", 0},
-		{6, "d7f6801ef36c00d45ad14687803a9aba738fb18e", 0},
-		{7, "e8f98219127e015ea4ac2c2a7145f24f0b4e14b5", 100},
-		{8, "0d329a30ebeb8e5f9383cd1755e363c4a4c698ee", 0},
+		{1, "763dd6129d388c2c672825cbc3083bea6d79da3d", 92},
+		{2, "5ae6410b1ff7a82a0fc582369ebdcb269ade3f17", 92},
+		{3, "4dfc6e1dfe1cb5a90add4ead81d5f207c3cd7998", 0},
+		{4, "c4954e9fc09997fd2ae7c960ea2ff1afd922dc05", 100},
+		{5, "0bf60f1db0d8daf9a32d38f87277ff21f620fe77", 0},
+		{6, "fc7314f0efc9c104e5d9b973714950d89bc81d6a", 0},
+		{7, "b7ebd2e2dc106b9a0584044a27f7fcdc7977b7a8", 100},
+		{8, "4950b5a41bbc97dd3eaded72a1f7b334d8ff5fc7", 0},
 		// {9, "76cefec2a387a628fd5cb630bbf160089ec77a23", 100},
-		{10, "2fcabd4107596a4a96464e2ca926a147a8f27688", 100},
+		{10, "b4d715b81ad74554bda3d9470e817404ddc727da", 100},
 	}
 )
 

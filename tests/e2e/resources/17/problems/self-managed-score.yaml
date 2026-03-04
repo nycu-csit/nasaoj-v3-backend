@@ -1,0 +1,16 @@
+---
+name: self-managed-score
+problemId: 18
+description: Test self-managed scoring
+scoreType: self-managed
+args:
+  endpoint: http://backend:8080
+stages:
+  main:
+    testcases:
+      - name: put-score
+        files:
+          - put-score.sh.tmpl
+        scripts:
+          - bash put-score.sh.tmpl
+    score: 0

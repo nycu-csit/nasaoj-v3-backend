@@ -33,6 +33,7 @@ type problemResult struct {
 	Deadline    string            `json:"deadline" yaml:"deadline"`
 	TotalScore  int64             `json:"totalScore" yaml:"totalScore"`
 	IsEnabled   bool              `json:"isEnabled" yaml:"isEnabled"`
+	ScoreType   int               `json:"scoreType" yaml:"scoreType"`
 }
 
 var problemsCmd = &cobra.Command{
@@ -72,6 +73,7 @@ var problemsCmd = &cobra.Command{
 					Deadline:   time.Unix(problem.Deadline, 0).String(),
 					TotalScore: problem.TotalScore,
 					IsEnabled:  problem.IsEnabled,
+					ScoreType:  int(problem.ScoreType),
 				})
 		}
 

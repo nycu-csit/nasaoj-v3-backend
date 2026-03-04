@@ -69,4 +69,10 @@ type SubmissionStorage interface {
 		subId int64,
 		ownerId int64,
 	) ([]string, error) // returns running job IDs that were cancelled
+
+	UpdateSubmissionScore(
+		ctx context.Context,
+		subId int64,
+		score int64,
+	) error
 }

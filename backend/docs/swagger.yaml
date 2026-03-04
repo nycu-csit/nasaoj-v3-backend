@@ -252,6 +252,13 @@ definitions:
       testName:
         type: string
     type: object
+  api.ScoreRequest:
+    properties:
+      score:
+        type: integer
+      subId:
+        type: integer
+    type: object
   api.SubmissionsOutput:
     properties:
       pageSize:
@@ -1261,6 +1268,39 @@ paths:
           description: Unauthorized
         "404":
           description: Not Found
+  /api/score:
+    put:
+      consumes:
+      - application/json
+      description: Updates the score for a submission that uses self-managed scoring
+        type
+      parameters:
+      - description: Score update request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ScoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: string
+        "400":
+          description: Invalid request or problem does not use self-managed scoring
+          schema:
+            type: string
+        "404":
+          description: Submission not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Update submission score for self-managed scoring
   /api/scores:
     get:
       parameters:

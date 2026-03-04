@@ -27,6 +27,7 @@ type PutProblemsInputProblem struct {
 	PostScript  models.Content          `json:"postScript"`
 	Cooldown    int64                   `json:"cooldown"`
 	Deadline    int64                   `json:"deadline"`
+	ScoreType   models.ScoreTypeType    `json:"scoreType"`
 }
 
 // PutProblems
@@ -73,6 +74,7 @@ func (self *Handlers) PutProblems(
 			PostScript:  input.PostScript,
 			Cooldown:    input.Cooldown,
 			Deadline:    input.Deadline,
+			ScoreType:   input.ScoreType,
 		}
 		if err := utils.CheckDeps(ctx, problem); err != nil {
 			return middlewares.HTTPError{

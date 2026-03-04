@@ -992,10 +992,29 @@ func (self *Postgres) getSubmissionScore(
 		return models.UserScore{}, err
 	}
 
-	score, isFinal := utils.CalcScore(problem, sub)
+	var score int64
+	var isFinal bool
+
+	if problem.ScoreType == models.ScoreTypeSelfManaged {
+		// For self-managed scoring, use the score stored in submission
+		score = sub.Score
+		// isFinal is true when all jobs are done (not pending/running/blocked)
+		isFinal = true
+		for _, job := range sub.Jobs {
+			switch job.Status {
+			case models.StatusPending, models.StatusRunning, models.StatusBlocked:
+				isFinal = false
+			}
+		}
+	} else {
+		// Default: calculate from job results
+		calcScore, final := utils.CalcScore(problem, sub)
+		score = calcScore.Score
+		isFinal = final
+	}
 
 	return models.UserScore{
-		Score:    score.Score,
+		Score:    score,
 		Id:       sub.OwnerId,
 		Username: user.Username,
 
@@ -1038,7 +1057,7 @@ func (self *Postgres) getUserScoreWithStages(
 	var sub models.Submission
 	err := self.db.NewSelect().
 		Model(&sub).
-		Column("id", "owner_id", "problem_id", "problem_sha1", "created_at").
+		Column("id", "owner_id", "problem_id", "problem_sha1", "created_at", "score").
 		Where("problem_id = ?", refId).
 		Where("owner_id = ?", id).
 		OrderExpr("id DESC").
@@ -1059,11 +1078,30 @@ func (self *Postgres) getUserScoreWithStages(
 		return models.UserScoreWithStages{}, err
 	}
 
-	score, isFinal := utils.CalcScore(problem, sub)
+	var scoreResult models.Score
+	var isFinal bool
+
+	if problem.ScoreType == models.ScoreTypeSelfManaged {
+		// For self-managed scoring, return the stored score with empty stages
+		scoreResult = models.Score{
+			Score:  sub.Score,
+			Stages: make(map[string]int64),
+		}
+		isFinal = true
+		for _, job := range sub.Jobs {
+			switch job.Status {
+			case models.StatusPending, models.StatusRunning, models.StatusBlocked:
+				isFinal = false
+			}
+		}
+	} else {
+		scoreResult, isFinal = utils.CalcScore(problem, sub)
+	}
+
 	return models.UserScoreWithStages{
 		Id:       id,
 		Username: user.Username,
-		Score:    score,
+		Score:    scoreResult,
 
 		CreatedAt: sub.CreatedAt,
 		IsFinal:   isFinal,
@@ -1301,7 +1339,13 @@ func (self *Postgres) GetScoresWithDeadline(
 
 	var ret []models.UserScore
 	for _, sub := range submissions {
-		score, _ := utils.CalcScore(problem, sub)
+		var score int64
+		if problem.ScoreType == models.ScoreTypeSelfManaged {
+			score = sub.Score
+		} else {
+			calcScore, _ := utils.CalcScore(problem, sub)
+			score = calcScore.Score
+		}
 
 		user, err := self.GetUserResource(ctx, sub.OwnerId)
 		if err != nil {
@@ -1309,7 +1353,7 @@ func (self *Postgres) GetScoresWithDeadline(
 		}
 
 		ret = append(ret, models.UserScore{
-			Score:     score.Score,
+			Score:     score,
 			Id:        sub.OwnerId,
 			Username:  user.Username,
 			CreatedAt: sub.CreatedAt,
@@ -1662,6 +1706,45 @@ func (self *Postgres) UpdateJob(
 	}
 
 	pending := []string{
+		cacheUsersKey(sub.ProblemId),
+		cacheScoresKey(sub.ProblemId),
+		cacheScoresWStagesKey(sub.ProblemId),
+	}
+
+	for _, key := range pending {
+		if err := self.cache.Delete(ctx, key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (self *Postgres) UpdateSubmissionScore(
+	ctx context.Context,
+	subId int64,
+	score int64,
+) error {
+	var sub models.Submission
+	res, err := self.db.NewUpdate().
+		Model(&sub).
+		Set("score = ?", score).
+		Where("id = ?", subId).
+		Returning("owner_id", "problem_id").
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	pending := []string{
+		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
 		cacheUsersKey(sub.ProblemId),
 		cacheScoresKey(sub.ProblemId),
 		cacheScoresWStagesKey(sub.ProblemId),

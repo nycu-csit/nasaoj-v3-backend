@@ -95,6 +95,7 @@ var problemsCmd = &cobra.Command{
 				PostScript:  problem.PostScript,
 				Cooldown:    problem.Cooldown,
 				Deadline:    problem.Deadline,
+				ScoreType:   problem.ScoreType,
 			})
 		}
 		resp := utils.RestyBuilder(ctx, "/api/admin/problems",
