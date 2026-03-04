@@ -1580,6 +1580,9 @@ const docTemplate = `{
                 "problemId": {
                     "type": "integer"
                 },
+                "scoreType": {
+                    "$ref": "#/definitions/models.ScoreTypeType"
+                },
                 "sha1": {
                     "type": "string"
                 },
@@ -1676,6 +1679,9 @@ const docTemplate = `{
                 },
                 "problemId": {
                     "type": "integer"
+                },
+                "scoreType": {
+                    "$ref": "#/definitions/models.ScoreTypeType"
                 },
                 "sha1": {
                     "type": "string"
@@ -2231,6 +2237,17 @@ const docTemplate = `{
             "x-enum-varnames": [
                 "RefTypeProblem",
                 "RefTypeTool"
+            ]
+        },
+        "models.ScoreTypeType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "ScoreTypeDefault",
+                "ScoreTypeSelfManaged"
             ]
         },
         "models.Stage": {
