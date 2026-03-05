@@ -36,6 +36,7 @@ type ProblemOutput struct {
 	TotalScore  int64                         `json:"totalScore"`
 	IsEnabled   bool                          `json:"isEnabled"`
 	Deadline    int64                         `json:"deadline"`
+	ScoreType   models.ScoreTypeType          `json:"scoreType"`
 }
 
 // GetAdminProblems
@@ -90,6 +91,7 @@ func (self *Handlers) GetProblems(
 				TotalScore: problem.TotalScore,
 				IsEnabled:  problem.IsEnabled,
 				Deadline:   problem.Deadline,
+				ScoreType:  problem.ScoreType,
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{

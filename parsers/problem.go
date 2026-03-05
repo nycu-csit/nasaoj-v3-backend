@@ -31,6 +31,7 @@ type problem struct {
 	PostScript  Content           `yaml:"postScript"`
 	Cooldown    int64             `yaml:"cooldown"`
 	Deadline    int64             `yaml:"deadline"`
+	ScoreType   string            `yaml:"scoreType"`
 }
 
 type Problem struct {
@@ -75,6 +76,15 @@ func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
 			self.problem.Spec.Type)
 	}
 
+	switch self.problem.ScoreType {
+	case "", "default":
+		self.problem.ScoreType = "default"
+	case "self-managed":
+	default:
+		return fmt.Errorf("invalid scoreType: %q, must be 'default' or 'self-managed'",
+			self.problem.ScoreType)
+	}
+
 	return nil
 }
 
@@ -82,6 +92,14 @@ func (self *Problem) ToModelProblem(
 	ctx context.Context,
 	contentFiles map[string]models.ContentFile,
 ) (models.Problem, error) {
+	var scoreType models.ScoreTypeType
+	switch self.ScoreType {
+	case "self-managed":
+		scoreType = models.ScoreTypeSelfManaged
+	default:
+		scoreType = models.ScoreTypeDefault
+	}
+
 	ret := models.Problem{
 		ProblemId: self.ProblemId,
 
@@ -91,11 +109,12 @@ func (self *Problem) ToModelProblem(
 			Type: self.Spec.Type,
 			Link: self.Spec.Link,
 		},
-		Stages:   make(map[string]models.Stage),
-		Args:     self.Args,
-		Tag:      self.Tag,
-		Deadline: self.Deadline,
-		Cooldown: self.Cooldown,
+		Stages:    make(map[string]models.Stage),
+		Args:      self.Args,
+		Tag:       self.Tag,
+		Deadline:  self.Deadline,
+		Cooldown:  self.Cooldown,
+		ScoreType: scoreType,
 	}
 
 	if res, err := self.PreScript.ToModelContent(ctx, contentFiles); err == nil {

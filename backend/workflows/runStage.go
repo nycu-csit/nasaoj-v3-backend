@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/spf13/viper"
@@ -153,6 +154,7 @@ func RunStage(
 			stage.Args,
 			testcase.Args,
 			map[string]string{
+				"subId":     strconv.FormatInt(submission.Id, 10),
 				"jobToken":  jobToken,
 				"jobInput":  job.Id() + ".input",
 				"jobScript": job.Id() + ".bash",

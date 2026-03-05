@@ -1,0 +1,20 @@
+#!/usr/bin/bash
+set -o errexit
+
+ENDPOINT='{{ .endpoint }}'
+JOB_TOKEN='{{ .jobToken }}'
+SUB_ID='{{ .subId }}'
+
+echo "Endpoint: $ENDPOINT"
+echo "SubId: $SUB_ID"
+
+# Put score of 42 for this submission
+curl "$ENDPOINT/api/score" -X PUT \
+  -H "Authorization: Bearer $JOB_TOKEN" \
+  -H "Content-Type: application/json" \
+  --fail --no-progress-meter \
+  -d "{\"subId\": $SUB_ID, \"score\": 42}"
+
+echo "Score updated successfully"
+
+# vim: syntax=bash

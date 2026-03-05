@@ -73,6 +73,8 @@ definitions:
         type: string
       problemId:
         type: integer
+      scoreType:
+        $ref: '#/definitions/models.ScoreTypeType'
       sha1:
         type: string
       spec:
@@ -136,6 +138,8 @@ definitions:
         $ref: '#/definitions/models.Content'
       problemId:
         type: integer
+      scoreType:
+        $ref: '#/definitions/models.ScoreTypeType'
       sha1:
         type: string
       spec:
@@ -251,6 +255,13 @@ definitions:
         $ref: '#/definitions/models.JobStatus'
       testName:
         type: string
+    type: object
+  api.ScoreRequest:
+    properties:
+      score:
+        type: integer
+      subId:
+        type: integer
     type: object
   api.SubmissionsOutput:
     properties:
@@ -496,6 +507,14 @@ definitions:
     x-enum-varnames:
     - RefTypeProblem
     - RefTypeTool
+  models.ScoreTypeType:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - ScoreTypeDefault
+    - ScoreTypeSelfManaged
   models.Stage:
     properties:
       args:
@@ -1261,6 +1280,39 @@ paths:
           description: Unauthorized
         "404":
           description: Not Found
+  /api/score:
+    put:
+      consumes:
+      - application/json
+      description: Updates the score for a submission that uses self-managed scoring
+        type
+      parameters:
+      - description: Score update request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.ScoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            type: string
+        "400":
+          description: Invalid request or problem does not use self-managed scoring
+          schema:
+            type: string
+        "404":
+          description: Submission not found
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Update submission score for self-managed scoring
   /api/scores:
     get:
       parameters:

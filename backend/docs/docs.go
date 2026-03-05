@@ -1047,6 +1047,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/score": {
+            "put": {
+                "description": "Updates the score for a submission that uses self-managed scoring type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Update submission score for self-managed scoring",
+                "parameters": [
+                    {
+                        "description": "Score update request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ScoreRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or problem does not use self-managed scoring",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Submission not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/scores": {
             "get": {
                 "parameters": [
@@ -1531,6 +1580,9 @@ const docTemplate = `{
                 "problemId": {
                     "type": "integer"
                 },
+                "scoreType": {
+                    "$ref": "#/definitions/models.ScoreTypeType"
+                },
                 "sha1": {
                     "type": "string"
                 },
@@ -1627,6 +1679,9 @@ const docTemplate = `{
                 },
                 "problemId": {
                     "type": "integer"
+                },
+                "scoreType": {
+                    "$ref": "#/definitions/models.ScoreTypeType"
                 },
                 "sha1": {
                     "type": "string"
@@ -1803,6 +1858,17 @@ const docTemplate = `{
                 },
                 "testName": {
                     "type": "string"
+                }
+            }
+        },
+        "api.ScoreRequest": {
+            "type": "object",
+            "properties": {
+                "score": {
+                    "type": "integer"
+                },
+                "subId": {
+                    "type": "integer"
                 }
             }
         },
@@ -2171,6 +2237,17 @@ const docTemplate = `{
             "x-enum-varnames": [
                 "RefTypeProblem",
                 "RefTypeTool"
+            ]
+        },
+        "models.ScoreTypeType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "ScoreTypeDefault",
+                "ScoreTypeSelfManaged"
             ]
         },
         "models.Stage": {

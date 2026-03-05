@@ -24,5 +24,7 @@ type Submission struct {
 	Args      map[string]string `json:"args" bun:"args"`
 	InputArgs map[string]string `json:"inputArgs" bun:"input_args"`
 
-	Jobs []*Job `bun:"rel:has-many,join:id=sub_id"`
+	// self-managed score
+	Score int64  `json:"score" bun:"score"`
+	Jobs  []*Job `bun:"rel:has-many,join:id=sub_id"`
 }
