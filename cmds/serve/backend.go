@@ -350,7 +350,7 @@ func init() {
 	backendCmd.Flags().
 		String("admin-token", "", "Bootstrap with an predefined admin token")
 	backendCmd.Flags().
-		String("admin-role", "nasata", "Admin role in OIDC groups")
+		String("admin-role", "", "Admin role in OIDC groups")
 	backendCmd.Flags().
 		Bool("allow-user-register", false,
 			"Allow user to register new UserResource")
