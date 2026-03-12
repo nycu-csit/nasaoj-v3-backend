@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/spf13/viper"
@@ -22,6 +23,14 @@ type ClaimProfile struct {
 type Claim struct {
 	CsId   string   `json:"csid"`
 	Groups []string `json:"groups"`
+}
+
+func oidcAdminStatus(groups []string) (isAdmin bool, sync bool) {
+	adminRole := strings.TrimSpace(viper.GetString("admin-role"))
+	if adminRole == "" {
+		return false, false
+	}
+	return slices.Contains(groups, adminRole), true
 }
 
 // GetCallback
@@ -122,9 +131,9 @@ func (self *Handlers) GetCallback(
 		}
 	}
 
-	// Update IsAdmin based on OIDC groups
-	isAdmin := slices.Contains(claim.Groups, viper.GetString("admin-role"))
-	if user.IsAdmin != isAdmin {
+	// Update IsAdmin based on OIDC groups when role sync is enabled.
+	isAdmin, shouldSyncAdmin := oidcAdminStatus(claim.Groups)
+	if shouldSyncAdmin && user.IsAdmin != isAdmin {
 		user.IsAdmin = isAdmin
 		if err := self.db.UpsertUser(ctx, user); err != nil {
 			return middlewares.HTTPError{
