@@ -8,21 +8,20 @@
   stage: deploy
   image: dockersource.cc.cs.nctu.edu.tw/devops/images/kubectl/3.21:main
   script:
-    - >-
-      kubectl rollout restart deployment backend
-      --kubeconfig "$KUBECONFIG" --namespace "$NAMESPACE"
-    - >-
-      kubectl rollout restart deployment worker
-      --kubeconfig "$KUBECONFIG" --namespace "$NAMESPACE"
+    - |
+      while read -r ns; do
+        kubectl rollout restart deployment/backend deployment/worker \
+          --kubeconfig "$KUBECONFIG" --namespace "$ns"
+      done <<< "$(tr '[:space:]' '\n' <<< "$NAMESPACE")"
 
 deploy:alpha:
   extends: .deploy
   variables:
     BRANCH: main
-    NAMESPACE: nasaoj-alpha
+    NAMESPACE: "nasaoj-alpha nnieoj-alpha"
 
 deploy:production:
   extends: .deploy
   variables:
     BRANCH: production
-    NAMESPACE: nasaoj-prod
+    NAMESPACE: "nasaoj-prod nnieoj-prod"
