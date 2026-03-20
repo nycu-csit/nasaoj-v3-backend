@@ -71,7 +71,7 @@ func LoadTools(
 				return err
 			}
 
-			if err := tools.InsertTool(ctx, tool); err != nil {
+			if _, err := tools.InsertTool(ctx, tool); err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to insert tool",
 						zap.Error(err))

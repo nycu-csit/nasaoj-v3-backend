@@ -71,14 +71,15 @@ func (self *Handlers) PutTools(
 			PostScript:  input.PostScript,
 			Cooldown:    input.Cooldown,
 		}
-		if err := self.tools.InsertTool(ctx, tool); err != nil {
+		sha1, err := self.tools.InsertTool(ctx, tool)
+		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
 				Message:     fmt.Sprintf("insert tool '%s' failed", input.SHA1),
 				OriginError: err,
 			}
 		}
-		io.WriteString(&res, input.SHA1+"\n")
+		io.WriteString(&res, sha1+"\n")
 	}
 
 	_, err = io.WriteString(w, res.String())

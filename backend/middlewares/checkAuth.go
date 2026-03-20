@@ -38,7 +38,7 @@ func CheckAuth(
 
 			span := trace.SpanFromContext(ctx)
 			span.SetAttributes(
-				attribute.Int64("owner.id", privs.OwnerId))
+				attribute.Int64("auth.owner.id", privs.OwnerId))
 
 			ctx = context.WithValue(ctx, types.Privileges(""), privs)
 			return next(w, req.WithContext(ctx))

@@ -15,7 +15,7 @@ type ToolStorage interface {
 	InsertTool(
 		ctx context.Context,
 		tool models.Tool,
-	) error
+	) (string, error)
 
 	GetTools(
 		ctx context.Context,

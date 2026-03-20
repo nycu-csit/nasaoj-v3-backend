@@ -702,33 +702,33 @@ func (self *Postgres) GetToolById(
 func (self *Postgres) InsertTool(
 	ctx context.Context,
 	tool models.Tool,
-) error {
+) (string, error) {
 	toolMarshaled, err := tool.Marshal()
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to marshal tool",
 				zap.String("tool.name", tool.Name),
 				zap.Error(err))
-		return err
+		return "", err
 	}
 	_, err = self.db.NewInsert().
 		Model(&toolMarshaled).
 		On("CONFLICT (sha1) DO NOTHING").
 		Exec(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if self.cache != nil {
 		if err := self.cache.Delete(
 			ctx, cacheToolSHA1Key(toolMarshaled.SHA1)); err != nil {
-			return err
+			return "", err
 		}
 		if err := self.cache.Delete(ctx, cacheToolEnabledKey()); err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return toolMarshaled.SHA1, nil
 }
 
 func (self *Postgres) getToolsEnabled(
