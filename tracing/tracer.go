@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -24,14 +25,33 @@ func InitTracer(appname string) {
 	var l *zap.Logger
 	var err error
 	if viper.GetBool("zap-production") {
-		l, err = zap.NewProduction()
+		cfg := zap.NewProductionConfig()
+		cfg.Level = zap.NewAtomicLevelAt(getLogLevel())
+		l, err = cfg.Build()
 	} else {
-		l, err = zap.NewDevelopment()
+		cfg := zap.NewDevelopmentConfig()
+		cfg.Level = zap.NewAtomicLevelAt(getLogLevel())
+		l, err = cfg.Build()
 	}
 	if err != nil {
 		panic(err)
 	}
 	Logger = otelzap.New(l)
+}
+
+func getLogLevel() zapcore.Level {
+	switch viper.GetString("log-level") {
+	case "debug":
+		return zapcore.DebugLevel
+	case "info":
+		return zapcore.InfoLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	default:
+		return zapcore.InfoLevel
+	}
 }
 
 func InitUptrace(appname string) {

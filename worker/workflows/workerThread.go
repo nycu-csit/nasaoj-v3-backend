@@ -5,6 +5,7 @@ import (
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/cri"
 	"go.uber.org/zap"
 )
 
@@ -13,6 +14,8 @@ func WorkerThread(
 	jobIn chan models.JobWithFile,
 	jobOut chan models.JobWithFile,
 	cancelRegistry *CancelRegistry,
+	criClient *cri.Client,
+	workerBinary string,
 ) {
 	tracing.Logger.Ctx(ctx).
 		Info("worker thread is running")
@@ -35,7 +38,7 @@ func WorkerThread(
 					zap.String("testcase.name", job.TestName))
 
 			retCh := make(chan error, 1)
-			go RunJob(ctx, retCh, &job, cancelRegistry)
+			go RunJob(ctx, retCh, &job, cancelRegistry, criClient, workerBinary)
 			ret := <-retCh
 
 			tracing.Logger.Ctx(ctx).

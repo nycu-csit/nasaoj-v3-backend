@@ -2297,6 +2297,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.ContentFile"
                     }
                 },
+                "image": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },

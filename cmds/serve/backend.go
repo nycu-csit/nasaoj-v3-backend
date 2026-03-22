@@ -346,6 +346,10 @@ func init() {
 	backendCmd.Flags().
 		String("uptrace-dsn", "", "Uptrace DSN (Disabled by default)")
 
+	// Logging
+	backendCmd.Flags().
+		String("log-level", "info", "Log level (debug, info, warn, error)")
+
 	// Others
 	backendCmd.Flags().
 		String("admin-token", "", "Bootstrap with an predefined admin token")

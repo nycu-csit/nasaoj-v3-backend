@@ -22,6 +22,7 @@ type testcase struct {
 	Args          map[string]string `yaml:"args"`
 	Timeout       int64             `yaml:"timeout"`
 	ResourceGroup string            `yaml:"resourceGroup,omitempty"`
+	Image         string            `yaml:"image,omitempty"`
 }
 
 type Testcase struct {
@@ -86,6 +87,7 @@ func (self *Testcase) ToModelTestcase(
 		Args:          self.Args,
 		Timeout:       self.Timeout,
 		ResourceGroup: self.ResourceGroup,
+		Image:         self.Image,
 	}
 
 	if res, err := self.Content.ToModelContent(ctx, contentFiles); err == nil {
