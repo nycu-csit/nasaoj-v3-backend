@@ -184,6 +184,34 @@ func RunContainerJob(
 		hostBinary = hostBinaryPath
 	}
 
+	// Validate that the binary path is set and exists as a file
+	if hostBinary == "" {
+		tracing.Logger.Ctx(pctx).
+			Error("worker-binary or host-binary-path must be set for container jobs")
+		retCh <- fmt.Errorf("worker-binary or host-binary-path must be set for container jobs")
+		return
+	}
+
+	// Check if the binary exists and is a file (not a directory)
+	// This only works when worker runs directly on the host; when worker runs in a container,
+	// host-binary-path must be set correctly to point to the binary on the host filesystem
+	if viper.GetString("host-binary-path") == "" {
+		if fi, err := os.Stat(hostBinary); err != nil {
+			tracing.Logger.Ctx(pctx).
+				Error("worker binary not found",
+					zap.String("path", hostBinary),
+					zap.Error(err))
+			retCh <- fmt.Errorf("worker binary not found at %s: %w", hostBinary, err)
+			return
+		} else if fi.IsDir() {
+			tracing.Logger.Ctx(pctx).
+				Error("worker binary path is a directory, not a file",
+					zap.String("path", hostBinary))
+			retCh <- fmt.Errorf("worker binary path %s is a directory, not a file", hostBinary)
+			return
+		}
+	}
+
 	containerConfig := &cri.ContainerConfig{
 		Name:       job.Id(),
 		Image:      job.Image,

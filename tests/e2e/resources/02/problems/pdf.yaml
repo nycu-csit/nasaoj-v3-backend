@@ -2,9 +2,10 @@
 name: pdf
 problemId: 10
 description: |
-  this is a 
+  this is a
   multiline
   description
+cooldown: 0
 spec:
   type: pdf
   link: https://www.nycu.edu.tw/userfiles/aach/files/20231011094945834.pdf

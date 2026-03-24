@@ -2,6 +2,7 @@
 name: self-managed-score
 problemId: 18
 description: Test self-managed scoring
+cooldown: 0
 scoreType: self-managed
 args:
   endpoint: http://backend:8080

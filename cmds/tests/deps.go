@@ -2,6 +2,8 @@ package tests
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -39,6 +41,36 @@ var depsProblemsCmd = &cobra.Command{
 				Panic("failed to load problems",
 					zap.Error(err))
 			panic(err)
+		}
+
+		problems, err := db.GetAllProblems(ctx)
+		if err != nil {
+			panic(err)
+		}
+
+		for problemSHA1, problem := range problems {
+			in := make(map[string]int)
+			for _, stage := range problem.Stages {
+				for _, next := range stage.Before {
+					in[next]++
+				}
+			}
+
+			fmt.Printf("%s (%s)\n", problem.Name, problemSHA1)
+
+			var traverse func(string, int)
+			traverse = func(name string, depth int) {
+				fmt.Printf("%s%s\n", strings.Repeat("-", depth), name)
+				for _, next := range problem.Stages[name].Before {
+					traverse(next, depth+1)
+				}
+			}
+
+			for stageName := range problem.Stages {
+				if in[stageName] == 0 {
+					traverse(stageName, 1)
+				}
+			}
 		}
 	},
 }

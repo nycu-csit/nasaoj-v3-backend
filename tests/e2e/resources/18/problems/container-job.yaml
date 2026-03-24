@@ -7,7 +7,7 @@ stages:
   container:
     testcases:
       - name: alpine-test
-        image: "docker.io/library/bash:alpine3.23"
+        image: docker.io/library/bash:alpine3.23
         files:
           - run.sh
         scripts:

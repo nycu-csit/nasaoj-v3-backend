@@ -2,6 +2,7 @@
 name: Test admin get problems dup 1
 problemId: 11
 description: Test admin CLI get problems dup auto hide
+cooldown: 0
 stages:
   stage1:
     testcases:

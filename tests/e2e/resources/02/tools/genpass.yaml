@@ -2,6 +2,7 @@
 name: Generate password
 toolId: 87
 description: Generate random string using openssl
+cooldown: 0
 args:
   endpoint: 'http://backend:8080'
 inputArgs:

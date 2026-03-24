@@ -105,15 +105,8 @@ func (self *Handlers) GetScheduleJob(
 		return types.FileNotExistError
 	}
 
-	job.Status = models.StatusRunning
-	if err = self.jobs.UpdateJob(ctx, &job); err != nil {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusServiceUnavailable,
-			Message:     "job update failed",
-			OriginError: err,
-		}
-	}
-
+	// Add worker job tracking BEFORE setting status to Running
+	// This prevents a race condition with CleanOrphanedJobs cron
 	workerName := req.Header.Get("X-Worker-Name")
 	if err = self.workers.AddWorkerJob(ctx, workerName, job.Id()); err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -121,6 +114,17 @@ func (self *Handlers) GetScheduleJob(
 				zap.String("worker", workerName),
 				zap.String("job.id", job.Id()),
 				zap.Error(err))
+	}
+
+	job.Status = models.StatusRunning
+	if err = self.jobs.UpdateJob(ctx, &job); err != nil {
+		// Rollback worker job tracking on failure
+		_ = self.workers.RemoveWorkerJob(ctx, workerName, job.Id())
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusServiceUnavailable,
+			Message:     "job update failed",
+			OriginError: err,
+		}
 	}
 
 	return bunrouter.JSON(w, job)

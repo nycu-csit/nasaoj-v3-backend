@@ -2,6 +2,7 @@
 name: Split verdicts
 problemId: 5
 description: Test for split verdicts
+cooldown: 0
 stages:
   stage1:
     testcases:

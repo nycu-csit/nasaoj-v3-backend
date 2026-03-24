@@ -65,7 +65,9 @@ func (self *Handlers) PutScheduleResult(
 	}
 
 	if job.Status != models.StatusSuccess {
-		if err = self.jobs.SkipJobs(ctx, job.SubId); err != nil {
+		err := workflows.SkipJobs(ctx, &job,
+			self.submissions, self.problems, self.jobs)
+		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "failed to update job skip status",

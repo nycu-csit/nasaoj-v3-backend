@@ -2,6 +2,7 @@
 name: Args Override Test
 toolId: 89
 description: Test tool that overrides existing args and adds new ones
+cooldown: 0
 args:
   endpoint: 'http://backend:8080'
 inputArgs:

@@ -270,6 +270,7 @@ var backendCmd = &cobra.Command{
 
 		// Start cron jobs
 		go crons.CheckWorkerStatus(ctx, kv, db)
+		go crons.CleanOrphanedJobs(ctx, kv, db)
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"),

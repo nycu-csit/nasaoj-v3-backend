@@ -2,6 +2,7 @@
 name: identical-testcase-a
 problemId: 16
 description: Problem A with identical testcase in path1
+cooldown: 0
 stages:
   stage1:
     testcases:

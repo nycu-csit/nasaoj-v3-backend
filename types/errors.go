@@ -3,12 +3,13 @@ package types
 import "fmt"
 
 var (
-	ContextNotExistError = fmt.Errorf("context not exist")
-	FileNotExistError    = fmt.Errorf("file not exist")
-	StageNotExistError   = fmt.Errorf("stage not exist")
-	TokenNotExistError   = fmt.Errorf("token not exist")
-	JobNotExistError     = fmt.Errorf("job not exist")
-	ProblemNotExistError = fmt.Errorf("problem not exist")
+	ContextNotExistError    = fmt.Errorf("context not exist")
+	FileNotExistError       = fmt.Errorf("file not exist")
+	StageNotExistError      = fmt.Errorf("stage not exist")
+	TokenNotExistError      = fmt.Errorf("token not exist")
+	JobNotExistError        = fmt.Errorf("job not exist")
+	ProblemNotExistError    = fmt.Errorf("problem not exist")
+	SubmissionNotExistError = fmt.Errorf("submission not exist")
 
 	ProblemContainsCycleError = fmt.Errorf("problem contains cycle")
 	TokenNotEnabledError      = fmt.Errorf("token not enabled")

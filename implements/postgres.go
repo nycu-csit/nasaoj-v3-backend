@@ -1639,11 +1639,54 @@ func (self *Postgres) SkipJobs(
 			Model((*models.Job)(nil)).
 			Set("status = ?", models.StatusSkipped).
 			Where("sub_id = ?", subId).
-			WhereGroup(" AND ", func(q *bun.UpdateQuery) *bun.UpdateQuery {
-				return q.
-					Where("status = ?", models.StatusBlocked).
-					WhereOr("status = ?", models.StatusPending)
-			}).
+			Where("status = ?", models.StatusBlocked).
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	pending := []string{
+		cacheUsersKey(sub.ProblemId),
+		cacheScoresKey(sub.ProblemId),
+		cacheScoresWStagesKey(sub.ProblemId),
+	}
+
+	for _, key := range pending {
+		if err := self.cache.Delete(ctx, key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (self *Postgres) SkipJobWithStages(
+	ctx context.Context,
+	subId int64,
+	stages []string,
+) error {
+	var sub models.Submission
+	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		err := tx.NewSelect().
+			Model(&sub).
+			Where("id = ?", subId).
+			Scan(ctx)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.NewUpdate().
+			Model((*models.Job)(nil)).
+			Set("status = ?", models.StatusSkipped).
+			Where("sub_id = ?", subId).
+			Where("stage_name IN (?)", bun.In(stages)).
+			Where("status = ?", models.StatusBlocked).
 			Exec(ctx)
 		if err != nil {
 			return err
@@ -1848,6 +1891,20 @@ func (self *Postgres) TimeoutJobById(
 	}
 
 	return self.SkipJobs(ctx, subId)
+}
+
+func (self *Postgres) GetRunningJobs(
+	ctx context.Context,
+) ([]models.Job, error) {
+	var jobs []models.Job
+	err := self.db.NewSelect().
+		Model(&jobs).
+		Where("status = ?", models.StatusRunning).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return jobs, nil
 }
 
 func (self *Postgres) GetUserResource(

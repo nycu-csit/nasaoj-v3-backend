@@ -17,8 +17,18 @@ type JobStorage interface {
 		subId int64,
 	) error
 
+	SkipJobWithStages(
+		ctx context.Context,
+		subId int64,
+		stages []string,
+	) error
+
 	TimeoutJobById(
 		ctx context.Context,
 		jobId string,
 	) error
+
+	GetRunningJobs(
+		ctx context.Context,
+	) ([]models.Job, error)
 }

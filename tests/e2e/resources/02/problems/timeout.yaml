@@ -2,6 +2,7 @@
 name: Timeout
 problemId: 6
 description: Test for timeout handling
+cooldown: 0
 stages:
   stage1:
     testcases:
