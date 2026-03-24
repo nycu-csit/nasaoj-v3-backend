@@ -1,0 +1,15 @@
+---
+name: Container job test
+problemId: 19
+description: Test running jobs inside containers
+cooldown: 0
+stages:
+  container:
+    testcases:
+      - name: alpine-test
+        image: docker.io/library/bash:alpine3.23
+        files:
+          - run.sh
+        scripts:
+          - sh run.sh
+    score: 100

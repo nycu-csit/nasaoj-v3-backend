@@ -79,6 +79,7 @@ type Job struct {
 	RefSHA1       string `json:"refSHA1" bun:"-"`
 	RefFileURL    string `json:"refFileUrl" bun:"-"`
 	JobFileURL    string `json:"jobFileUrl" bun:"-"`
+	Image         string `json:"image,omitempty" bun:"-"`
 
 	// Return values
 	Stdout  string `json:"stdout" bun:"-"`

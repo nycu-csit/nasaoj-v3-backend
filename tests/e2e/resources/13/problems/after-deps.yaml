@@ -2,6 +2,7 @@
 name: Complex dependencies
 problemId: 12
 description: Check parsing complex dependencies
+cooldown: 0
 stages:
   head1:
     testcases: &test

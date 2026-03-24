@@ -1,0 +1,37 @@
+---
+name: Parallel branch failure
+problemId: 13
+description: Test parallel branches where one fails and skips its dependents
+cooldown: 0
+stages:
+  # Branch A: first stage fails, second should be skipped
+  branchA_stage1:
+    testcases:
+      - name: fail
+        files:
+          - failed.sh
+        scripts:
+          - bash failed.sh
+    before: [branchA_stage2]
+    score: 25
+  branchA_stage2:
+    testcases:
+      - name: should-skip
+        scripts:
+          - echo "this should be skipped"
+    score: 25
+  # Branch B: both stages succeed
+  branchB_stage1:
+    testcases:
+      - name: succeed
+        scripts:
+          - echo "branch B stage 1"
+          - sleep 2 # sleep to wait other branch fails
+    before: [branchB_stage2]
+    score: 25
+  branchB_stage2:
+    testcases:
+      - name: succeed
+        scripts:
+          - echo "branch B stage 2"
+    score: 25

@@ -270,6 +270,7 @@ var backendCmd = &cobra.Command{
 
 		// Start cron jobs
 		go crons.CheckWorkerStatus(ctx, kv, db)
+		go crons.CleanOrphanedJobs(ctx, kv, db)
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"),
@@ -345,6 +346,10 @@ func init() {
 	// Uptrace
 	backendCmd.Flags().
 		String("uptrace-dsn", "", "Uptrace DSN (Disabled by default)")
+
+	// Logging
+	backendCmd.Flags().
+		String("log-level", "info", "Log level (debug, info, warn, error)")
 
 	// Others
 	backendCmd.Flags().

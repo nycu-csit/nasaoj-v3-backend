@@ -2,6 +2,7 @@
 name: hw1
 problemId: 1
 description: Test HW 1
+cooldown: 0
 preScript:
   files:
     - poop.sh.tmpl

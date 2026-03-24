@@ -2,6 +2,7 @@
 name: Test stderr
 problemId: 4
 description: Test stderr
+cooldown: 0
 stages:
   stage1:
     testcases:

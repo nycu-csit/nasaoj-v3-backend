@@ -107,6 +107,7 @@ func RunStage(
 			Timeout:       testcase.Timeout,
 			RefSHA1:       submission.ProblemSHA1,
 			ResourceGroup: testcase.ResourceGroup,
+			Image:         testcase.Image,
 		}
 
 		if err := jobs.UpdateJob(ctx, &job); err != nil {

@@ -83,8 +83,8 @@ services:
     ports:
       - 8080:8080
     volumes:
-      # - '../problemset:/data'
-      - './:/data'
+      # - ../problemset:/data
+      - ./:/data
     depends_on:
       - postgres
       - minio
@@ -102,6 +102,10 @@ services:
       target: worker_runtime
     env_file:
       - path: ./worker/.env
+    volumes:
+      #- /var/run/crio/crio.sock:/var/run/crio/crio.sock:rw
+      - /var/run/containerd/containerd.sock:/var/run/containerd/containerd.sock:rw
+      - /tmp/nasaoj-worker:/var/run/nasaoj-worker:rw
     depends_on:
       - backend
 volumes:

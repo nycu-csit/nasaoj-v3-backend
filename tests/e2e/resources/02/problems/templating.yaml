@@ -2,6 +2,7 @@
 name: Go Templates
 problemId: 7
 description: Test for go templates
+cooldown: 0
 stages:
   stage1:
     testcases:

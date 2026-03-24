@@ -546,6 +546,8 @@ definitions:
         items:
           $ref: '#/definitions/models.ContentFile'
         type: array
+      image:
+        type: string
       name:
         type: string
       resourceGroup:

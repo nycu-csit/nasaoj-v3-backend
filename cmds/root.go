@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/helper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/migrates"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/serve"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/tests"
@@ -33,4 +34,5 @@ func init() {
 	RootCmd.AddCommand(tests.RootCmd)
 	RootCmd.AddCommand(migrates.RootCmd)
 	RootCmd.AddCommand(admin.RootCmd)
+	RootCmd.AddCommand(helper.RootCmd)
 }
