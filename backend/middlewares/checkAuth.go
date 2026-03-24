@@ -8,8 +8,6 @@ import (
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 func CheckAuth(
@@ -35,10 +33,6 @@ func CheckAuth(
 					OriginError: err,
 				}
 			}
-
-			span := trace.SpanFromContext(ctx)
-			span.SetAttributes(
-				attribute.Int64("auth.owner.id", privs.OwnerId))
 
 			ctx = context.WithValue(ctx, types.Privileges(""), privs)
 			return next(w, req.WithContext(ctx))

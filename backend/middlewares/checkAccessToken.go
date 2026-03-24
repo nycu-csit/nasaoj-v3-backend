@@ -114,7 +114,7 @@ func CheckAccessToken(
 
 			span := trace.SpanFromContext(ctx)
 			span.SetAttributes(
-				attribute.Int64("owner.id", claim.Privs.OwnerId))
+				attribute.Int64("auth.owner.id", claim.Privs.OwnerId))
 
 			ctx = context.WithValue(ctx, types.AccessToken(""), claim)
 			ctx = context.WithValue(ctx, types.Privileges(""), claim.Privs)
