@@ -32,7 +32,9 @@ type ContainerResult struct {
 	Stderr   string
 }
 
-func (c *Client) CreateAndRunContainer(ctx context.Context, config *ContainerConfig) (*ContainerResult, error) {
+func (c *Client) CreateAndRunContainer(
+	ctx context.Context, config *ContainerConfig,
+) (*ContainerResult, error) {
 	podSandboxConfig := &runtimeapi.PodSandboxConfig{
 		Metadata: &runtimeapi.PodSandboxMetadata{
 			Name:      config.Name + "-pod",
@@ -43,18 +45,20 @@ func (c *Client) CreateAndRunContainer(ctx context.Context, config *ContainerCon
 		Annotations: config.Annotations,
 	}
 
-	podResp, err := c.runtimeService.RunPodSandbox(ctx, &runtimeapi.RunPodSandboxRequest{
-		Config: podSandboxConfig,
-	})
+	podResp, err := c.runtimeService.RunPodSandbox(ctx,
+		&runtimeapi.RunPodSandboxRequest{
+			Config: podSandboxConfig,
+		})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pod sandbox: %w", err)
 	}
 	podSandboxId := podResp.PodSandboxId
 
 	defer func() {
-		_, _ = c.runtimeService.RemovePodSandbox(context.Background(), &runtimeapi.RemovePodSandboxRequest{
-			PodSandboxId: podSandboxId,
-		})
+		_, _ = c.runtimeService.RemovePodSandbox(context.Background(),
+			&runtimeapi.RemovePodSandboxRequest{
+				PodSandboxId: podSandboxId,
+			})
 	}()
 
 	var mounts []*runtimeapi.Mount
@@ -90,20 +94,22 @@ func (c *Client) CreateAndRunContainer(ctx context.Context, config *ContainerCon
 		Annotations: config.Annotations,
 	}
 
-	createResp, err := c.runtimeService.CreateContainer(ctx, &runtimeapi.CreateContainerRequest{
-		PodSandboxId:  podSandboxId,
-		Config:        containerConfig,
-		SandboxConfig: podSandboxConfig,
-	})
+	createResp, err := c.runtimeService.CreateContainer(ctx,
+		&runtimeapi.CreateContainerRequest{
+			PodSandboxId:  podSandboxId,
+			Config:        containerConfig,
+			SandboxConfig: podSandboxConfig,
+		})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container: %w", err)
 	}
 	containerId := createResp.ContainerId
 
 	defer func() {
-		_, _ = c.runtimeService.RemoveContainer(context.Background(), &runtimeapi.RemoveContainerRequest{
-			ContainerId: containerId,
-		})
+		_, _ = c.runtimeService.RemoveContainer(context.Background(),
+			&runtimeapi.RemoveContainerRequest{
+				ContainerId: containerId,
+			})
 	}()
 
 	_, err = c.runtimeService.StartContainer(ctx, &runtimeapi.StartContainerRequest{
@@ -115,17 +121,20 @@ func (c *Client) CreateAndRunContainer(ctx context.Context, config *ContainerCon
 
 	result, err := c.waitForContainer(ctx, containerId)
 	if err != nil {
-		_, _ = c.runtimeService.StopContainer(context.Background(), &runtimeapi.StopContainerRequest{
-			ContainerId: containerId,
-			Timeout:     0,
-		})
+		_, _ = c.runtimeService.StopContainer(context.Background(),
+			&runtimeapi.StopContainerRequest{
+				ContainerId: containerId,
+				Timeout:     0,
+			})
 		return nil, err
 	}
 
 	return result, nil
 }
 
-func (c *Client) waitForContainer(ctx context.Context, containerId string) (*ContainerResult, error) {
+func (c *Client) waitForContainer(
+	ctx context.Context, containerId string,
+) (*ContainerResult, error) {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -134,10 +143,11 @@ func (c *Client) waitForContainer(ctx context.Context, containerId string) (*Con
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			statusResp, err := c.runtimeService.ContainerStatus(ctx, &runtimeapi.ContainerStatusRequest{
-				ContainerId: containerId,
-				Verbose:     true,
-			})
+			statusResp, err := c.runtimeService.ContainerStatus(ctx,
+				&runtimeapi.ContainerStatusRequest{
+					ContainerId: containerId,
+					Verbose:     true,
+				})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get container status: %w", err)
 			}
@@ -150,8 +160,4 @@ func (c *Client) waitForContainer(ctx context.Context, containerId string) (*Con
 			}
 		}
 	}
-}
-
-func (c *Client) GetContainerLogs(ctx context.Context, containerId string) (string, string, error) {
-	return "", "", nil
 }

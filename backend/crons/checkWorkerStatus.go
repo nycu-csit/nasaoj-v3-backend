@@ -34,6 +34,9 @@ func checkWorkers(
 	workers interfaces.WorkerStatusStorage,
 	jobs interfaces.JobStorage,
 ) {
+	tracing.Logger.Ctx(ctx).
+		Info("run checkWorkers")
+
 	workerMap, err := workers.GetWorkers(ctx)
 	if err != nil {
 		tracing.Logger.Ctx(ctx).

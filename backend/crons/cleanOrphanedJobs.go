@@ -34,6 +34,9 @@ func cleanOrphanedJobs(
 	workers interfaces.WorkerStatusStorage,
 	jobs interfaces.JobStorage,
 ) {
+	tracing.Logger.Ctx(ctx).
+		Info("run cleanOrphanedJobs")
+
 	// Get all running jobs from database
 	runningJobs, err := jobs.GetRunningJobs(ctx)
 	if err != nil {
