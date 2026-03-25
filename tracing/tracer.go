@@ -7,6 +7,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace-go/uptrace"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -54,11 +55,27 @@ func getLogLevel() zapcore.Level {
 	}
 }
 
+func getLogSeverity() log.Severity {
+	switch viper.GetString("log-level") {
+	case "debug":
+		return log.SeverityDebug
+	case "info":
+		return log.SeverityInfo
+	case "warn":
+		return log.SeverityWarn
+	case "error":
+		return log.SeverityError
+	default:
+		return log.SeverityInfo
+	}
+}
+
 func InitUptrace(appname string) {
 	uptrace.ConfigureOpentelemetry(
 		uptrace.WithDSN(viper.GetString("uptrace-dsn")),
 		uptrace.WithServiceName(appname),
 		uptrace.WithServiceVersion(version),
+		uptrace.WithMinLogSeverity(getLogSeverity()),
 	)
 }
 
