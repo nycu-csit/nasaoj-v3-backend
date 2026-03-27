@@ -48,12 +48,12 @@ var backendCmd = &cobra.Command{
 		ctx := cmd.Context()
 		// Initialize Tracing
 		appname := "nasaoj-backend"
-		tracing.InitTracer(appname)
 		if viper.GetString("uptrace-dsn") != "" {
 			tracing.InitUptrace(appname, "httpserver:"+appname)
-			tracing.InitLogger() // Re-init logger with OTel log provider
 			defer tracing.DeferUptrace(ctx)
 		}
+		tracing.InitTracer(appname)
+		defer tracing.DeferLogger()
 
 		// Initialize DB instance
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(

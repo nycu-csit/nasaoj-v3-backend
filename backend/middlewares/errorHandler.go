@@ -59,15 +59,16 @@ func ErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		)
 
 		if 500 <= httpErr.StatusCode && httpErr.StatusCode <= 599 {
-			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 			if httpErr.OriginError == nil {
 				tracing.Logger.Ctx(ctx).
 					Error(httpErr.Message)
+				span.RecordError(httpErr)
 			} else {
 				tracing.Logger.Ctx(ctx).
 					Error(httpErr.Message,
 						zap.Error(httpErr.OriginError))
+				span.RecordError(httpErr.OriginError)
 			}
 		} else {
 			span.SetStatus(codes.Ok, "")
