@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"text/template"
@@ -1947,11 +1948,12 @@ func (self *Postgres) InsertUserResources(
 					Model(&oldUser).
 					Where("username = ?", newUser.Username).
 					Scan(ctx)
-				if err == sql.ErrNoRows {
+				if errors.Is(err, sql.ErrNoRows) {
 					// Insert New User
 					_, err := tx.NewInsert().
 						Model(&newUser).
 						ExcludeColumn("id").
+						Returning("id").
 						Exec(ctx)
 					if err != nil {
 						return err
@@ -1968,9 +1970,11 @@ func (self *Postgres) InsertUserResources(
 						}
 					}
 					return nil
-				}
-				if err != nil {
-					return err
+				} else {
+					if err != nil {
+						return err
+					}
+					newUser.Id = oldUser.Id
 				}
 
 				b, err := utils.JSONMerge(ctx, oldUser, newUser)

@@ -129,7 +129,7 @@ func init() {
 	workerCmd.Flags().
 		String("uptrace-dsn", "", "Uptrace DSN (Disabled by default)")
 	workerCmd.Flags().
-		String("log-level", "info", "Log level (debug, info, warn, error)")
+		String("log-level", "", "Log level (debug, info, warn, error)")
 	workerCmd.Flags().
 		String("container-runtime", "", "CRI endpoint (e.g., unix:///run/crio/crio.sock). Empty disables container support")
 	workerCmd.Flags().

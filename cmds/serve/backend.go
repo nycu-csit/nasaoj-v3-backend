@@ -350,7 +350,7 @@ func init() {
 
 	// Logging
 	backendCmd.Flags().
-		String("log-level", "info", "Log level (debug, info, warn, error)")
+		String("log-level", "", "Log level (debug, info, warn, error)")
 
 	// Others
 	backendCmd.Flags().

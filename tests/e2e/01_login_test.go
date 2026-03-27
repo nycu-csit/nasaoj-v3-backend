@@ -11,6 +11,25 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/auth"
 )
 
+func Test_01_0_Create_CSSSO_Users(t *testing.T) {
+	csssoUsers := []api.PutUsersCSSSOInput{
+		{CsId: "dummy_user_1"},
+		{CsId: "dummy_user_2"},
+		{CsId: "dummy_user_3"},
+		{CsId: "dummy_user_4"},
+		{CsId: "dummy_user_5"},
+	}
+
+	resp, err := client.R().
+		SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+		SetBody(csssoUsers).
+		Put("/api/admin/users/cssso")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Logf("%+v\n", resp)
+		t.Fatalf("failed to create CSSSO users: %v", err)
+	}
+}
+
 func Test_01_1_Create_User(t *testing.T) {
 	t.Logf("access with admin token: %s\n", viper.GetString("admin-token"))
 
@@ -86,6 +105,70 @@ func Test_01_3_api_me(t *testing.T) {
 	if result.IsAdmin {
 		t.Fatal("expected user to not be admin")
 	}
+}
+
+func Test_01_4_Update_Password(t *testing.T) {
+	newPassword := "newpassword123"
+
+	t.Run("Update user password via admin API", func(t *testing.T) {
+		resp, err := client.R().
+			SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+			SetBody([]api.PutUsersPlainInput{
+				{
+					Username: "poop",
+					Password: newPassword,
+				},
+			}).
+			Put("/api/admin/users/plain")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			t.Logf("%+v\n", resp)
+			t.Fatalf("failed to update user password: %v", err)
+		}
+	})
+
+	t.Run("Login with old password should fail", func(t *testing.T) {
+		resp, err := client.R().
+			SetBody(auth.LoginPlainInput{
+				Username: "poop",
+				Password: "poop",
+			}).
+			Post("/auth/login/plain")
+		if err != nil || resp.StatusCode() != http.StatusUnauthorized {
+			t.Logf("%+v\n", resp)
+			t.Fatal("expected login with old password to fail")
+		}
+	})
+
+	t.Run("Login with new password should succeed", func(t *testing.T) {
+		resp, err := client.R().
+			SetBody(auth.LoginPlainInput{
+				Username: "poop",
+				Password: newPassword,
+			}).
+			Post("/auth/login/plain")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			t.Logf("%+v\n", resp)
+			t.Fatalf("failed to login with new password: %v", err)
+		}
+
+		setCookie(client, resp)
+	})
+
+	t.Run("Revert password back to original", func(t *testing.T) {
+		resp, err := client.R().
+			SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+			SetBody([]api.PutUsersPlainInput{
+				{
+					Username: "poop",
+					Password: "poop",
+				},
+			}).
+			Put("/api/admin/users/plain")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			t.Logf("%+v\n", resp)
+			t.Fatalf("failed to revert user password: %v", err)
+		}
+	})
 }
 
 func init() {
