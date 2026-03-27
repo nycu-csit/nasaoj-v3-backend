@@ -13,8 +13,6 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -116,12 +114,6 @@ func RunShellJob(
 		cancelRegistry.Register(job.Id(), cancel)
 		defer cancelRegistry.Unregister(job.Id())
 	}
-
-	span := trace.SpanFromContext(ctx)
-	span.SetAttributes(
-		attribute.Int64("submission.id", job.SubId),
-		attribute.String("stage.name", job.StageName),
-		attribute.String("testcase.name", job.TestName))
 
 	// Run script
 	cmd := exec.CommandContext(ctx, "bash", job.Id()+".bash")

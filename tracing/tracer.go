@@ -7,22 +7,39 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace-go/uptrace"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var (
-	Tracer trace.Tracer
-	Logger *otelzap.Logger
+	Tracer  trace.Tracer
+	Logger  *otelzap.Logger
+	appName string
 
 	version string = "v3.0.0"
 )
 
-func InitTracer(appname string) {
-	Tracer = otel.Tracer(appname)
+// InitTracer initializes the tracer and a basic logger without OTel log export.
+// Call InitLogger after InitUptrace to enable log export to Uptrace.
+func InitTracer(name string) {
+	appName = name
+	Tracer = otel.Tracer(appName)
+	Logger = otelzap.New(newZapLogger().Named(appName))
+}
 
+// InitLogger re-initializes the logger with the OpenTelemetry log provider.
+// This must be called after InitUptrace to properly export logs.
+func InitLogger() {
+	Logger = otelzap.New(newZapLogger().Named(appName),
+		otelzap.WithLoggerProvider(global.GetLoggerProvider()),
+	)
+}
+
+func newZapLogger() *zap.Logger {
 	var l *zap.Logger
 	var err error
 	if viper.GetBool("zap-production") {
@@ -37,7 +54,7 @@ func InitTracer(appname string) {
 	if err != nil {
 		panic(err)
 	}
-	Logger = otelzap.New(l)
+	return l
 }
 
 func getLogLevel() zapcore.Level {
@@ -70,12 +87,16 @@ func getLogSeverity() log.Severity {
 	}
 }
 
-func InitUptrace(appname string) {
+func InitUptrace(appname, system string) {
 	uptrace.ConfigureOpentelemetry(
 		uptrace.WithDSN(viper.GetString("uptrace-dsn")),
 		uptrace.WithServiceName(appname),
 		uptrace.WithServiceVersion(version),
+		uptrace.WithLoggingEnabled(true),
 		uptrace.WithMinLogSeverity(getLogSeverity()),
+		uptrace.WithResourceAttributes(
+			attribute.String("system", system),
+		),
 	)
 }
 

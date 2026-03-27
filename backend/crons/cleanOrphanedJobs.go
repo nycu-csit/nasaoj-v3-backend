@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -30,12 +31,19 @@ func CleanOrphanedJobs(
 }
 
 func cleanOrphanedJobs(
-	ctx context.Context,
+	pctx context.Context,
 	workers interfaces.WorkerStatusStorage,
 	jobs interfaces.JobStorage,
 ) {
+	ctx, span := tracing.Tracer.Start(pctx, "cron.CleanOrphanedJobs")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("faas.trigger", "timer"),
+		attribute.String("faas.name", "nasaoj-backend"),
+	)
+
 	tracing.Logger.Ctx(ctx).
-		Info("run cleanOrphanedJobs")
+		Debug("run cleanOrphanedJobs")
 
 	// Get all running jobs from database
 	runningJobs, err := jobs.GetRunningJobs(ctx)

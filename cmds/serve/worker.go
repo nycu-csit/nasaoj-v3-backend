@@ -23,7 +23,8 @@ var workerCmd = &cobra.Command{
 		appname := "nasaoj-worker"
 		tracing.InitTracer(appname)
 		if viper.GetString("uptrace-dsn") != "" {
-			tracing.InitUptrace(appname)
+			tracing.InitUptrace(appname, appname)
+			tracing.InitLogger() // Re-init logger with OTel log provider
 			defer tracing.DeferUptrace(ctx)
 		}
 

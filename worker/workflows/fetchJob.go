@@ -15,7 +15,6 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -25,8 +24,9 @@ func FetchJob(
 	retCh chan error,
 	jobIn chan models.JobWithFile,
 ) {
-	ctx, cancel := context.WithCancel(pctx)
-	defer cancel()
+	ctx, span := tracing.Tracer.Start(pctx, "worker.FetchJob")
+	defer span.End()
+	span.SetAttributes(attribute.String("messaging.system", "nasaoj-worker"))
 
 	var job models.Job
 	resp, err := client.R().
@@ -38,7 +38,7 @@ func FetchJob(
 
 	if resp.StatusCode() == http.StatusNoContent {
 		tracing.Logger.Ctx(ctx).
-			Warn("job not exist")
+			Debug("no job available")
 		retCh <- types.JobNotExistError
 		return
 	}
@@ -51,7 +51,6 @@ func FetchJob(
 		return
 	}
 
-	span := trace.SpanFromContext(ctx)
 	span.SetAttributes(
 		attribute.Int64("submission.id", job.SubId),
 		attribute.String("stage.name", job.StageName),

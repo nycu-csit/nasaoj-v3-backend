@@ -13,8 +13,6 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/cri"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -159,13 +157,6 @@ func RunContainerJob(
 		defer cancelRegistry.Unregister(job.Id())
 	}
 
-	span := trace.SpanFromContext(ctx)
-	span.SetAttributes(
-		attribute.Int64("submission.id", job.SubId),
-		attribute.String("stage.name", job.StageName),
-		attribute.String("testcase.name", job.TestName),
-		attribute.String("container.image", job.Image))
-
 	// Calculate host paths for CRI mounts
 	// When worker runs in Docker but CRI-O runs on host, paths need translation
 	hostBasepath := basepath
@@ -289,7 +280,7 @@ func RunContainerJob(
 		tracing.Logger.Ctx(ctx).
 			Debug("container finished",
 				zap.Int("exit_code", int(result.ExitCode)),
-				zap.String("status", string(job.Status)),
+				zap.Int64("status", job.Status),
 				zap.Int("stdout_len", len(result.Stdout)),
 				zap.Int("stderr_len", len(result.Stderr)))
 	}
@@ -307,7 +298,7 @@ func RunContainerJob(
 	tracing.Logger.Ctx(pctx).
 		Debug("container job completed",
 			zap.String("job_id", job.Id()),
-			zap.String("status", string(job.Status)),
+			zap.Int64("status", job.Status),
 			zap.Int("ret_code", job.RetCode),
 			zap.Int("stdout_len", len(job.Stdout)),
 			zap.Int("stderr_len", len(job.Stderr)))

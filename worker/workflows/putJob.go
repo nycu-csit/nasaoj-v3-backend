@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -16,10 +17,17 @@ func PutJob(
 	retCh chan error,
 	jobch chan models.JobWithFile,
 ) {
-	ctx, cancel := context.WithCancel(pctx)
-	defer cancel()
-
 	job := <-jobch
+
+	ctx, span := tracing.Tracer.Start(pctx, "worker.PutJob")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("messaging.system", "nasaoj-worker"),
+		attribute.Int64("submission.id", job.SubId),
+		attribute.String("stage.name", job.StageName),
+		attribute.String("testcase.name", job.TestName),
+		attribute.Int64("job.status", job.Status))
 
 	resp, err := client.R().
 		SetContext(ctx).

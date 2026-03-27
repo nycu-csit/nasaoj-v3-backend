@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -30,12 +31,19 @@ func CheckWorkerStatus(
 }
 
 func checkWorkers(
-	ctx context.Context,
+	pctx context.Context,
 	workers interfaces.WorkerStatusStorage,
 	jobs interfaces.JobStorage,
 ) {
+	ctx, span := tracing.Tracer.Start(pctx, "cron.CheckWorkerStatus")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("faas.trigger", "timer"),
+		attribute.String("faas.name", "nasaoj-backend"),
+	)
+
 	tracing.Logger.Ctx(ctx).
-		Info("run checkWorkers")
+		Debug("run checkWorkers")
 
 	workerMap, err := workers.GetWorkers(ctx)
 	if err != nil {

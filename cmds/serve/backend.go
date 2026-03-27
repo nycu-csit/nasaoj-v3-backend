@@ -49,7 +49,8 @@ var backendCmd = &cobra.Command{
 		appname := "nasaoj-backend"
 		tracing.InitTracer(appname)
 		if viper.GetString("uptrace-dsn") != "" {
-			tracing.InitUptrace(appname)
+			tracing.InitUptrace(appname, "httpserver:"+appname)
+			tracing.InitLogger() // Re-init logger with OTel log provider
 			defer tracing.DeferUptrace(ctx)
 		}
 

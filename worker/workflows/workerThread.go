@@ -6,23 +6,24 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/cri"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
 func WorkerThread(
-	ctx context.Context,
+	pctx context.Context,
 	jobIn chan models.JobWithFile,
 	jobOut chan models.JobWithFile,
 	cancelRegistry *CancelRegistry,
 	criClient *cri.Client,
 	workerBinary string,
 ) {
-	tracing.Logger.Ctx(ctx).
+	tracing.Logger.Ctx(pctx).
 		Info("worker thread is running")
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-pctx.Done():
 			close(jobOut)
 			return
 		case job, ok := <-jobIn:
@@ -30,6 +31,9 @@ func WorkerThread(
 				close(jobOut)
 				return
 			}
+
+			ctx, span := tracing.Tracer.Start(pctx, "worker.ProcessJob")
+			span.SetAttributes(attribute.String("messaging.system", "nasaoj-worker"))
 
 			tracing.Logger.Ctx(ctx).
 				Debug("run job",
@@ -44,6 +48,8 @@ func WorkerThread(
 			tracing.Logger.Ctx(ctx).
 				Debug("thread returned",
 					zap.Error(ret))
+
+			span.End()
 			jobOut <- job
 		}
 	}
