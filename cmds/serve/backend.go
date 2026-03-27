@@ -9,6 +9,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/maintnotifications"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -67,6 +68,9 @@ var backendCmd = &cobra.Command{
 			Username: viper.GetString("redis-user"),
 			Password: viper.GetString("redis-pass"),
 			DB:       viper.GetInt("redis-db"),
+			MaintNotificationsConfig: &maintnotifications.Config{
+				Mode: maintnotifications.ModeDisabled,
+			},
 		})
 		if err := redisotel.InstrumentTracing(rdb); err != nil {
 			tracing.Logger.Ctx(ctx).
