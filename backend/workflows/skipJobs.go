@@ -21,6 +21,10 @@ func SkipJobs(
 		return types.SubmissionNotExistError
 	}
 
+	if submission.Type != models.RefTypeProblem {
+		return nil
+	}
+
 	problem, err := problems.GetProblem(ctx, submission.ProblemSHA1)
 	if err != nil {
 		return types.ProblemNotExistError
