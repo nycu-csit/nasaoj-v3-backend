@@ -2,8 +2,7 @@ package imports
 
 import (
 	"database/sql"
-	"io"
-	"os"
+	"fmt"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
@@ -77,13 +76,11 @@ var problemsCmd = &cobra.Command{
 		}
 
 		var problems []api.PutProblemsInputProblem
-		for sha1, problem := range exportProblems {
+		for _, problem := range exportProblems {
 			// Dehydrate to remove payload from content files
 			db.DehydrateProblem(&problem)
 
 			problems = append(problems, api.PutProblemsInputProblem{
-				SHA1: sha1,
-
 				ProblemId:   problem.ProblemId,
 				Name:        problem.Name,
 				Description: problem.Description,
@@ -98,14 +95,19 @@ var problemsCmd = &cobra.Command{
 				ScoreType:   problem.ScoreType,
 			})
 		}
-		resp := utils.RestyBuilder(ctx, "/api/admin/problems",
+
+		var res []api.PutProblemsOutputProblem
+		_ = utils.RestyBuilder(ctx, "/api/admin/problems",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
-					SetBody(problems)
+					SetBody(problems).
+					SetResult(&res)
 			})
 
-		io.WriteString(os.Stdout, string(resp.Body()[:]))
+		for _, problem := range res {
+			fmt.Printf("%s\t%d\t%s\n", problem.SHA1, problem.ProblemId, problem.Name)
+		}
 
 		_ = utils.RestyBuilder(ctx, "/api/admin/content-files",
 			func(r *resty.Request) *resty.Request {

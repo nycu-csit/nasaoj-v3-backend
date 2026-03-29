@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -13,8 +12,6 @@ import (
 )
 
 type PutToolsInputTool struct {
-	SHA1 string `json:"sha1"`
-
 	ToolId      int64                 `json:"toolId"`
 	Name        string                `json:"name"`
 	Description string                `json:"description"`
@@ -27,11 +24,17 @@ type PutToolsInputTool struct {
 	Cooldown    int64                 `json:"cooldown"`
 }
 
+type PutToolsOutputTool struct {
+	SHA1   string `json:"sha1"`
+	ToolId int64  `json:"toolId"`
+	Name   string `json:"name"`
+}
+
 // PutTools
 //
-//	@Param		request	body	[]PutToolsInputTool	true	"tool"
+//	@Param		request	body	[]PutToolsInputTool	true	"tools"
 //	@Accept		json
-//	@Success	200	{object}	[]string	"SHA1s"
+//	@Success	200	{object}	[]PutToolsOutputTool	"tools"
 //	@Failure	401	{object}	string
 //	@Router		/api/admin/tools [put]
 func (self *Handlers) PutTools(
@@ -57,7 +60,7 @@ func (self *Handlers) PutTools(
 		}
 	}
 
-	var res strings.Builder
+	var res []PutToolsOutputTool
 	for _, input := range inputTools {
 		tool := models.Tool{
 			ToolId:      input.ToolId,
@@ -75,13 +78,16 @@ func (self *Handlers) PutTools(
 		if err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusBadRequest,
-				Message:     fmt.Sprintf("insert tool '%s' failed", input.SHA1),
+				Message:     fmt.Sprintf("insert tool '%s' failed", input.Name),
 				OriginError: err,
 			}
 		}
-		io.WriteString(&res, sha1+"\n")
+		res = append(res, PutToolsOutputTool{
+			SHA1:   sha1,
+			ToolId: input.ToolId,
+			Name:   input.Name,
+		})
 	}
 
-	_, err = io.WriteString(w, res.String())
-	return err
+	return bunrouter.JSON(w, res)
 }

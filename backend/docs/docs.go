@@ -182,7 +182,7 @@ const docTemplate = `{
                 ],
                 "parameters": [
                     {
-                        "description": "problem",
+                        "description": "problems",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -196,11 +196,11 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "SHA1s",
+                        "description": "problems",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "string"
+                                "$ref": "#/definitions/api.PutProblemsOutputProblem"
                             }
                         }
                     },
@@ -707,7 +707,7 @@ const docTemplate = `{
                 ],
                 "parameters": [
                     {
-                        "description": "tool",
+                        "description": "tools",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -721,11 +721,11 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "SHA1s",
+                        "description": "tools",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "string"
+                                "$ref": "#/definitions/api.PutToolsOutputTool"
                             }
                         }
                     },
@@ -1683,9 +1683,6 @@ const docTemplate = `{
                 "scoreType": {
                     "$ref": "#/definitions/models.ScoreTypeType"
                 },
-                "sha1": {
-                    "type": "string"
-                },
                 "spec": {
                     "$ref": "#/definitions/models.ProblemSpec"
                 },
@@ -1696,6 +1693,20 @@ const docTemplate = `{
                     }
                 },
                 "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PutProblemsOutputProblem": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "problemId": {
+                    "type": "integer"
+                },
+                "sha1": {
                     "type": "string"
                 }
             }
@@ -1752,14 +1763,25 @@ const docTemplate = `{
                 "preScript": {
                     "$ref": "#/definitions/models.Content"
                 },
-                "sha1": {
-                    "type": "string"
-                },
                 "tag": {
                     "type": "string"
                 },
                 "testcase": {
                     "$ref": "#/definitions/models.Testcase"
+                },
+                "toolId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.PutToolsOutputTool": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "sha1": {
+                    "type": "string"
                 },
                 "toolId": {
                     "type": "integer"

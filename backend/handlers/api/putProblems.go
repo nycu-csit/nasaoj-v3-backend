@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -14,8 +13,6 @@ import (
 )
 
 type PutProblemsInputProblem struct {
-	SHA1 string `json:"sha1"`
-
 	ProblemId   int64                   `json:"problemId"`
 	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
@@ -30,11 +27,17 @@ type PutProblemsInputProblem struct {
 	ScoreType   models.ScoreTypeType    `json:"scoreType"`
 }
 
+type PutProblemsOutputProblem struct {
+	SHA1      string `json:"sha1"`
+	ProblemId int64  `json:"problemId"`
+	Name      string `json:"name"`
+}
+
 // PutProblems
 //
-//	@Param		request	body	[]PutProblemsInputProblem	true	"problem"
+//	@Param		request	body	[]PutProblemsInputProblem	true	"problems"
 //	@Accept		json
-//	@Success	200	{object}	[]string	"SHA1s"
+//	@Success	200	{object}	[]PutProblemsOutputProblem	"problems"
 //	@Failure	401	{object}	string
 //	@Router		/api/admin/problems [put]
 func (self *Handlers) PutProblems(
@@ -60,7 +63,7 @@ func (self *Handlers) PutProblems(
 		}
 	}
 
-	var res strings.Builder
+	var res []PutProblemsOutputProblem
 	for _, input := range inputProblems {
 		problem := models.Problem{
 			ProblemId:   input.ProblemId,
@@ -91,9 +94,12 @@ func (self *Handlers) PutProblems(
 				OriginError: err,
 			}
 		}
-		io.WriteString(&res, sha1+"\n")
+		res = append(res, PutProblemsOutputProblem{
+			SHA1:      sha1,
+			ProblemId: input.ProblemId,
+			Name:      input.Name,
+		})
 	}
 
-	_, err = io.WriteString(w, res.String())
-	return err
+	return bunrouter.JSON(w, res)
 }

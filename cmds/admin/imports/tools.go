@@ -2,8 +2,7 @@ package imports
 
 import (
 	"database/sql"
-	"io"
-	"os"
+	"fmt"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
@@ -77,13 +76,11 @@ var toolsCmd = &cobra.Command{
 		}
 
 		var tools []api.PutToolsInputTool
-		for sha1, tool := range exportTools {
+		for _, tool := range exportTools {
 			// Dehydrate to remove payload from content files
 			db.DehydrateTool(&tool)
 
 			tools = append(tools, api.PutToolsInputTool{
-				SHA1: sha1,
-
 				ToolId:      tool.ToolId,
 				Name:        tool.Name,
 				Description: tool.Description,
@@ -96,14 +93,19 @@ var toolsCmd = &cobra.Command{
 				Cooldown:    tool.Cooldown,
 			})
 		}
-		resp := utils.RestyBuilder(ctx, "/api/admin/tools",
+
+		var res []api.PutToolsOutputTool
+		_ = utils.RestyBuilder(ctx, "/api/admin/tools",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
-					SetBody(tools)
+					SetBody(tools).
+					SetResult(&res)
 			})
 
-		io.WriteString(os.Stdout, string(resp.Body()[:]))
+		for _, tool := range res {
+			fmt.Printf("%s\t%d\t%s\n", tool.SHA1, tool.ToolId, tool.Name)
+		}
 
 		_ = utils.RestyBuilder(ctx, "/api/admin/content-files",
 			func(r *resty.Request) *resty.Request {

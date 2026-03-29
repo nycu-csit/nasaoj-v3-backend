@@ -140,8 +140,6 @@ definitions:
         type: integer
       scoreType:
         $ref: '#/definitions/models.ScoreTypeType'
-      sha1:
-        type: string
       spec:
         $ref: '#/definitions/models.ProblemSpec'
       stages:
@@ -149,6 +147,15 @@ definitions:
           $ref: '#/definitions/models.Stage'
         type: object
       tag:
+        type: string
+    type: object
+  api.PutProblemsOutputProblem:
+    properties:
+      name:
+        type: string
+      problemId:
+        type: integer
+      sha1:
         type: string
     type: object
   api.PutTokenStateInput:
@@ -185,12 +192,19 @@ definitions:
         $ref: '#/definitions/models.Content'
       preScript:
         $ref: '#/definitions/models.Content'
-      sha1:
-        type: string
       tag:
         type: string
       testcase:
         $ref: '#/definitions/models.Testcase'
+      toolId:
+        type: integer
+    type: object
+  api.PutToolsOutputTool:
+    properties:
+      name:
+        type: string
+      sha1:
+        type: string
       toolId:
         type: integer
     type: object
@@ -732,7 +746,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: problem
+      - description: problems
         in: body
         name: request
         required: true
@@ -742,10 +756,10 @@ paths:
           type: array
       responses:
         "200":
-          description: SHA1s
+          description: problems
           schema:
             items:
-              type: string
+              $ref: '#/definitions/api.PutProblemsOutputProblem'
             type: array
         "401":
           description: Unauthorized
@@ -1068,7 +1082,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: tool
+      - description: tools
         in: body
         name: request
         required: true
@@ -1078,10 +1092,10 @@ paths:
           type: array
       responses:
         "200":
-          description: SHA1s
+          description: tools
           schema:
             items:
-              type: string
+              $ref: '#/definitions/api.PutToolsOutputTool'
             type: array
         "401":
           description: Unauthorized

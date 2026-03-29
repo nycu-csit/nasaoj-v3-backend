@@ -38,9 +38,10 @@ func Test_16_1_Import_problems(t *testing.T) {
 	}
 
 	for line := range strings.Lines(stdout.String()) {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			problem16SHA1s = append(problem16SHA1s, line)
+		// Output format: sha1\tproblemId\tname
+		fields := strings.Fields(line)
+		if len(fields) > 0 {
+			problem16SHA1s = append(problem16SHA1s, fields[0])
 		}
 	}
 

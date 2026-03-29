@@ -33,10 +33,12 @@ func Test_17_1_Import_self_managed_problem(t *testing.T) {
 		t.Fatalf("failed to import problem: %v\n", err)
 	}
 
-	sha1 := strings.TrimSpace(stdout.String())
-	if sha1 == "" {
+	// Output format: sha1\tproblemId\tname
+	fields := strings.Fields(stdout.String())
+	if len(fields) == 0 {
 		t.Fatal("no problem SHA1 returned")
 	}
+	sha1 := fields[0]
 	t.Logf("Imported problem SHA1: %s", sha1)
 }
 
