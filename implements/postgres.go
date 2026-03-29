@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"text/template"
@@ -570,7 +571,7 @@ func (self *Postgres) DeleteProblemAndSubmissions(
 					Column("sha1").
 					Where("sha1 LIKE ?", sha1Prefix+"%").
 					Limit(1)).
-				Returning("sha1", "problem_id").
+				Returning("sha1, problem_id").
 				Exec(ctx)
 			if err != nil {
 				return err
@@ -885,7 +886,7 @@ func (self *Postgres) DeleteToolAndSubmissions(
 					Column("sha1").
 					Where("sha1 LIKE ?", sha1Prefix+"%").
 					Limit(1)).
-				Returning("sha1", "tool_id").
+				Returning("sha1, tool_id").
 				Exec(ctx)
 			if err != nil {
 				return err
@@ -1462,7 +1463,7 @@ func (self *Postgres) DeleteSubmission(
 	_, err := self.db.NewDelete().
 		Model((*models.Submission)(nil)).
 		Where("id = ?", subId).
-		Returning("problem_id", "owner_id").
+		Returning("problem_id, owner_id").
 		Exec(ctx, &sub)
 	if err != nil {
 		return err
@@ -1774,7 +1775,7 @@ func (self *Postgres) UpdateSubmissionScore(
 		Model(&sub).
 		Set("score = ?", score).
 		Where("id = ?", subId).
-		Returning("owner_id", "problem_id", "problem_sha1").
+		Returning("owner_id, problem_id, problem_sha1").
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -1790,6 +1791,11 @@ func (self *Postgres) UpdateSubmissionScore(
 
 	problem, err := self.GetProblem(ctx, sub.ProblemSHA1)
 	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get problem",
+				zap.String("submission", fmt.Sprintf("%+v", sub)),
+				zap.String("problem.sha1", sub.ProblemSHA1),
+				zap.Error(err))
 		return err
 	}
 	if problem.ScoreType != models.ScoreTypeSelfManaged {
@@ -2136,7 +2142,8 @@ func (self *Postgres) UpdateRefreshToken(
 		Model((*models.Session)(nil)).
 		Where("id = ?", id).
 		Set("refresh_token = ?", ret.RefreshToken).
-		Returning("*").Scan(ctx, &ret)
+		Returning("*").
+		Scan(ctx, &ret)
 	return ret, nil
 }
 
