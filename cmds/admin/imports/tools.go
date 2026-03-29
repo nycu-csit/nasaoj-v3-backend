@@ -75,8 +75,21 @@ var toolsCmd = &cobra.Command{
 				})
 		}
 
+		importIdMap := make(map[int64]struct{})
+		for _, id := range viper.GetIntSlice("tool-id") {
+			importIdMap[int64(id)] = struct{}{}
+		}
+		if len(importIdMap) == 0 {
+			for _, tool := range exportTools {
+				importIdMap[tool.ToolId] = struct{}{}
+			}
+		}
+
 		var tools []api.PutToolsInputTool
 		for _, tool := range exportTools {
+			if _, ok := importIdMap[tool.ToolId]; !ok {
+				continue
+			}
 			// Dehydrate to remove payload from content files
 			db.DehydrateTool(&tool)
 
@@ -123,4 +136,7 @@ func init() {
 		String("tools-dir", "./tools", "Directory to read tools")
 	toolsCmd.Flags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
+		// Use IntSlice because viper doesn't support Int64SliceP
+	toolsCmd.Flags().
+		IntSliceP("tool-id", "i", []int{}, "Import only specific ids")
 }

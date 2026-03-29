@@ -75,8 +75,21 @@ var problemsCmd = &cobra.Command{
 				})
 		}
 
+		importIdMap := make(map[int64]struct{})
+		for _, id := range viper.GetIntSlice("problem-id") {
+			importIdMap[int64(id)] = struct{}{}
+		}
+		if len(importIdMap) == 0 {
+			for _, problem := range exportProblems {
+				importIdMap[problem.ProblemId] = struct{}{}
+			}
+		}
+
 		var problems []api.PutProblemsInputProblem
 		for _, problem := range exportProblems {
+			if _, ok := importIdMap[problem.ProblemId]; !ok {
+				continue
+			}
 			// Dehydrate to remove payload from content files
 			db.DehydrateProblem(&problem)
 
@@ -125,4 +138,7 @@ func init() {
 		String("problems-dir", "./problems", "Directory to read problems")
 	problemsCmd.Flags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
+	// Use IntSlice because viper doesn't support Int64SliceP
+	problemsCmd.Flags().
+		IntSliceP("problem-id", "i", []int{}, "Import only specific ids")
 }
