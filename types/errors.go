@@ -17,6 +17,7 @@ var (
 	WrongFormatError          = fmt.Errorf("wrong format")
 	HTTPRequestFailedError    = fmt.Errorf("http request failed")
 	LockAcquisitionError      = fmt.Errorf("lock acquisition failed")
+	ScoreTypeNotSelfManaged   = fmt.Errorf("score type is not self managed")
 
 	JobAlreadySkippedError = fmt.Errorf("job has already skipped")
 )

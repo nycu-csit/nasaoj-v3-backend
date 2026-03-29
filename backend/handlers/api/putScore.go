@@ -2,12 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ScoreRequest struct {
@@ -51,10 +55,20 @@ func (self *Handlers) PutScore(
 		}
 	}
 
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(
+		attribute.Int64("submission.id", scoreReq.SubId))
+
 	// Update submission score
 	err = self.submissions.UpdateSubmissionScore(ctx,
 		scoreReq.SubId, scoreReq.Score)
 	if err != nil {
+		if errors.Is(err, types.ScoreTypeNotSelfManaged) {
+			return middlewares.HTTPError{
+				StatusCode: http.StatusMethodNotAllowed,
+				Message:    "score type is not self managed",
+			}
+		}
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "failed to update score",

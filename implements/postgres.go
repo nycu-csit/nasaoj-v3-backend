@@ -1774,17 +1774,26 @@ func (self *Postgres) UpdateSubmissionScore(
 		Model(&sub).
 		Set("score = ?", score).
 		Where("id = ?", subId).
-		Returning("owner_id", "problem_id").
+		Returning("owner_id", "problem_id", "problem_sha1").
 		Exec(ctx)
 	if err != nil {
 		return err
 	}
+
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
 	if rowsAffected == 0 {
 		return sql.ErrNoRows
+	}
+
+	problem, err := self.GetProblem(ctx, sub.ProblemSHA1)
+	if err != nil {
+		return err
+	}
+	if problem.ScoreType != models.ScoreTypeSelfManaged {
+		return types.ScoreTypeNotSelfManaged
 	}
 
 	pending := []string{

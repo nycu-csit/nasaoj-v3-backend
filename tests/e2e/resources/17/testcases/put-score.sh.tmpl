@@ -12,7 +12,7 @@ echo "SubId: $SUB_ID"
 curl "$ENDPOINT/api/score" -X PUT \
   -H "Authorization: Bearer $JOB_TOKEN" \
   -H "Content-Type: application/json" \
-  --fail --no-progress-meter \
+  --fail --no-progress-meter -v \
   -d "{\"subId\": $SUB_ID, \"score\": 42}"
 
 echo "Score updated successfully"
