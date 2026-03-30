@@ -2064,6 +2064,9 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "timeout": {
+                    "type": "integer"
                 }
             }
         },
@@ -2072,6 +2075,9 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "timeout": {
+                    "type": "integer"
                 }
             }
         },

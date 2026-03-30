@@ -10,6 +10,8 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/migrates"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/serve"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/tests"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/user"
+	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/user/submit"
 )
 
 var (
@@ -35,4 +37,5 @@ func init() {
 	RootCmd.AddCommand(migrates.RootCmd)
 	RootCmd.AddCommand(admin.RootCmd)
 	RootCmd.AddCommand(helper.RootCmd)
+	RootCmd.AddCommand(user.RootCmd)
 }

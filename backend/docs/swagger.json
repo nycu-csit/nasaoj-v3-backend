@@ -2056,6 +2056,9 @@
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "timeout": {
+                    "type": "integer"
                 }
             }
         },
@@ -2064,6 +2067,9 @@
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "timeout": {
+                    "type": "integer"
                 }
             }
         },

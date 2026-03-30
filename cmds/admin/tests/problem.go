@@ -1,22 +1,34 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/imports"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/submit"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/common"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
+
+func fetchProblem(ctx context.Context, sha1 string) api.ProblemOutput {
+	var res api.ProblemOutput
+	utils.RestyBuilder(ctx, "/api/problem",
+		func(r *resty.Request) *resty.Request {
+			return r.
+				SetQueryParam("problemSHA1", sha1).
+				SetResult(&res).
+				ForceContentType("application/json")
+		})
+	return res
+}
 
 var problemCmd = &cobra.Command{
 	Use:   "problem",
@@ -89,34 +101,32 @@ var problemCmd = &cobra.Command{
 				continue
 			}
 
-			// Check job results
-			var hasFailed bool
-			for _, job := range lastResult.Jobs {
-				statusName := models.JobStatusName(job.Status)
-				jobColor := color.RGB(0, 200, 0)
-				if job.Status != models.StatusSuccess {
-					jobColor = color.RGB(255, 165, 0)
-					hasFailed = true
-				}
+			// Fetch problem to get testcase timeouts
+			problemOutput := fetchProblem(ctx, lastResult.RefSHA1)
 
-				jobColor.Printf("  [%s] %s/%s\n", statusName, job.StageName, job.TestName)
-
-				// Fetch and print stdout/stderr
-				subIdStr := strconv.FormatInt(submissionId, 10)
-				stdout := fetchOutput(ctx, "/api/admin/stdout",
-					subIdStr, job.StageName, job.TestName)
-				if stdout != "" {
-					jobColor.Printf("    stdout: |\n%s\n", strings.TrimSpace(stdout))
-				}
-
-				if job.Status != models.StatusSuccess {
-					stderr := fetchOutput(ctx, "/api/admin/stderr",
-						subIdStr, job.StageName, job.TestName)
-					if strings.TrimSpace(stderr) != "" {
-						jobColor.Printf("    stderr: |\n%s\n", strings.TrimSpace(stderr))
-					}
+			// Build timeout map from problem stages
+			timeoutMap := make(map[string]int64)
+			for stageName, stage := range problemOutput.Stages {
+				for _, tc := range stage.Testcases {
+					key := stageName + "/" + tc.Name
+					timeoutMap[key] = tc.Timeout
 				}
 			}
+
+			// Check job results using shared utility
+			subIdStr := strconv.FormatInt(submissionId, 10)
+			jobs := make([]common.JobResult, len(lastResult.Jobs))
+			for i, j := range lastResult.Jobs {
+				key := j.StageName + "/" + j.TestName
+				jobs[i] = common.JobResult{
+					StageName: j.StageName,
+					TestName:  j.TestName,
+					Status:    j.Status,
+					Timeout:   timeoutMap[key],
+				}
+			}
+			hasFailed := common.ShowJobResults(ctx, subIdStr, jobs,
+				common.AdminShowResultsConfig())
 
 			if hasFailed {
 				fmt.Printf("FAILED: Problem %s has failed jobs\n", problem.Name)

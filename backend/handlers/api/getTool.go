@@ -44,7 +44,8 @@ func (self *Handlers) GetTool(
 		ToolId:      tool.ToolId,
 		Description: tool.Description,
 		Testcase: toolOutputTestcase{
-			Name: tool.Testcase.Name,
+			Name:    tool.Testcase.Name,
+			Timeout: tool.Testcase.Timeout,
 		},
 		Tag:       tool.Tag,
 		IsEnabled: tool.IsEnabled,

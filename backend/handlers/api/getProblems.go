@@ -9,7 +9,8 @@ import (
 )
 
 type problemOutputStageTestcase struct {
-	Name string `json:"name"`
+	Name    string `json:"name"`
+	Timeout int64  `json:"timeout"`
 }
 
 type problemOutputStage struct {
@@ -102,7 +103,8 @@ func (self *Handlers) GetProblems(
 				for _, testcase := range stage.Testcases {
 					retStage.Testcases = append(retStage.Testcases,
 						problemOutputStageTestcase{
-							Name: testcase.Name,
+							Name:    testcase.Name,
+							Timeout: testcase.Timeout,
 						})
 				}
 				retProblem.Stages[stageName] = retStage

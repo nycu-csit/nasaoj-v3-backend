@@ -389,11 +389,15 @@ definitions:
     properties:
       name:
         type: string
+      timeout:
+        type: integer
     type: object
   api.toolOutputTestcase:
     properties:
       name:
         type: string
+      timeout:
+        type: integer
     type: object
   auth.LoginPlainInput:
     properties:
