@@ -17,7 +17,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var toolsCmd = &cobra.Command{
+// LastImportedTools stores the result of the last import for programmatic access
+var LastImportedTools []api.PutToolsOutputTool
+
+var ToolsCmd = &cobra.Command{
 	Use:   "tools",
 	Short: "Import tools",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -107,16 +110,16 @@ var toolsCmd = &cobra.Command{
 			})
 		}
 
-		var res []api.PutToolsOutputTool
+		LastImportedTools = nil
 		_ = utils.RestyBuilder(ctx, "/api/admin/tools",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
 					SetBody(tools).
-					SetResult(&res)
+					SetResult(&LastImportedTools)
 			})
 
-		for _, tool := range res {
+		for _, tool := range LastImportedTools {
 			fmt.Printf("%s\t%d\t%s\n", tool.SHA1, tool.ToolId, tool.Name)
 		}
 
@@ -132,11 +135,11 @@ var toolsCmd = &cobra.Command{
 }
 
 func init() {
-	toolsCmd.Flags().
+	ToolsCmd.Flags().
 		String("tools-dir", "./tools", "Directory to read tools")
-	toolsCmd.Flags().
+	ToolsCmd.Flags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
 		// Use IntSlice because viper doesn't support Int64SliceP
-	toolsCmd.Flags().
+	ToolsCmd.Flags().
 		IntSliceP("tool-id", "i", []int{}, "Import only specific ids")
 }

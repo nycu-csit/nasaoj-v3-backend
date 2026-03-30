@@ -3,7 +3,6 @@ package submit
 import (
 	"io"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/go-resty/resty/v2"
@@ -18,7 +17,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-var toolCmd = &cobra.Command{
+var ToolCmd = &cobra.Command{
 	Use:   "tool [tool_sha1]",
 	Short: "Submit tool",
 	Args:  cobra.ExactArgs(1),
@@ -37,25 +36,24 @@ var toolCmd = &cobra.Command{
 			inputArgs[strs[0]] = strs[1]
 		}
 
-		var output api.SubmitOutput
+		LastSubmitOutput = api.SubmitOutput{}
 		utils.RestyBuilder(ctx, "/api/admin/submit",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPost
-				ownerId, _ := strconv.ParseInt(viper.GetString("owner-id"), 10, 64)
 				return r.
 					SetBody(api.AdminSubmitInput{
-						AsOwnerId: ownerId,
+						AsOwnerId: viper.GetInt64("owner-id"),
 						SubmitInput: api.SubmitInput{
 							RefSHA1:   args[0],
 							Type:      models.RefTypeTool,
 							InputArgs: inputArgs,
 						},
 					}).
-					SetResult(&output).
+					SetResult(&LastSubmitOutput).
 					ForceContentType("application/json")
 			})
 
-		b, err := yaml.Marshal(output)
+		b, err := yaml.Marshal(LastSubmitOutput)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to marshal output to yaml",
@@ -67,6 +65,6 @@ var toolCmd = &cobra.Command{
 }
 
 func init() {
-	toolCmd.Flags().
+	ToolCmd.Flags().
 		StringSliceP("arg", "a", []string{}, "Input Args (key=value)")
 }

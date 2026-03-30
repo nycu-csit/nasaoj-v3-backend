@@ -17,7 +17,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var problemsCmd = &cobra.Command{
+// LastImportedProblems stores the result of the last import for programmatic access
+var LastImportedProblems []api.PutProblemsOutputProblem
+
+var ProblemsCmd = &cobra.Command{
 	Use:   "problems",
 	Short: "Import problems",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -109,16 +112,16 @@ var problemsCmd = &cobra.Command{
 			})
 		}
 
-		var res []api.PutProblemsOutputProblem
+		LastImportedProblems = nil
 		_ = utils.RestyBuilder(ctx, "/api/admin/problems",
 			func(r *resty.Request) *resty.Request {
 				r.Method = resty.MethodPut
 				return r.
 					SetBody(problems).
-					SetResult(&res)
+					SetResult(&LastImportedProblems)
 			})
 
-		for _, problem := range res {
+		for _, problem := range LastImportedProblems {
 			fmt.Printf("%s\t%d\t%s\n", problem.SHA1, problem.ProblemId, problem.Name)
 		}
 
@@ -134,11 +137,11 @@ var problemsCmd = &cobra.Command{
 }
 
 func init() {
-	problemsCmd.Flags().
+	ProblemsCmd.Flags().
 		String("problems-dir", "./problems", "Directory to read problems")
-	problemsCmd.Flags().
+	ProblemsCmd.Flags().
 		String("testcases-dir", "./testcases", "Directory to read testcases")
 	// Use IntSlice because viper doesn't support Int64SliceP
-	problemsCmd.Flags().
+	ProblemsCmd.Flags().
 		IntSliceP("problem-id", "i", []int{}, "Import only specific ids")
 }

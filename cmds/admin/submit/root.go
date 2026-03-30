@@ -9,9 +9,9 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().
-		String("owner-id", "", "Submit As OwnerId")
+		Int64("owner-id", 0, "Submit As OwnerId")
 	RootCmd.MarkFlagRequired("owner-id")
 
-	RootCmd.AddCommand(problemCmd)
-	RootCmd.AddCommand(toolCmd)
+	RootCmd.AddCommand(ProblemCmd)
+	RootCmd.AddCommand(ToolCmd)
 }
