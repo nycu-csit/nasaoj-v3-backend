@@ -133,14 +133,11 @@ var toolCmd = &cobra.Command{
 }
 
 func init() {
-	// Reuse flags from imports.ToolsCmd
-	toolCmd.Flags().AddFlagSet(imports.ToolsCmd.Flags())
-	// Reuse flags from submit.ToolCmd
-	toolCmd.Flags().AddFlagSet(submit.ToolCmd.Flags())
-
 	toolCmd.Flags().
 		Int64("owner-id", 0, "Submit as OwnerId")
 
+	toolCmd.Flags().
+		IntSliceP("tool-id", "i", []int{}, "Tool ids to test")
 	toolCmd.MarkFlagRequired("tool-id")
 
 	toolCmd.Flags().
@@ -148,4 +145,8 @@ func init() {
 	toolCmd.Flags().
 		Duration("retry-interval", time.Second, "Interval between retries")
 
+	// Reuse flags from imports.ToolsCmd
+	toolCmd.Flags().AddFlagSet(imports.ToolsCmd.Flags())
+	// Reuse flags from submit.ToolCmd
+	toolCmd.Flags().AddFlagSet(submit.ToolCmd.Flags())
 }

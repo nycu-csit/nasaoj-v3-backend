@@ -134,18 +134,20 @@ var problemCmd = &cobra.Command{
 }
 
 func init() {
-	// Reuse flags from imports.ProblemsCmd
-	problemCmd.Flags().AddFlagSet(imports.ProblemsCmd.Flags())
-
 	problemCmd.Flags().
 		Int64("owner-id", 0, "Submit as OwnerId")
 	// Allow from env
 	// problemCmd.MarkFlagRequired("owner-id")
 
+	problemCmd.Flags().
+		IntSliceP("problem-id", "i", []int{}, "Problem ids to test")
 	problemCmd.MarkFlagRequired("problem-id")
 
 	problemCmd.Flags().
 		Int("max-retries", 60, "Max retries for polling results")
 	problemCmd.Flags().
 		Duration("retry-interval", time.Second, "Interval between retries")
+
+	// Reuse flags from imports.ProblemsCmd
+	problemCmd.Flags().AddFlagSet(imports.ProblemsCmd.Flags())
 }
