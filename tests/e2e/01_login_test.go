@@ -12,7 +12,7 @@ import (
 )
 
 func Test_01_0_Create_CSSSO_Users(t *testing.T) {
-	csssoUsers := []api.PutUsersCSSSOInput{
+	csssoUsers := []api.PutUsersCSSSOInputUser{
 		{CsId: "dummy_user_1"},
 		{CsId: "dummy_user_2"},
 		{CsId: "dummy_user_3"},
@@ -36,6 +36,9 @@ func Test_01_1_Create_User(t *testing.T) {
 	stdin := strings.NewReader(`---
 - username: 'poop'
   password: 'poop'
+- username: 'admin'
+  password: 'poop'
+  isAdmin: true
 `)
 
 	cmd := exec.Command(
@@ -113,7 +116,7 @@ func Test_01_4_Update_Password(t *testing.T) {
 	t.Run("Update user password via admin API", func(t *testing.T) {
 		resp, err := client.R().
 			SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
-			SetBody([]api.PutUsersPlainInput{
+			SetBody([]api.PutUsersPlainInputUser{
 				{
 					Username: "poop",
 					Password: newPassword,
@@ -157,7 +160,7 @@ func Test_01_4_Update_Password(t *testing.T) {
 	t.Run("Revert password back to original", func(t *testing.T) {
 		resp, err := client.R().
 			SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
-			SetBody([]api.PutUsersPlainInput{
+			SetBody([]api.PutUsersPlainInputUser{
 				{
 					Username: "poop",
 					Password: "poop",

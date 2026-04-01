@@ -11,15 +11,16 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
-type PutUsersPlainInput struct {
-	Username string            `json:"username"`
-	Password string            `json:"password"`
-	Args     map[string]string `json:"args"`
+type PutUsersPlainInputUser struct {
+	Username string            `json:"username" yaml:"username"`
+	Password string            `json:"password" yaml:"password"`
+	Args     map[string]string `json:"args" yaml:"args"`
+	IsAdmin  bool              `json:"isAdmin" yaml:"isAdmin"`
 }
 
 // PutUsersPlain
 //
-//	@Param		request	body	[]PutUsersPlainInput	true	"request body"
+//	@Param		request	body	[]PutUsersPlainInputUser	true	"request body"
 //	@Accept		json
 //	@Success	200
 //	@Failure	401
@@ -38,7 +39,7 @@ func (self *Handlers) PutUsersPlain(
 		}
 	}
 
-	var inputUsers []PutUsersPlainInput
+	var inputUsers []PutUsersPlainInputUser
 	if err := json.Unmarshal(b, &inputUsers); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusBadRequest,
@@ -53,6 +54,7 @@ func (self *Handlers) PutUsersPlain(
 		users = append(users, models.UserResource{
 			Username: user.Username,
 			Args:     user.Args,
+			IsAdmin:  user.IsAdmin,
 			Source:   models.LoginSourcePlain,
 		})
 		creds = append(creds, models.PlainCred{

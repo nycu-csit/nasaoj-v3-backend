@@ -11,14 +11,14 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
-type PutUsersCSSSOInput struct {
+type PutUsersCSSSOInputUser struct {
 	CsId string            `json:"csId" yaml:"csId"`
 	Args map[string]string `json:"args" yaml:"args"`
 }
 
 // PutUsersCSSSO
 //
-//	@Param		request	body	[]PutUsersCSSSOInput	true	"request body"
+//	@Param		request	body	[]PutUsersCSSSOInputUser	true	"request body"
 //	@Accept		json
 //	@Success	200	{object}	string	"success"
 //	@Failure	401	{object}	string
@@ -37,7 +37,7 @@ func (self *Handlers) PutUsersCSSSO(
 		}
 	}
 
-	var inputUsers []PutUsersCSSSOInput
+	var inputUsers []PutUsersCSSSOInputUser
 	if err := json.Unmarshal(b, &inputUsers); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusBadRequest,

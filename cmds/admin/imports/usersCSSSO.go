@@ -34,7 +34,7 @@ var usersCSSSOCmd = &cobra.Command{
 			panic(err)
 		}
 
-		var inputs []api.PutUsersCSSSOInput
+		var inputs []api.PutUsersCSSSOInputUser
 		if err := yaml.Unmarshal([]byte(stdin), &inputs); err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to unmarshal yaml",

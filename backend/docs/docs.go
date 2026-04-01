@@ -841,7 +841,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.PutUsersCSSSOInput"
+                                "$ref": "#/definitions/api.PutUsersCSSSOInputUser"
                             }
                         }
                     }
@@ -876,7 +876,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.PutUsersPlainInput"
+                                "$ref": "#/definitions/api.PutUsersPlainInputUser"
                             }
                         }
                     }
@@ -1788,7 +1788,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PutUsersCSSSOInput": {
+        "api.PutUsersCSSSOInputUser": {
             "type": "object",
             "properties": {
                 "args": {
@@ -1802,7 +1802,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PutUsersPlainInput": {
+        "api.PutUsersPlainInputUser": {
             "type": "object",
             "properties": {
                 "args": {
@@ -1810,6 +1810,9 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "isAdmin": {
+                    "type": "boolean"
                 },
                 "password": {
                     "type": "string"

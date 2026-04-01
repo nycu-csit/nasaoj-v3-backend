@@ -208,7 +208,7 @@ definitions:
       toolId:
         type: integer
     type: object
-  api.PutUsersCSSSOInput:
+  api.PutUsersCSSSOInputUser:
     properties:
       args:
         additionalProperties:
@@ -217,12 +217,14 @@ definitions:
       csId:
         type: string
     type: object
-  api.PutUsersPlainInput:
+  api.PutUsersPlainInputUser:
     properties:
       args:
         additionalProperties:
           type: string
         type: object
+      isAdmin:
+        type: boolean
       password:
         type: string
       username:
@@ -1173,7 +1175,7 @@ paths:
         required: true
         schema:
           items:
-            $ref: '#/definitions/api.PutUsersCSSSOInput'
+            $ref: '#/definitions/api.PutUsersCSSSOInputUser'
           type: array
       responses:
         "200":
@@ -1195,7 +1197,7 @@ paths:
         required: true
         schema:
           items:
-            $ref: '#/definitions/api.PutUsersPlainInput'
+            $ref: '#/definitions/api.PutUsersPlainInputUser'
           type: array
       responses:
         "200":

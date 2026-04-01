@@ -32,7 +32,7 @@ var usersPlainCmd = &cobra.Command{
 			panic(err)
 		}
 
-		var inputs []api.PutUsersPlainInput
+		var inputs []api.PutUsersPlainInputUser
 		if err := yaml.Unmarshal([]byte(stdin), &inputs); err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to unmarshal yaml",

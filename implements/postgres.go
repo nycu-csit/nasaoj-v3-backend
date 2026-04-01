@@ -2011,6 +2011,7 @@ func (self *Postgres) InsertUserResources(
 				_, err = tx.NewUpdate().
 					Model((*models.UserResource)(nil)).
 					Set("args = ?", mergedUser.Args).
+					Set("is_admin = ?", mergedUser.IsAdmin).
 					Where("username = ?", newUser.Username).
 					Exec(ctx)
 				if err != nil {

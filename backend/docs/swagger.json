@@ -833,7 +833,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.PutUsersCSSSOInput"
+                                "$ref": "#/definitions/api.PutUsersCSSSOInputUser"
                             }
                         }
                     }
@@ -868,7 +868,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/api.PutUsersPlainInput"
+                                "$ref": "#/definitions/api.PutUsersPlainInputUser"
                             }
                         }
                     }
@@ -1780,7 +1780,7 @@
                 }
             }
         },
-        "api.PutUsersCSSSOInput": {
+        "api.PutUsersCSSSOInputUser": {
             "type": "object",
             "properties": {
                 "args": {
@@ -1794,7 +1794,7 @@
                 }
             }
         },
-        "api.PutUsersPlainInput": {
+        "api.PutUsersPlainInputUser": {
             "type": "object",
             "properties": {
                 "args": {
@@ -1802,6 +1802,9 @@
                     "additionalProperties": {
                         "type": "string"
                     }
+                },
+                "isAdmin": {
+                    "type": "boolean"
                 },
                 "password": {
                     "type": "string"
