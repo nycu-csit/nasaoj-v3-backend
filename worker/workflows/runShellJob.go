@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"syscall"
 	"time"
 
 	"github.com/spf13/viper"
@@ -106,7 +107,8 @@ func RunShellJob(
 	job.ExecAt = time.Now().Unix()
 	duration := time.Duration(job.Timeout) * time.Second
 
-	ctx, cancel := context.WithTimeout(pctx, duration)
+	// Use 2*timeout for the hard deadline (SIGKILL)
+	ctx, cancel := context.WithTimeout(pctx, 2*duration)
 	defer cancel()
 
 	// Register cancel function so heartbeat can cancel this job
@@ -115,9 +117,11 @@ func RunShellJob(
 		defer cancelRegistry.Unregister(job.Id())
 	}
 
-	// Run script
-	cmd := exec.CommandContext(ctx, "bash", job.Id()+".bash")
+	// Run script (don't use CommandContext since we handle signals manually)
+	cmd := exec.Command("bash", job.Id()+".bash")
 	cmd.Dir = path.Join(basepath)
+	// Create a new process group so we can kill all child processes
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
@@ -131,46 +135,74 @@ func RunShellJob(
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 
-	var ret error = nil
-	select {
-	case <-ctx.Done(): // timeout or cancel
-		job.RetCode = -1
-		// Determine if this was a timeout or manual cancel
-		isTimeout := ctx.Err() == context.DeadlineExceeded
-		if isTimeout {
-			tracing.Logger.Ctx(ctx).
-				Warn("worker thread timeout")
-			job.Status = models.StatusTimeout
-		} else {
-			tracing.Logger.Ctx(ctx).
-				Warn("worker thread cancelled")
-			job.Status = models.StatusCancelled
-		}
+	// Timer for SIGTERM at 1*timeout
+	termTimer := time.NewTimer(duration)
+	defer termTimer.Stop()
 
-		if cmd.Process != nil {
-			if err := cmd.Process.Kill(); err != nil {
+	var ret error = nil
+	termSent := false
+
+	for {
+		select {
+		case <-termTimer.C: // soft timeout - send SIGTERM to process group
+			if cmd.Process != nil && !termSent {
+				termSent = true
 				tracing.Logger.Ctx(ctx).
-					Error("worker thread failed to kill process",
-						zap.Error(err))
-				ret = err
+					Warn("worker thread soft timeout, sending SIGTERM to process group")
+				// Send SIGTERM to the entire process group (negative PID)
+				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM); err != nil {
+					tracing.Logger.Ctx(ctx).
+						Error("worker thread failed to send SIGTERM to process group",
+							zap.Error(err))
+				}
 			}
-		}
-	case err := <-done:
-		if err != nil {
-			switch t := err.(type) {
-			case *exec.ExitError:
-				job.RetCode = t.ExitCode()
-				job.Status = models.StatusFailed
-			default:
+		case <-ctx.Done(): // hard timeout (2*timeout) or cancel - send SIGKILL to process group
+			job.RetCode = -1
+			isTimeout := ctx.Err() == context.DeadlineExceeded
+			if isTimeout {
 				tracing.Logger.Ctx(ctx).
-					Error("worker thread failed to exit with code",
-						zap.Error(err))
-				ret = err
+					Warn("worker thread hard timeout, sending SIGKILL to process group")
+				job.Status = models.StatusTimeout
+			} else {
+				tracing.Logger.Ctx(ctx).
+					Warn("worker thread cancelled")
+				job.Status = models.StatusCancelled
 			}
-		} else {
-			job.Status = models.StatusSuccess
+
+			if cmd.Process != nil {
+				// Send SIGKILL to the entire process group (negative PID)
+				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+					tracing.Logger.Ctx(ctx).
+						Error("worker thread failed to kill process group",
+							zap.Error(err))
+					ret = err
+				}
+			}
+			goto done
+		case err := <-done:
+			if err != nil {
+				switch t := err.(type) {
+				case *exec.ExitError:
+					job.RetCode = t.ExitCode()
+					// If SIGTERM was sent, it's a timeout, not a regular failure
+					if termSent {
+						job.Status = models.StatusTimeout
+					} else {
+						job.Status = models.StatusFailed
+					}
+				default:
+					tracing.Logger.Ctx(ctx).
+						Error("worker thread failed to exit with code",
+							zap.Error(err))
+					ret = err
+				}
+			} else {
+				job.Status = models.StatusSuccess
+			}
+			goto done
 		}
 	}
+done:
 
 	job.Stdout = string(stdoutBuf.Bytes()[:])
 	job.Stderr = string(stderrBuf.Bytes()[:])

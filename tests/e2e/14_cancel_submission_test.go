@@ -14,80 +14,15 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-var (
-	problem14SHA1  string
-	problem14RefId int64
-)
+var test14SHA1 string
 
-func Test_14_1_Import_problem(t *testing.T) {
-	cmd := exec.Command(
-		"judge", "admin", "import", "problems",
-		"--problems-dir", "resources/14/problems",
-		"--testcases-dir", "resources/14/testcases",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var (
-		stdout strings.Builder
-		stderr strings.Builder
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", stderr.String())
-		t.Fatalf("finish with %v\n", err)
+func Test_14_1_Import_and_enable_problem(t *testing.T) {
+	result := ImportAndEnableProblems(t, ProblemsDir(14), TestcasesDir(14))
+	if len(result.SHA1s) == 0 {
+		t.Fatal("no problems imported")
 	}
-
-	t.Logf("import output: %s", stdout.String())
-}
-
-func Test_14_2_Enable_problem(t *testing.T) {
-	cmd := exec.Command(
-		"judge", "admin", "get", "problems",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var stdout strings.Builder
-	cmd.Stdout = &stdout
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("finish with %v\n", err)
-	}
-
-	type Problem struct {
-		SHA1       string `yaml:"sha1"`
-		ProblemId  int64  `yaml:"problemId"`
-		ImportedAt string `yaml:"importedAt"`
-	}
-
-	var problems []Problem
-	if err := yaml.Unmarshal([]byte(stdout.String()), &problems); err != nil {
-		t.Fatalf("failed to unmarshal to yaml, %v", err)
-	}
-
-	// Find problem with ID 14 (our long problem)
-	const targetProblemId int64 = 14
-	found := false
-	for _, problem := range problems {
-		if problem.ProblemId == targetProblemId {
-			found = true
-			problem14SHA1 = problem.SHA1
-			problem14RefId = problem.ProblemId
-			t.Logf("Found problem: SHA1=%s, ProblemId=%d", problem.SHA1, problem.ProblemId)
-
-			cmd = exec.Command(
-				"judge", "admin", "enable", "problem", problem.SHA1,
-				"--access-token", viper.GetString("admin-token"),
-				"--endpoint", "http://localhost:8080")
-
-			if err := cmd.Run(); err != nil {
-				t.Fatalf("finish with %v\n", err)
-			}
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("problem with ID %d not found in problem list", targetProblemId)
-	}
+	test14SHA1 = result.SHA1s[0]
+	t.Logf("Imported and enabled problem SHA1: %s", test14SHA1)
 }
 
 func waitForFirstJobComplete(t *testing.T, subId int64) {
@@ -160,12 +95,12 @@ func verifyJobRunningOnWorker(t *testing.T, subId int64) {
 	t.Fatal("timed out waiting for job to be running on a worker")
 }
 
-func Test_14_3_Submit_and_cancel_via_admin_CLI(t *testing.T) {
+func Test_14_2_Submit_and_cancel_via_admin_CLI(t *testing.T) {
 	// Submit the problem
 	var submitOutput api.SubmitOutput
 	resp, err := client.R().
 		SetBody(api.SubmitInput{
-			RefSHA1: problem14SHA1,
+			RefSHA1: test14SHA1,
 			Type:    models.RefTypeProblem,
 		}).
 		SetResult(&submitOutput).
@@ -260,12 +195,12 @@ func Test_14_3_Submit_and_cancel_via_admin_CLI(t *testing.T) {
 	}
 }
 
-func Test_14_4_Submit_and_cancel_via_user_API(t *testing.T) {
+func Test_14_3_Submit_and_cancel_via_user_API(t *testing.T) {
 	// Submit the problem again
 	var submitOutput api.SubmitOutput
 	resp, err := client.R().
 		SetBody(api.SubmitInput{
-			RefSHA1: problem14SHA1,
+			RefSHA1: test14SHA1,
 			Type:    models.RefTypeProblem,
 		}).
 		SetResult(&submitOutput).

@@ -2,101 +2,35 @@ package tests
 
 import (
 	"net/http"
-	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
-	"go.yaml.in/yaml/v3"
 )
 
 var (
-	problem15SHA1  string
-	problem15RefId int64
+	test15SHA1  string
+	test15RefId int64
 )
 
-func Test_15_1_Import_problem(t *testing.T) {
-	cmd := exec.Command(
-		"judge", "admin", "import", "problems",
-		"--problems-dir", "resources/15/problems",
-		"--testcases-dir", "resources/15/testcases",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var (
-		stdout strings.Builder
-		stderr strings.Builder
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", stderr.String())
-		t.Fatalf("finish with %v\n", err)
+func Test_15_1_Import_and_enable_problem(t *testing.T) {
+	result := ImportAndEnableProblems(t, ProblemsDir(15), TestcasesDir(15))
+	if len(result.SHA1s) == 0 {
+		t.Fatal("no problems imported")
 	}
-
-	t.Logf("import output: %s", stdout.String())
+	test15SHA1 = result.SHA1s[0]
+	t.Logf("Imported and enabled problem SHA1: %s", test15SHA1)
 }
 
-func Test_15_2_Enable_problem(t *testing.T) {
-	cmd := exec.Command(
-		"judge", "admin", "get", "problems",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var stdout strings.Builder
-	cmd.Stdout = &stdout
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("finish with %v\n", err)
-	}
-
-	type Problem struct {
-		SHA1       string `yaml:"sha1"`
-		ProblemId  int64  `yaml:"problemId"`
-		ImportedAt string `yaml:"importedAt"`
-	}
-
-	var problems []Problem
-	if err := yaml.Unmarshal([]byte(stdout.String()), &problems); err != nil {
-		t.Fatalf("failed to unmarshal to yaml, %v", err)
-	}
-
-	// Find problem with ID 15 (our resource group test problem)
-	const targetProblemId int64 = 15
-	found := false
-	for _, problem := range problems {
-		if problem.ProblemId == targetProblemId {
-			found = true
-			problem15SHA1 = problem.SHA1
-			problem15RefId = problem.ProblemId
-			t.Logf("Found problem: SHA1=%s, ProblemId=%d", problem.SHA1, problem.ProblemId)
-
-			cmd = exec.Command(
-				"judge", "admin", "enable", "problem", problem.SHA1,
-				"--access-token", viper.GetString("admin-token"),
-				"--endpoint", "http://localhost:8080")
-
-			if err := cmd.Run(); err != nil {
-				t.Fatalf("finish with %v\n", err)
-			}
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("problem with ID %d not found in problem list", targetProblemId)
-	}
-}
-
-func Test_15_3_Submit_problem(t *testing.T) {
+func Test_15_2_Submit_problem(t *testing.T) {
 	var submitOutput api.SubmitOutput
 	resp, err := client.R().
 		SetBody(api.SubmitInput{
-			RefSHA1: problem15SHA1,
+			RefSHA1: test15SHA1,
 			Type:    models.RefTypeProblem,
 		}).
 		SetResult(&submitOutput).
@@ -106,11 +40,11 @@ func Test_15_3_Submit_problem(t *testing.T) {
 		t.Fatalf("failed to submit problem: %v", err)
 	}
 
-	problem15RefId = submitOutput.RefId
+	test15RefId = submitOutput.RefId
 	t.Logf("submitted problem refId: %d, subId: %d", submitOutput.RefId, submitOutput.Id)
 }
 
-func Test_15_4_Check_resource_group_mutex(t *testing.T) {
+func Test_15_3_Check_resource_group_mutex(t *testing.T) {
 	// Poll results multiple times and verify that at most 1 job is running at a time
 	// within the same resource group
 	maxRunningObserved := 0
@@ -120,7 +54,7 @@ func Test_15_4_Check_resource_group_mutex(t *testing.T) {
 		var result api.ResultOutput
 		resp, err := client.R().
 			SetResult(&result).
-			SetQueryParam("refId", strconv.FormatInt(problem15RefId, 10)).
+			SetQueryParam("refId", strconv.FormatInt(test15RefId, 10)).
 			SetQueryParam("type", "0"). // RefTypeProblem
 			Get("/api/results")
 		if err != nil || resp.StatusCode() != http.StatusOK {
@@ -160,7 +94,7 @@ func Test_15_4_Check_resource_group_mutex(t *testing.T) {
 			// Refetch to get updated score
 			resp, err = client.R().
 				SetResult(&result).
-				SetQueryParam("refId", strconv.FormatInt(problem15RefId, 10)).
+				SetQueryParam("refId", strconv.FormatInt(test15RefId, 10)).
 				SetQueryParam("type", "0").
 				Get("/api/results")
 			if err != nil || resp.StatusCode() != http.StatusOK {
@@ -188,12 +122,12 @@ func Test_15_4_Check_resource_group_mutex(t *testing.T) {
 	t.Fatalf("jobs did not complete within timeout")
 }
 
-func Test_15_5_Check_timestamps(t *testing.T) {
+func Test_15_4_Check_timestamps(t *testing.T) {
 	// Get submission ID
 	var subs api.SubmissionsOutput
 	resp, err := client.R().
 		SetResult(&subs).
-		SetQueryParam("refId", strconv.FormatInt(problem15RefId, 10)).
+		SetQueryParam("refId", strconv.FormatInt(test15RefId, 10)).
 		SetQueryParam("type", strconv.Itoa(models.RefTypeProblem)).
 		Get("/api/submissions")
 	if err != nil || resp.StatusCode() != http.StatusOK {
@@ -210,7 +144,7 @@ func Test_15_5_Check_timestamps(t *testing.T) {
 	var problem api.ProblemOutput
 	resp, err = client.R().
 		SetResult(&problem).
-		SetQueryParam("problemSHA1", problem15SHA1).
+		SetQueryParam("problemSHA1", test15SHA1).
 		Get("/api/problem")
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		t.Fatalf("failed to get problem: %v", resp)

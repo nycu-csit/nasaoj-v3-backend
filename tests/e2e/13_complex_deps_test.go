@@ -16,37 +16,17 @@ import (
 )
 
 var (
-	problem13SHA1  string
-	problem13RefId int64
+	test13SHA1  string
+	test13RefId int64
 
 	parallelFailSHA1  string
 	parallelFailRefId int64
 )
 
-func Test_13_1_Import_problem(t *testing.T) {
-	cmd := exec.Command(
-		"judge", "admin", "import", "problems",
-		"--problems-dir", "resources/13/problems",
-		"--testcases-dir", "resources/13/testcases",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
+// findAndEnableProblemByNameAndId finds a problem by name and ID, enables it, and returns its SHA1
+func findAndEnableProblemByNameAndId(t *testing.T, problemId int64, name string) string {
+	t.Helper()
 
-	var (
-		stdout strings.Builder
-		stderr strings.Builder
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", stderr.String())
-		t.Fatalf("finish with %v\n", err)
-	}
-
-	t.Logf("imported problem SHA1s:\n%s", stdout.String())
-}
-
-func Test_13_2_Enable_problem(t *testing.T) {
-	// List all problems to find the one with problemId 12 (Complex dependencies)
 	cmd := exec.Command(
 		"judge", "admin", "get", "problems",
 		"--all",
@@ -76,39 +56,33 @@ func Test_13_2_Enable_problem(t *testing.T) {
 		return problems[i].ImportedAt > problems[j].ImportedAt
 	})
 
-	// Find the most recent problem with problemId 12 (Complex dependencies)
+	var sha1 string
 	for _, problem := range problems {
-		if problem.ProblemId == 12 && problem.Name == "Complex dependencies" {
-			problem13SHA1 = problem.SHA1
+		if problem.ProblemId == problemId && problem.Name == name {
+			sha1 = problem.SHA1
 			break
 		}
 	}
 
-	if problem13SHA1 == "" {
-		t.Fatal("Complex dependencies problem (problemId 12) not found")
+	if sha1 == "" {
+		t.Fatalf("problem %q (problemId %d) not found", name, problemId)
 	}
 
-	t.Logf("found Complex dependencies problem SHA1: %s", problem13SHA1)
-
-	// Enable the problem
-	cmd = exec.Command(
-		"judge", "admin", "enable", "problem", problem13SHA1,
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var stderr strings.Builder
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", stderr.String())
-		t.Fatalf("failed to enable problem: %v\n", err)
-	}
+	t.Logf("found problem %q SHA1: %s", name, sha1)
+	EnableProblem(t, sha1)
+	return sha1
 }
 
-func Test_13_3_Submit_problem(t *testing.T) {
+func Test_13_1_Import_and_enable_complex_deps(t *testing.T) {
+	ImportProblems(t, ProblemsDir(13), TestcasesDir(13))
+	test13SHA1 = findAndEnableProblemByNameAndId(t, 12, "Complex dependencies")
+}
+
+func Test_13_2_Submit_problem(t *testing.T) {
 	var submitOutput api.SubmitOutput
 	resp, err := client.R().
 		SetBody(api.SubmitInput{
-			RefSHA1: problem13SHA1,
+			RefSHA1: test13SHA1,
 			Type:    models.RefTypeProblem,
 		}).
 		SetResult(&submitOutput).
@@ -118,17 +92,17 @@ func Test_13_3_Submit_problem(t *testing.T) {
 		t.Fatalf("failed to submit problem: %v", err)
 	}
 
-	problem13RefId = submitOutput.RefId
+	test13RefId = submitOutput.RefId
 	t.Logf("submitted problem refId: %d, subId: %d", submitOutput.RefId, submitOutput.Id)
 }
 
-func Test_13_4_Check_results(t *testing.T) {
+func Test_13_3_Check_results(t *testing.T) {
 	var result api.ResultOutput
 	maxRetries := 30
 	for i := range maxRetries {
 		resp, err := client.R().
 			SetResult(&result).
-			SetQueryParam("refId", strconv.FormatInt(problem13RefId, 10)).
+			SetQueryParam("refId", strconv.FormatInt(test13RefId, 10)).
 			SetQueryParam("type", "0"). // RefTypeProblem
 			Get("/api/results")
 		if err != nil || resp.StatusCode() != http.StatusOK {
@@ -158,7 +132,7 @@ func Test_13_4_Check_results(t *testing.T) {
 			// Refetch to get updated score
 			resp, err = client.R().
 				SetResult(&result).
-				SetQueryParam("refId", strconv.FormatInt(problem13RefId, 10)).
+				SetQueryParam("refId", strconv.FormatInt(test13RefId, 10)).
 				SetQueryParam("type", "0").
 				Get("/api/results")
 			if err != nil || resp.StatusCode() != http.StatusOK {
@@ -181,89 +155,13 @@ func Test_13_4_Check_results(t *testing.T) {
 	t.Fatalf("jobs did not complete within timeout. Last status: %+v", result)
 }
 
-func Test_13_5_Import_parallel_fail_problem(t *testing.T) {
-	cmd := exec.Command(
-		"judge", "admin", "import", "problems",
-		"--problems-dir", "resources/13/problems",
-		"--testcases-dir", "resources/13/testcases",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var (
-		stdout strings.Builder
-		stderr strings.Builder
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", stderr.String())
-		t.Fatalf("finish with %v\n", err)
-	}
-
-	t.Logf("imported SHA1s:\n%s", stdout.String())
+func Test_13_4_Enable_parallel_fail_problem(t *testing.T) {
+	// Re-import to ensure latest version, then find and enable parallel-fail
+	ImportProblems(t, ProblemsDir(13), TestcasesDir(13))
+	parallelFailSHA1 = findAndEnableProblemByNameAndId(t, 13, "Parallel branch failure")
 }
 
-func Test_13_6_Enable_parallel_fail_problem(t *testing.T) {
-	// List all problems to find the one with problemId 13
-	cmd := exec.Command(
-		"judge", "admin", "get", "problems",
-		"--all",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var stdout strings.Builder
-	cmd.Stdout = &stdout
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("failed to get problems: %v\n", err)
-	}
-
-	type Problem struct {
-		ProblemId  int64  `yaml:"problemId"`
-		SHA1       string `yaml:"sha1"`
-		Name       string `yaml:"name"`
-		IsEnabled  bool   `yaml:"isEnabled"`
-		ImportedAt string `yaml:"importedAt"`
-	}
-
-	var problems []Problem
-	if err := yaml.Unmarshal([]byte(stdout.String()), &problems); err != nil {
-		t.Fatalf("failed to unmarshal to yaml: %v", err)
-	}
-
-	// Sort by import time descending to get the most recent first
-	sort.Slice(problems, func(i, j int) bool {
-		return problems[i].ImportedAt > problems[j].ImportedAt
-	})
-
-	// Find the most recent problem with problemId 13 (parallel-fail)
-	for _, problem := range problems {
-		if problem.ProblemId == 13 && problem.Name == "Parallel branch failure" {
-			parallelFailSHA1 = problem.SHA1
-			break
-		}
-	}
-
-	if parallelFailSHA1 == "" {
-		t.Fatal("parallel-fail problem (problemId 13) not found")
-	}
-
-	t.Logf("found parallel-fail problem SHA1: %s", parallelFailSHA1)
-
-	// Enable the problem
-	cmd = exec.Command(
-		"judge", "admin", "enable", "problem", parallelFailSHA1,
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var stderr strings.Builder
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", stderr.String())
-		t.Fatalf("failed to enable problem: %v\n", err)
-	}
-}
-
-func Test_13_7_Submit_parallel_fail_problem(t *testing.T) {
+func Test_13_5_Submit_parallel_fail_problem(t *testing.T) {
 	var submitOutput api.SubmitOutput
 	resp, err := client.R().
 		SetBody(api.SubmitInput{
@@ -281,7 +179,7 @@ func Test_13_7_Submit_parallel_fail_problem(t *testing.T) {
 	t.Logf("submitted parallel-fail problem refId: %d, subId: %d", submitOutput.RefId, submitOutput.Id)
 }
 
-func Test_13_8_Check_parallel_fail_results(t *testing.T) {
+func Test_13_6_Check_parallel_fail_results(t *testing.T) {
 	var result api.ResultOutput
 	maxRetries := 30
 	for i := range maxRetries {

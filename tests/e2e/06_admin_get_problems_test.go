@@ -10,23 +10,7 @@ import (
 )
 
 func Test_06_1_Import_problems_for_dup_test(t *testing.T) {
-	cmd := exec.Command(
-		"judge", "admin", "import", "problems",
-		"--problems-dir", "resources/06/problems",
-		"--testcases-dir", "resources/06/testcases",
-		"--access-token", viper.GetString("admin-token"),
-		"--endpoint", "http://localhost:8080")
-
-	var (
-		stdout strings.Builder
-		stderr strings.Builder
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		t.Logf("%s\n", stderr.String())
-		t.Fatalf("failed to import problems: %v\n", err)
-	}
+	ImportProblems(t, ProblemsDir(6), TestcasesDir(6))
 }
 
 func Test_06_2_Get_problems_dup(t *testing.T) {

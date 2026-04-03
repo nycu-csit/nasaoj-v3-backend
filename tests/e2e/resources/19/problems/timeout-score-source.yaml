@@ -1,0 +1,23 @@
+---
+name: timeout-score-source
+problemId: 20
+description: |
+  Test that score is not put when job times out
+  Using bash source
+cooldown: 0
+scoreType: self-managed
+args:
+  endpoint: http://backend:8080
+preScript:
+  scripts:
+    - set -o errexit -o pipefail -o xtrace
+stages:
+  main:
+    testcases:
+      - name: timeout-put-score
+        files:
+          - timeout-put-score.sh.tmpl
+        scripts:
+          - source timeout-put-score.sh.tmpl
+        timeout: 2
+    score: 0

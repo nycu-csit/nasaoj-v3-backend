@@ -1,0 +1,25 @@
+#!/usr/bin/bash
+
+ENDPOINT='{{ .endpoint }}'
+JOB_TOKEN='{{ .jobToken }}'
+SUB_ID='{{ .subId }}'
+
+echo "Endpoint: $ENDPOINT"
+echo "SubId: $SUB_ID"
+
+# Sleep longer than the timeout (timeout is 2s, we sleep 5s)
+# The job should be killed before we can put the score
+echo "Sleeping for 5 seconds..."
+sleep 5
+
+# This should never be reached due to timeout
+echo "Putting score 99..."
+curl "$ENDPOINT/api/score" -X PUT \
+  -H "Authorization: Bearer $JOB_TOKEN" \
+  -H "Content-Type: application/json" \
+  --fail --no-progress-meter -v \
+  -d "{\"subId\": $SUB_ID, \"score\": 99}"
+
+echo "Score updated successfully"
+
+# vim: syntax=bash

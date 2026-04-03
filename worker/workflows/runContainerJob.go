@@ -149,7 +149,8 @@ func RunContainerJob(
 	job.ExecAt = time.Now().Unix()
 	duration := time.Duration(job.Timeout) * time.Second
 
-	ctx, cancel := context.WithTimeout(pctx, duration)
+	// Use 2*timeout for the hard deadline (SIGKILL)
+	ctx, cancel := context.WithTimeout(pctx, 2*duration)
 	defer cancel()
 
 	if cancelRegistry != nil {
@@ -248,42 +249,74 @@ func RunContainerJob(
 		resultCh <- result
 	}()
 
+	// Timer for SIGTERM at 1*timeout
+	termTimer := time.NewTimer(duration)
+	defer termTimer.Stop()
+
 	var ret error = nil
-	select {
-	case <-ctx.Done():
-		job.RetCode = -1
-		isTimeout := ctx.Err() == context.DeadlineExceeded
-		if isTimeout {
+	termSent := false
+
+	for {
+		select {
+		case <-termTimer.C: // soft timeout - stop container gracefully
+			if !termSent {
+				termSent = true
+				tracing.Logger.Ctx(ctx).
+					Warn("container job soft timeout, stopping container gracefully")
+				// StopContainer with timeout gives the container a grace period
+				// before SIGKILL is sent by the runtime
+				go criClient.StopContainer(ctx, containerConfig.Name, job.Timeout)
+			}
+		case <-ctx.Done(): // hard timeout (2*timeout) or cancel
+			job.RetCode = -1
+			isTimeout := ctx.Err() == context.DeadlineExceeded
+			if isTimeout {
+				tracing.Logger.Ctx(ctx).
+					Warn("container job hard timeout")
+				job.Status = models.StatusTimeout
+			} else {
+				tracing.Logger.Ctx(ctx).
+					Warn("container job cancelled")
+				job.Status = models.StatusCancelled
+			}
+			goto done
+		case err := <-errCh:
+			// Check if this was due to SIGTERM being sent
+			if termSent && err == context.DeadlineExceeded {
+				job.RetCode = -1
+				job.Status = models.StatusTimeout
+				goto done
+			}
 			tracing.Logger.Ctx(ctx).
-				Warn("container job timeout")
-			job.Status = models.StatusTimeout
-		} else {
+				Error("container job failed",
+					zap.Error(err))
+			ret = err
+			goto done
+		case result := <-resultCh:
+			if result.ExitCode != 0 {
+				job.RetCode = int(result.ExitCode)
+				// If SIGTERM was sent, it's a timeout, not a regular failure
+				if termSent {
+					job.Status = models.StatusTimeout
+				} else {
+					job.Status = models.StatusFailed
+				}
+			} else {
+				job.RetCode = 0
+				job.Status = models.StatusSuccess
+			}
+			job.Stdout = result.Stdout
+			job.Stderr = result.Stderr
 			tracing.Logger.Ctx(ctx).
-				Warn("container job cancelled")
-			job.Status = models.StatusCancelled
+				Debug("container finished",
+					zap.Int("exit_code", int(result.ExitCode)),
+					zap.Int64("status", job.Status),
+					zap.Int("stdout_len", len(result.Stdout)),
+					zap.Int("stderr_len", len(result.Stderr)))
+			goto done
 		}
-	case err := <-errCh:
-		tracing.Logger.Ctx(ctx).
-			Error("container job failed",
-				zap.Error(err))
-		ret = err
-	case result := <-resultCh:
-		if result.ExitCode != 0 {
-			job.RetCode = int(result.ExitCode)
-			job.Status = models.StatusFailed
-		} else {
-			job.RetCode = 0
-			job.Status = models.StatusSuccess
-		}
-		job.Stdout = result.Stdout
-		job.Stderr = result.Stderr
-		tracing.Logger.Ctx(ctx).
-			Debug("container finished",
-				zap.Int("exit_code", int(result.ExitCode)),
-				zap.Int64("status", job.Status),
-				zap.Int("stdout_len", len(result.Stdout)),
-				zap.Int("stderr_len", len(result.Stderr)))
 	}
+done:
 
 	stdoutPath := path.Join(basepath, job.Id()+".stdout")
 	stderrPath := path.Join(basepath, job.Id()+".stderr")

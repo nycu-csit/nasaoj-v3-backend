@@ -49,3 +49,35 @@ func (c *Client) RuntimeService() runtimeapi.RuntimeServiceClient {
 func (c *Client) ImageService() runtimeapi.ImageServiceClient {
 	return c.imageService
 }
+
+// StopContainer stops a container by name with a grace period timeout.
+// The timeout specifies the number of seconds to wait before forcefully killing.
+func (c *Client) StopContainer(ctx context.Context, name string, timeout int64) error {
+	// List containers to find the one with matching name
+	listResp, err := c.runtimeService.ListContainers(ctx,
+		&runtimeapi.ListContainersRequest{
+			Filter: &runtimeapi.ContainerFilter{
+				LabelSelector: map[string]string{
+					"nasaoj.job.id": name,
+				},
+			},
+		})
+	if err != nil {
+		return fmt.Errorf("failed to list containers: %w", err)
+	}
+
+	for _, container := range listResp.Containers {
+		if container.State == runtimeapi.ContainerState_CONTAINER_RUNNING {
+			_, err := c.runtimeService.StopContainer(ctx,
+				&runtimeapi.StopContainerRequest{
+					ContainerId: container.Id,
+					Timeout:     timeout,
+				})
+			if err != nil {
+				return fmt.Errorf("failed to stop container %s: %w", container.Id, err)
+			}
+		}
+	}
+
+	return nil
+}
