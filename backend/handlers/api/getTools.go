@@ -9,8 +9,9 @@ import (
 )
 
 type toolOutputTestcase struct {
-	Name    string `json:"name"`
-	Timeout int64  `json:"timeout"`
+	Name        string `json:"name"`
+	Timeout     int64  `json:"timeout"`
+	GracePeriod int64  `json:"gracePeriod"`
 }
 
 type ToolOutput struct {
@@ -70,8 +71,9 @@ func (self *Handlers) GetTools(
 				ToolId:      tool.ToolId,
 				Description: tool.Description,
 				Testcase: toolOutputTestcase{
-					Name:    tool.Testcase.Name,
-					Timeout: tool.Testcase.Timeout,
+					Name:        tool.Testcase.Name,
+					Timeout:     tool.Testcase.Timeout,
+					GracePeriod: tool.Testcase.GracePeriod,
 				},
 				InputArgs: tool.InputArgs,
 				Tag:       tool.Tag,

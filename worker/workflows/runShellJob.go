@@ -106,9 +106,9 @@ func RunShellJob(
 
 	job.ExecAt = time.Now().Unix()
 	duration := time.Duration(job.Timeout) * time.Second
+	gracePeriod := time.Duration(job.GracePeriod) * time.Second
 
-	// Use 2*timeout for the hard deadline (SIGKILL)
-	ctx, cancel := context.WithTimeout(pctx, 2*duration)
+	ctx, cancel := context.WithTimeout(pctx, duration+gracePeriod)
 	defer cancel()
 
 	// Register cancel function so heartbeat can cancel this job
@@ -156,11 +156,10 @@ func RunShellJob(
 							zap.Error(err))
 				}
 			}
-		case <-ctx.Done(): // hard timeout (2*timeout) or cancel
+		case <-ctx.Done(): // hard timeout (timeout + gracePeriod) or cancel
 			job.RetCode = -1
 			isTimeout := ctx.Err() == context.DeadlineExceeded
 			if isTimeout {
-				// SIGTERM was already sent at 1*timeout; now force kill at 2*timeout
 				tracing.Logger.Ctx(ctx).
 					Warn("worker thread hard timeout, sending SIGKILL to process group")
 				job.Status = models.StatusTimeout
@@ -185,8 +184,7 @@ func RunShellJob(
 								zap.Error(err))
 					}
 				}
-				// Give the process a grace period to handle SIGTERM before force killing
-				cancelGrace := time.NewTimer(5 * time.Second)
+				cancelGrace := time.NewTimer(gracePeriod)
 				defer cancelGrace.Stop()
 				select {
 				case err := <-done:

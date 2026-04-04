@@ -76,6 +76,7 @@ type Job struct {
 	Input         string `json:"input" bun:"input"`
 	ResourceGroup string `json:"resourceGroup" bun:"-"`
 	Timeout       int64  `json:"timeout" bun:"-"`
+	GracePeriod   int64  `json:"gracePeriod" bun:"-"`
 	RefSHA1       string `json:"refSHA1" bun:"-"`
 	RefFileURL    string `json:"refFileUrl" bun:"-"`
 	JobFileURL    string `json:"jobFileUrl" bun:"-"`

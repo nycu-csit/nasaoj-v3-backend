@@ -28,6 +28,7 @@ type Testcase struct {
 	Name          string            `json:"name" yaml:"name"`
 	Args          map[string]string `json:"args" yaml:"args"`
 	Timeout       int64             `json:"timeout" yaml:"timeout"`
+	GracePeriod   int64             `json:"gracePeriod" yaml:"gracePeriod"`
 	ResourceGroup string            `json:"resourceGroup" yaml:"resourceGroup"`
 	Image         string            `json:"image,omitempty" yaml:"image,omitempty"`
 }

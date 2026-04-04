@@ -108,10 +108,11 @@ var toolCmd = &cobra.Command{
 			jobs := make([]common.JobResult, len(lastResult.Jobs))
 			for i, j := range lastResult.Jobs {
 				jobs[i] = common.JobResult{
-					StageName: j.StageName,
-					TestName:  j.TestName,
-					Status:    j.Status,
-					Timeout:   toolOutput.Testcase.Timeout,
+					StageName:   j.StageName,
+					TestName:    j.TestName,
+					Status:      j.Status,
+					Timeout:     toolOutput.Testcase.Timeout,
+					GracePeriod: toolOutput.Testcase.GracePeriod,
 				}
 			}
 			hasFailed := common.ShowJobResults(ctx, subIdStr, jobs,

@@ -147,12 +147,13 @@ var problemCmd = &cobra.Command{
 		// Step 3: Fetch problem to get testcase timeouts
 		problem := fetchProblem(ctx, lastResult.RefSHA1)
 
-		// Build timeout map from problem stages
 		timeoutMap := make(map[string]int64)
+		gracePeriodMap := make(map[string]int64)
 		for stageName, stage := range problem.Stages {
 			for _, tc := range stage.Testcases {
 				key := stageName + "/" + tc.Name
 				timeoutMap[key] = tc.Timeout
+				gracePeriodMap[key] = tc.GracePeriod
 			}
 		}
 
@@ -162,10 +163,11 @@ var problemCmd = &cobra.Command{
 		for i, j := range lastResult.Jobs {
 			key := j.StageName + "/" + j.TestName
 			jobs[i] = common.JobResult{
-				StageName: j.StageName,
-				TestName:  j.TestName,
-				Status:    j.Status,
-				Timeout:   timeoutMap[key],
+				StageName:   j.StageName,
+				TestName:    j.TestName,
+				Status:      j.Status,
+				Timeout:     timeoutMap[key],
+				GracePeriod: gracePeriodMap[key],
 			}
 		}
 		hasFailed := common.ShowJobResults(ctx, subIdStr, jobs,

@@ -89,7 +89,7 @@ func RunStage(
 
 		jobToken, err := tokens.GenerateToken(
 			ctx, models.NewJobPrivs(submission.OwnerId), time.Duration(
-				2*testcase.Timeout+viper.GetInt64("worker-timeout"))*time.Second)
+				testcase.Timeout+testcase.GracePeriod+viper.GetInt64("worker-timeout"))*time.Second)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to generate token",
@@ -105,6 +105,7 @@ func RunStage(
 
 			Script:        jobScript,
 			Timeout:       testcase.Timeout,
+			GracePeriod:   testcase.GracePeriod,
 			RefSHA1:       submission.ProblemSHA1,
 			ResourceGroup: testcase.ResourceGroup,
 			Image:         testcase.Image,

@@ -53,10 +53,11 @@ type ShowResultsConfig struct {
 
 // JobResult represents a job result for display
 type JobResult struct {
-	StageName string
-	TestName  string
-	Status    models.JobStatus
-	Timeout   int64 // testcase timeout in seconds
+	StageName   string
+	TestName    string
+	Status      models.JobStatus
+	Timeout     int64 // testcase timeout in seconds
+	GracePeriod int64 // grace period before SIGKILL in seconds
 }
 
 // ShowJobResults displays the results of jobs with colored output
@@ -78,8 +79,7 @@ func ShowJobResults(
 
 		jobColor.Printf("  [%s] %s/%s\n", statusName, job.StageName, job.TestName)
 
-		// Use testcase timeout * 2 for fetch timeout
-		fetchTimeout := time.Duration(job.Timeout*2) * time.Second
+		fetchTimeout := time.Duration(job.Timeout+job.GracePeriod) * time.Second
 
 		// Fetch and print stdout
 		stdout := FetchOutput(ctx, config.StdoutEndpoint,

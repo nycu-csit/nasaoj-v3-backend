@@ -62,8 +62,9 @@ func (self *Handlers) GetProblem(
 		for _, testcase := range stage.Testcases {
 			retStage.Testcases = append(retStage.Testcases,
 				problemOutputStageTestcase{
-					Name:    testcase.Name,
-					Timeout: testcase.Timeout,
+					Name:        testcase.Name,
+					Timeout:     testcase.Timeout,
+					GracePeriod: testcase.GracePeriod,
 				})
 		}
 		ret.Stages[stageName] = retStage

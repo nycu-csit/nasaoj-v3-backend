@@ -20,4 +20,5 @@ stages:
         scripts:
           - source timeout-put-score.sh.tmpl
         timeout: 2
+        gracePeriod: 2
     score: 0

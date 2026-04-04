@@ -148,9 +148,9 @@ func RunContainerJob(
 
 	job.ExecAt = time.Now().Unix()
 	duration := time.Duration(job.Timeout) * time.Second
+	gracePeriod := time.Duration(job.GracePeriod) * time.Second
 
-	// Use 2*timeout for the hard deadline (SIGKILL)
-	ctx, cancel := context.WithTimeout(pctx, 2*duration)
+	ctx, cancel := context.WithTimeout(pctx, duration+gracePeriod)
 	defer cancel()
 
 	if cancelRegistry != nil {
@@ -267,7 +267,7 @@ func RunContainerJob(
 				// before SIGKILL is sent by the runtime
 				go criClient.StopContainer(ctx, containerConfig.Name, job.Timeout)
 			}
-		case <-ctx.Done(): // hard timeout (2*timeout) or cancel
+		case <-ctx.Done(): // hard timeout (timeout + gracePeriod) or cancel
 			job.RetCode = -1
 			isTimeout := ctx.Err() == context.DeadlineExceeded
 			if isTimeout {

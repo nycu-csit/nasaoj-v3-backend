@@ -113,8 +113,8 @@ var resultsCmd = &cobra.Command{
 					ForceContentType("application/json")
 			})
 
-		// Build timeout map based on ref type
 		timeoutMap := make(map[string]int64)
+		gracePeriodMap := make(map[string]int64)
 		switch result.Type {
 		case models.RefTypeProblem:
 			problem := fetchProblem(ctx, result.RefSHA1)
@@ -122,6 +122,7 @@ var resultsCmd = &cobra.Command{
 				for _, tc := range stage.Testcases {
 					key := stageName + "/" + tc.Name
 					timeoutMap[key] = tc.Timeout
+					gracePeriodMap[key] = tc.GracePeriod
 				}
 			}
 		case models.RefTypeTool:
@@ -130,6 +131,7 @@ var resultsCmd = &cobra.Command{
 			for _, j := range result.Jobs {
 				key := j.StageName + "/" + j.TestName
 				timeoutMap[key] = tool.Testcase.Timeout
+				gracePeriodMap[key] = tool.Testcase.GracePeriod
 			}
 		}
 
@@ -138,10 +140,11 @@ var resultsCmd = &cobra.Command{
 		for i, j := range result.Jobs {
 			key := j.StageName + "/" + j.TestName
 			jobs[i] = common.JobResult{
-				StageName: j.StageName,
-				TestName:  j.TestName,
-				Status:    j.Status,
-				Timeout:   timeoutMap[key],
+				StageName:   j.StageName,
+				TestName:    j.TestName,
+				Status:      j.Status,
+				Timeout:     timeoutMap[key],
+				GracePeriod: gracePeriodMap[key],
 			}
 		}
 		common.ShowResults(ctx, submissionId,

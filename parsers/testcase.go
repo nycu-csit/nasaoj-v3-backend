@@ -21,6 +21,7 @@ type testcase struct {
 	Name          string            `yaml:"name"`
 	Args          map[string]string `yaml:"args"`
 	Timeout       int64             `yaml:"timeout"`
+	GracePeriod   int64             `yaml:"gracePeriod"`
 	ResourceGroup string            `yaml:"resourceGroup,omitempty"`
 	Image         string            `yaml:"image,omitempty"`
 }
@@ -30,7 +31,8 @@ type Testcase struct {
 }
 
 type testcaseNode struct {
-	Timeout yaml.Node `yaml:"timeout"`
+	Timeout     yaml.Node `yaml:"timeout"`
+	GracePeriod yaml.Node `yaml:"gracePeriod"`
 }
 
 func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
@@ -49,6 +51,10 @@ func (self *Testcase) UnmarshalYAML(v *yaml.Node) error {
 
 	if node.Timeout.IsZero() {
 		self.Timeout = 30
+	}
+
+	if node.GracePeriod.IsZero() {
+		self.GracePeriod = 5
 	}
 
 	return nil
@@ -86,6 +92,7 @@ func (self *Testcase) ToModelTestcase(
 		Name:          self.Name,
 		Args:          self.Args,
 		Timeout:       self.Timeout,
+		GracePeriod:   self.GracePeriod,
 		ResourceGroup: self.ResourceGroup,
 		Image:         self.Image,
 	}

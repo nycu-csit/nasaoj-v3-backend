@@ -20,4 +20,5 @@ stages:
         scripts:
           - python3 timeout-put-score-sub.py.tmpl
         timeout: 2
+        gracePeriod: 2
     score: 0
