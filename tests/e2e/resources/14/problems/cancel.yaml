@@ -27,3 +27,13 @@ stages:
       - name: skipped
         scripts:
           - echo poop
+    before:
+      - stage04
+  stage04:
+    testcases:
+      - name: trap
+        files:
+          - trap_sigterm.sh
+        scripts:
+          - bash trap_sigterm.sh
+    score: 10

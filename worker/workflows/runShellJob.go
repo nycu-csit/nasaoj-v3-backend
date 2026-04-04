@@ -156,26 +156,61 @@ func RunShellJob(
 							zap.Error(err))
 				}
 			}
-		case <-ctx.Done(): // hard timeout (2*timeout) or cancel - send SIGKILL to process group
+		case <-ctx.Done(): // hard timeout (2*timeout) or cancel
 			job.RetCode = -1
 			isTimeout := ctx.Err() == context.DeadlineExceeded
 			if isTimeout {
+				// SIGTERM was already sent at 1*timeout; now force kill at 2*timeout
 				tracing.Logger.Ctx(ctx).
 					Warn("worker thread hard timeout, sending SIGKILL to process group")
 				job.Status = models.StatusTimeout
+				if cmd.Process != nil {
+					if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+						tracing.Logger.Ctx(ctx).
+							Error("worker thread failed to kill process group",
+								zap.Error(err))
+						ret = err
+					}
+				}
 			} else {
+				// Cancellation: send SIGTERM first so the script can trap and clean up
 				tracing.Logger.Ctx(ctx).
-					Warn("worker thread cancelled")
+					Warn("worker thread cancelled, sending SIGTERM to process group")
 				job.Status = models.StatusCancelled
-			}
-
-			if cmd.Process != nil {
-				// Send SIGKILL to the entire process group (negative PID)
-				if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+				if cmd.Process != nil && !termSent {
+					termSent = true
+					if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM); err != nil {
+						tracing.Logger.Ctx(ctx).
+							Error("worker thread failed to send SIGTERM to process group",
+								zap.Error(err))
+					}
+				}
+				// Give the process a grace period to handle SIGTERM before force killing
+				cancelGrace := time.NewTimer(5 * time.Second)
+				defer cancelGrace.Stop()
+				select {
+				case err := <-done:
+					if err != nil {
+						if t, ok := err.(*exec.ExitError); ok {
+							job.RetCode = t.ExitCode()
+						} else {
+							tracing.Logger.Ctx(ctx).
+								Error("worker thread failed to exit with code",
+									zap.Error(err))
+							ret = err
+						}
+					}
+				case <-cancelGrace.C:
 					tracing.Logger.Ctx(ctx).
-						Error("worker thread failed to kill process group",
-							zap.Error(err))
-					ret = err
+						Warn("worker thread cancel grace period expired, sending SIGKILL to process group")
+					if cmd.Process != nil {
+						if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL); err != nil {
+							tracing.Logger.Ctx(ctx).
+								Error("worker thread failed to kill process group",
+									zap.Error(err))
+							ret = err
+						}
+					}
 				}
 			}
 			goto done

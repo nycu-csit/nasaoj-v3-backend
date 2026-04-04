@@ -286,3 +286,119 @@ func Test_14_3_Submit_and_cancel_via_user_API(t *testing.T) {
 		t.Fatal("expected a cancelled job with non-zero return code")
 	}
 }
+
+// Test_14_4_Cancel_sends_SIGTERM verifies that cancellation delivers SIGTERM to the
+// running bash script before resorting to SIGKILL, allowing scripts to trap and handle it.
+func Test_14_4_Cancel_sends_SIGTERM(t *testing.T) {
+	// Submit the same problem — stage04 runs after stages 01-03 complete
+	var submitOutput api.SubmitOutput
+	resp, err := client.R().
+		SetBody(api.SubmitInput{
+			RefSHA1: test14SHA1,
+			Type:    models.RefTypeProblem,
+		}).
+		SetResult(&submitOutput).
+		Post("/api/submit")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Logf("%v", resp)
+		t.Fatalf("failed to submit problem: %v", err)
+	}
+
+	subId := submitOutput.Id
+	t.Logf("submitted subId: %d", subId)
+
+	// Poll until stage04/trap is in Running state before cancelling
+	maxRetries := 60
+	stage04Running := false
+	for i := 0; i < maxRetries; i++ {
+		var result api.ResultOutput
+		resp, err = client.R().
+			SetResult(&result).
+			SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+			Get("/api/results")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		for _, job := range result.Jobs {
+			if job.StageName == "stage04" && job.TestName == "trap" && job.Status == models.StatusRunning {
+				stage04Running = true
+				break
+			}
+		}
+		if stage04Running {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if !stage04Running {
+		t.Fatal("timed out waiting for stage04/trap to be running")
+	}
+
+	// Cancel while stage04 is running
+	resp, err = client.R().
+		SetBody(api.PutCancelSubmissionInput{SubId: subId}).
+		Put("/api/submission/cancel")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Logf("%v", resp)
+		t.Fatalf("failed to cancel submission: %v", err)
+	}
+	t.Logf("cancel response: %s", string(resp.Body()))
+
+	// Poll until all jobs reach a terminal state
+	var result api.ResultOutput
+	for i := 0; i < maxRetries; i++ {
+		resp, err = client.R().
+			SetResult(&result).
+			SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+			Get("/api/results")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		allDone := true
+		for _, job := range result.Jobs {
+			switch job.Status {
+			case models.StatusPending, models.StatusRunning, models.StatusBlocked:
+				allDone = false
+			}
+		}
+		if allDone && len(result.Jobs) > 0 {
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Verify stage04 ended up cancelled
+	var cancelledJob *api.ResultOutputJob
+	for i := range result.Jobs {
+		if result.Jobs[i].StageName == "stage04" && result.Jobs[i].Status == models.StatusCancelled {
+			cancelledJob = &result.Jobs[i]
+			break
+		}
+	}
+	if cancelledJob == nil {
+		t.Fatalf("expected stage04 to be cancelled")
+	}
+	t.Logf("cancelled job: stage=%s test=%s retCode=%d", cancelledJob.StageName, cancelledJob.TestName, cancelledJob.RetCode)
+
+	// Fetch stdout and verify the SIGTERM trap handler ran.
+	// If only SIGKILL had been sent, the trap would never fire and the marker would be absent.
+	resp, err = client.R().
+		SetQueryParam("subId", strconv.FormatInt(subId, 10)).
+		SetQueryParam("stage", "stage04").
+		SetQueryParam("testcase", "trap").
+		Get("/api/stdout")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("failed to get job stdout (status %d): %v", resp.StatusCode(), err)
+	}
+
+	stdout := string(resp.Body())
+	t.Logf("job stdout: %s", stdout)
+
+	if !strings.Contains(stdout, "SIGTERM_RECEIVED") {
+		t.Fatalf("SIGTERM was not delivered before SIGKILL: stdout does not contain 'SIGTERM_RECEIVED', got: %q", stdout)
+	}
+
+	t.Log("SIGTERM was delivered to the process before SIGKILL - cancellation grace period works correctly")
+}
