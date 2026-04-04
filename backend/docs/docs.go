@@ -2065,6 +2065,9 @@ const docTemplate = `{
         "api.problemOutputStageTestcase": {
             "type": "object",
             "properties": {
+                "gracePeriod": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2076,6 +2079,9 @@ const docTemplate = `{
         "api.toolOutputTestcase": {
             "type": "object",
             "properties": {
+                "gracePeriod": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2327,6 +2333,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.ContentFile"
                     }
+                },
+                "gracePeriod": {
+                    "type": "integer"
                 },
                 "image": {
                     "type": "string"

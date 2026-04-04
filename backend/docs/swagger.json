@@ -2057,6 +2057,9 @@
         "api.problemOutputStageTestcase": {
             "type": "object",
             "properties": {
+                "gracePeriod": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2068,6 +2071,9 @@
         "api.toolOutputTestcase": {
             "type": "object",
             "properties": {
+                "gracePeriod": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2319,6 +2325,9 @@
                     "items": {
                         "$ref": "#/definitions/models.ContentFile"
                     }
+                },
+                "gracePeriod": {
+                    "type": "integer"
                 },
                 "image": {
                     "type": "string"
