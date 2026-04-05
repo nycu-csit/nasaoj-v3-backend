@@ -21,14 +21,14 @@ type ProblemSpec struct {
 type problem struct {
 	ProblemId ProblemIdType `yaml:"problemId"`
 
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description"`
-	Spec        ProblemSpec       `yaml:"spec"`
-	Stages      map[string]Stage  `yaml:"stages"`
-	Args        map[string]string `yaml:"args"`
-	Tag         TagType           `yaml:"tag"`
-	PreScript   Content           `yaml:"preScript"`
-	PostScript  Content           `yaml:"postScript"`
+	Name            string            `yaml:"name"`
+	Description     string            `yaml:"description"`
+	Spec            ProblemSpec       `yaml:"spec"`
+	Stages          map[string]Stage  `yaml:"stages"`
+	Args            map[string]string `yaml:"args"`
+	Tag             TagType           `yaml:"tag"`
+	PreScript       Content           `yaml:"preScript"`
+	PostScript      Content           `yaml:"postScript"`
 	Cooldown        int64             `yaml:"cooldown"`
 	Deadline        int64             `yaml:"deadline"`
 	ScoreInputType  string            `yaml:"scoreInputType"`
@@ -127,9 +127,9 @@ func (self *Problem) ToModelProblem(
 			Type: self.Spec.Type,
 			Link: self.Spec.Link,
 		},
-		Stages:         make(map[string]models.Stage),
-		Args:           self.Args,
-		Tag:            self.Tag,
+		Stages:          make(map[string]models.Stage),
+		Args:            self.Args,
+		Tag:             self.Tag,
 		Deadline:        self.Deadline,
 		Cooldown:        self.Cooldown,
 		ScoreInputType:  scoreInputType,

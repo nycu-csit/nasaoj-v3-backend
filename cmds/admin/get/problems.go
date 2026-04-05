@@ -26,15 +26,15 @@ type problemResult struct {
 	SHA1       string `json:"sha1" yaml:"sha1"`
 	ImportedAt string `json:"importedAt" yaml:"importedAt"`
 
-	Name           string            `json:"name" yaml:"name"`
-	Description    string            `json:"description" yaml:"description"`
-	Tag            string            `json:"tag" yaml:"tag"`
-	Spec           problemResultSpec `json:"spec" yaml:"spec"`
-	Deadline       string            `json:"deadline" yaml:"deadline"`
-	TotalScore     int64             `json:"totalScore" yaml:"totalScore"`
-	IsEnabled      bool              `json:"isEnabled" yaml:"isEnabled"`
-	ScoreInputType  int `json:"scoreInputType" yaml:"scoreInputType"`
-	ScoreOutputType int `json:"scoreOutputType" yaml:"scoreOutputType"`
+	Name            string            `json:"name" yaml:"name"`
+	Description     string            `json:"description" yaml:"description"`
+	Tag             string            `json:"tag" yaml:"tag"`
+	Spec            problemResultSpec `json:"spec" yaml:"spec"`
+	Deadline        string            `json:"deadline" yaml:"deadline"`
+	TotalScore      int64             `json:"totalScore" yaml:"totalScore"`
+	IsEnabled       bool              `json:"isEnabled" yaml:"isEnabled"`
+	ScoreInputType  int               `json:"scoreInputType" yaml:"scoreInputType"`
+	ScoreOutputType int               `json:"scoreOutputType" yaml:"scoreOutputType"`
 }
 
 var problemsCmd = &cobra.Command{
@@ -71,9 +71,9 @@ var problemsCmd = &cobra.Command{
 						Type: problem.Spec.Type,
 						Link: problem.Spec.Link,
 					},
-					Deadline:       time.Unix(problem.Deadline, 0).String(),
-					TotalScore:     problem.TotalScore,
-					IsEnabled:      problem.IsEnabled,
+					Deadline:        time.Unix(problem.Deadline, 0).String(),
+					TotalScore:      problem.TotalScore,
+					IsEnabled:       problem.IsEnabled,
 					ScoreInputType:  int(problem.ScoreInputType),
 					ScoreOutputType: int(problem.ScoreOutputType),
 				})

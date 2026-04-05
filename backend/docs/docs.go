@@ -1580,8 +1580,11 @@ const docTemplate = `{
                 "problemId": {
                     "type": "integer"
                 },
-                "scoreType": {
-                    "$ref": "#/definitions/models.ScoreTypeType"
+                "scoreInputType": {
+                    "$ref": "#/definitions/models.ScoreInputTypeType"
+                },
+                "scoreOutputType": {
+                    "$ref": "#/definitions/models.ScoreOutputTypeType"
                 },
                 "sha1": {
                     "type": "string"
@@ -1680,8 +1683,11 @@ const docTemplate = `{
                 "problemId": {
                     "type": "integer"
                 },
-                "scoreType": {
-                    "$ref": "#/definitions/models.ScoreTypeType"
+                "scoreInputType": {
+                    "$ref": "#/definitions/models.ScoreInputTypeType"
+                },
+                "scoreOutputType": {
+                    "$ref": "#/definitions/models.ScoreOutputTypeType"
                 },
                 "spec": {
                     "$ref": "#/definitions/models.ProblemSpec"
@@ -2276,15 +2282,26 @@ const docTemplate = `{
                 "RefTypeTool"
             ]
         },
-        "models.ScoreTypeType": {
+        "models.ScoreInputTypeType": {
             "type": "integer",
             "enum": [
                 0,
                 1
             ],
             "x-enum-varnames": [
-                "ScoreTypeDefault",
-                "ScoreTypeSelfManaged"
+                "ScoreInputTypeDefault",
+                "ScoreInputTypeSelfManaged"
+            ]
+        },
+        "models.ScoreOutputTypeType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "ScoreOutputTypeLatest",
+                "ScoreOutputTypeHighest"
             ]
         },
         "models.Stage": {
