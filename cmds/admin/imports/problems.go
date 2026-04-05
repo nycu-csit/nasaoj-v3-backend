@@ -97,18 +97,19 @@ var ProblemsCmd = &cobra.Command{
 			db.DehydrateProblem(&problem)
 
 			problems = append(problems, api.PutProblemsInputProblem{
-				ProblemId:   problem.ProblemId,
-				Name:        problem.Name,
-				Description: problem.Description,
-				Spec:        problem.Spec,
-				Stages:      problem.Stages,
-				Args:        problem.Args,
-				Tag:         problem.Tag,
-				PreScript:   problem.PreScript,
-				PostScript:  problem.PostScript,
-				Cooldown:    problem.Cooldown,
-				Deadline:    problem.Deadline,
-				ScoreType:   problem.ScoreType,
+				ProblemId:      problem.ProblemId,
+				Name:           problem.Name,
+				Description:    problem.Description,
+				Spec:           problem.Spec,
+				Stages:         problem.Stages,
+				Args:           problem.Args,
+				Tag:            problem.Tag,
+				PreScript:      problem.PreScript,
+				PostScript:     problem.PostScript,
+				Cooldown:       problem.Cooldown,
+				Deadline:       problem.Deadline,
+				ScoreInputType:  problem.ScoreInputType,
+				ScoreOutputType: problem.ScoreOutputType,
 			})
 		}
 

@@ -5,7 +5,7 @@ description: |
   Test that score is not put when job times out
   Using Python subprocess
 cooldown: 0
-scoreType: self-managed
+scoreInputType: self-managed
 args:
   endpoint: http://backend:8080
 preScript:

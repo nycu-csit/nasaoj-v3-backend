@@ -997,7 +997,7 @@ func (self *Postgres) getSubmissionScore(
 	var score int64
 	var isFinal bool
 
-	if problem.ScoreType == models.ScoreTypeSelfManaged {
+	if problem.ScoreInputType == models.ScoreInputTypeSelfManaged {
 		// For self-managed scoring, use the score stored in submission
 		score = sub.Score
 		// isFinal is true when all jobs are done (not pending/running/blocked)
@@ -1056,6 +1056,30 @@ func (self *Postgres) getUserScoreWithStages(
 	refId int64,
 	id int64,
 ) (models.UserScoreWithStages, error) {
+	// Get the enabled problem to check ScoreOutputType
+	enabledProblem, err := self.GetProblemById(ctx, refId)
+	if err != nil {
+		return models.UserScoreWithStages{}, err
+	}
+
+	user, err := self.GetUserResource(ctx, id)
+	if err != nil {
+		return models.UserScoreWithStages{}, err
+	}
+
+	if enabledProblem.ScoreOutputType == models.ScoreOutputTypeHighest {
+		return self.getUserHighestScoreWithStages(ctx, refId, id, enabledProblem, user)
+	}
+
+	return self.getUserLatestScoreWithStages(ctx, refId, id, user)
+}
+
+func (self *Postgres) getUserLatestScoreWithStages(
+	ctx context.Context,
+	refId int64,
+	id int64,
+	user models.UserResource,
+) (models.UserScoreWithStages, error) {
 	var sub models.Submission
 	err := self.db.NewSelect().
 		Model(&sub).
@@ -1075,15 +1099,10 @@ func (self *Postgres) getUserScoreWithStages(
 		return models.UserScoreWithStages{}, err
 	}
 
-	user, err := self.GetUserResource(ctx, id)
-	if err != nil {
-		return models.UserScoreWithStages{}, err
-	}
-
 	var scoreResult models.Score
 	var isFinal bool
 
-	if problem.ScoreType == models.ScoreTypeSelfManaged {
+	if problem.ScoreInputType == models.ScoreInputTypeSelfManaged {
 		// For self-managed scoring, return the stored score with empty stages
 		scoreResult = models.Score{
 			Score:  sub.Score,
@@ -1107,6 +1126,77 @@ func (self *Postgres) getUserScoreWithStages(
 
 		CreatedAt: sub.CreatedAt,
 		IsFinal:   isFinal,
+	}, nil
+}
+
+func (self *Postgres) getUserHighestScoreWithStages(
+	ctx context.Context,
+	refId int64,
+	id int64,
+	enabledProblem models.Problem,
+	user models.UserResource,
+) (models.UserScoreWithStages, error) {
+	var subs []models.Submission
+	err := self.db.NewSelect().
+		Model(&subs).
+		Column("id", "owner_id", "problem_id", "problem_sha1", "created_at", "score").
+		Where("problem_id = ?", refId).
+		Where("owner_id = ?", id).
+		Relation("Jobs").
+		Scan(ctx)
+	if err != nil {
+		return models.UserScoreWithStages{}, err
+	}
+
+	if len(subs) == 0 {
+		return models.UserScoreWithStages{}, fmt.Errorf("no submissions found")
+	}
+
+	var bestSub models.Submission
+	var bestScore models.Score
+	var bestIsFinal bool
+	bestScoreValue := int64(-1)
+
+	for _, sub := range subs {
+		problem, err := self.GetProblem(ctx, sub.ProblemSHA1)
+		if err != nil {
+			return models.UserScoreWithStages{}, err
+		}
+
+		var scoreResult models.Score
+		var isFinal bool
+
+		if problem.ScoreInputType == models.ScoreInputTypeSelfManaged {
+			scoreResult = models.Score{
+				Score:  sub.Score,
+				Stages: make(map[string]int64),
+			}
+			isFinal = true
+			for _, job := range sub.Jobs {
+				switch job.Status {
+				case models.StatusPending, models.StatusRunning, models.StatusBlocked:
+					isFinal = false
+				}
+			}
+		} else {
+			scoreResult, isFinal = utils.CalcScore(problem, sub)
+		}
+
+		if scoreResult.Score > bestScoreValue {
+			bestScoreValue = scoreResult.Score
+			bestSub = sub
+			bestScore = scoreResult
+			bestIsFinal = isFinal
+		}
+	}
+
+	return models.UserScoreWithStages{
+		Id:       id,
+		Username: user.Username,
+		Score:    bestScore,
+
+		CreatedAt: bestSub.CreatedAt,
+		IsFinal:   bestIsFinal,
 	}, nil
 }
 
@@ -1292,7 +1382,6 @@ func (self *Postgres) GetScoresWithDeadline(
 	ctx context.Context,
 	refId int64,
 ) ([]models.UserScore, error) {
-	var submissions []models.Submission
 	var problem models.Problem
 	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		var problemMarshaled models.ProblemMarshaled
@@ -1307,34 +1396,46 @@ func (self *Postgres) GetScoresWithDeadline(
 		}
 
 		problem, err = problemMarshaled.Unmarshal()
-		if err != nil {
-			return err
-		}
-
-		validSubQ := tx.NewSelect().
-			Model((*models.Submission)(nil)).
-			DistinctOn("owner_id").
-			Column("owner_id", "created_at", "id").
-			Where("problem_id = ?", refId).
-			Order("owner_id ASC", "created_at DESC")
-
-		if problem.Deadline != 0 {
-			validSubQ = validSubQ.
-				Where("created_at < ?", problem.Deadline)
-		}
-
-		err = self.db.NewSelect().
-			With("valid_sub", validSubQ).
-			Model(&submissions).
-			Where("id IN (?)", tx.NewSelect().
-				Table("valid_sub").
-				Column("id")).
-			Order("owner_id ASC").
-			Relation("Jobs").
-			Scan(ctx)
-
 		return err
 	})
+	if err != nil {
+		return []models.UserScore{}, err
+	}
+
+	if problem.ScoreOutputType == models.ScoreOutputTypeHighest {
+		return self.getHighestScoresWithDeadline(ctx, refId, problem)
+	}
+	return self.getLatestScoresWithDeadline(ctx, refId, problem)
+}
+
+func (self *Postgres) getLatestScoresWithDeadline(
+	ctx context.Context,
+	refId int64,
+	problem models.Problem,
+) ([]models.UserScore, error) {
+	var submissions []models.Submission
+
+	validSubQ := self.db.NewSelect().
+		Model((*models.Submission)(nil)).
+		DistinctOn("owner_id").
+		Column("owner_id", "created_at", "id").
+		Where("problem_id = ?", refId).
+		Order("owner_id ASC", "created_at DESC")
+
+	if problem.Deadline != 0 {
+		validSubQ = validSubQ.
+			Where("created_at < ?", problem.Deadline)
+	}
+
+	err := self.db.NewSelect().
+		With("valid_sub", validSubQ).
+		Model(&submissions).
+		Where("id IN (?)", self.db.NewSelect().
+			Table("valid_sub").
+			Column("id")).
+		Order("owner_id ASC").
+		Relation("Jobs").
+		Scan(ctx)
 	if err != nil {
 		return []models.UserScore{}, err
 	}
@@ -1342,7 +1443,7 @@ func (self *Postgres) GetScoresWithDeadline(
 	var ret []models.UserScore
 	for _, sub := range submissions {
 		var score int64
-		if problem.ScoreType == models.ScoreTypeSelfManaged {
+		if problem.ScoreInputType == models.ScoreInputTypeSelfManaged {
 			score = sub.Score
 		} else {
 			calcScore, _ := utils.CalcScore(problem, sub)
@@ -1360,6 +1461,62 @@ func (self *Postgres) GetScoresWithDeadline(
 			Username:  user.Username,
 			CreatedAt: sub.CreatedAt,
 		})
+	}
+
+	return ret, nil
+}
+
+func (self *Postgres) getHighestScoresWithDeadline(
+	ctx context.Context,
+	refId int64,
+	problem models.Problem,
+) ([]models.UserScore, error) {
+	var submissions []models.Submission
+
+	query := self.db.NewSelect().
+		Model(&submissions).
+		Where("problem_id = ?", refId).
+		Relation("Jobs")
+
+	if problem.Deadline != 0 {
+		query = query.Where("created_at < ?", problem.Deadline)
+	}
+
+	err := query.Scan(ctx)
+	if err != nil {
+		return []models.UserScore{}, err
+	}
+
+	// Group submissions by owner and find highest score for each
+	userBestScores := make(map[int64]models.UserScore)
+	for _, sub := range submissions {
+		var score int64
+		if problem.ScoreInputType == models.ScoreInputTypeSelfManaged {
+			score = sub.Score
+		} else {
+			calcScore, _ := utils.CalcScore(problem, sub)
+			score = calcScore.Score
+		}
+
+		existing, exists := userBestScores[sub.OwnerId]
+		if !exists || score > existing.Score {
+			user, err := self.GetUserResource(ctx, sub.OwnerId)
+			if err != nil {
+				return []models.UserScore{}, err
+			}
+
+			userBestScores[sub.OwnerId] = models.UserScore{
+				Score:     score,
+				Id:        sub.OwnerId,
+				Username:  user.Username,
+				CreatedAt: sub.CreatedAt,
+			}
+		}
+	}
+
+	var ret []models.UserScore
+	for _, score := range userBestScores {
+		ret = append(ret, score)
 	}
 
 	return ret, nil
@@ -1798,8 +1955,8 @@ func (self *Postgres) UpdateSubmissionScore(
 				zap.Error(err))
 		return err
 	}
-	if problem.ScoreType != models.ScoreTypeSelfManaged {
-		return types.ScoreTypeNotSelfManaged
+	if problem.ScoreInputType != models.ScoreInputTypeSelfManaged {
+		return types.ScoreInputTypeNotSelfManaged
 	}
 
 	pending := []string{

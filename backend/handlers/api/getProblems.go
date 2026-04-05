@@ -30,15 +30,16 @@ type ProblemOutput struct {
 	SHA1       string `json:"sha1"`
 	ImportedAt int64  `json:"importedAt"`
 
-	Name        string                        `json:"name"`
-	Description string                        `json:"description"`
-	Spec        ProblemOutputSpec             `json:"spec"`
-	Stages      map[string]problemOutputStage `json:"stages"`
-	Tag         string                        `json:"tag"`
-	TotalScore  int64                         `json:"totalScore"`
-	IsEnabled   bool                          `json:"isEnabled"`
-	Deadline    int64                         `json:"deadline"`
-	ScoreType   models.ScoreTypeType          `json:"scoreType"`
+	Name           string                        `json:"name"`
+	Description    string                        `json:"description"`
+	Spec           ProblemOutputSpec             `json:"spec"`
+	Stages         map[string]problemOutputStage `json:"stages"`
+	Tag            string                        `json:"tag"`
+	TotalScore     int64                         `json:"totalScore"`
+	IsEnabled      bool                          `json:"isEnabled"`
+	Deadline       int64                         `json:"deadline"`
+	ScoreInputType  models.ScoreInputTypeType  `json:"scoreInputType"`
+	ScoreOutputType models.ScoreOutputTypeType `json:"scoreOutputType"`
 }
 
 // GetAdminProblems
@@ -88,12 +89,13 @@ func (self *Handlers) GetProblems(
 					Type: problem.Spec.Type,
 					Link: problem.Spec.Link,
 				},
-				Stages:     make(map[string]problemOutputStage),
-				Tag:        problem.Tag,
-				TotalScore: problem.TotalScore,
-				IsEnabled:  problem.IsEnabled,
-				Deadline:   problem.Deadline,
-				ScoreType:  problem.ScoreType,
+				Stages:         make(map[string]problemOutputStage),
+				Tag:            problem.Tag,
+				TotalScore:     problem.TotalScore,
+				IsEnabled:      problem.IsEnabled,
+				Deadline:       problem.Deadline,
+				ScoreInputType:  problem.ScoreInputType,
+				ScoreOutputType: problem.ScoreOutputType,
 			}
 			for stageName, stage := range problem.Stages {
 				retStage := problemOutputStage{
