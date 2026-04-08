@@ -964,6 +964,13 @@ func cacheUserStageScoresKey(
 	return "user-stage-scores-" + strconv.FormatInt(problemId, 10) + "-" + strconv.FormatInt(id, 10)
 }
 
+func cacheUserHighestScoreKey(
+	problemId int64,
+	id int64,
+) string {
+	return "user-highest-score-" + strconv.FormatInt(problemId, 10) + "-" + strconv.FormatInt(id, 10)
+}
+
 func (self *Postgres) getSubmissionScore(
 	ctx context.Context,
 	subId int64,
@@ -1133,31 +1140,70 @@ func (self *Postgres) getUserHighestScoreWithStages(
 	ctx context.Context,
 	refId int64,
 	id int64,
-	enabledProblem models.Problem,
+	_ models.Problem,
 	user models.UserResource,
 ) (models.UserScoreWithStages, error) {
+	// Try to get cached highest score
+	var cachedHighest models.CachedHighestScore
+	var hasCached bool
+	var lastCheckTimestamp int64
+
+	if self.cache != nil {
+		err := self.cache.Get(ctx, cacheUserHighestScoreKey(refId, id), &cachedHighest)
+		if err == nil {
+			hasCached = true
+			lastCheckTimestamp = cachedHighest.LastCheckTimestamp
+		}
+	}
+
+	// Query submissions - either all or only new ones since last check
 	var subs []models.Submission
-	err := self.db.NewSelect().
+	query := self.db.NewSelect().
 		Model(&subs).
 		Column("id", "owner_id", "problem_id", "problem_sha1", "created_at", "score").
 		Where("problem_id = ?", refId).
 		Where("owner_id = ?", id).
-		Relation("Jobs").
-		Scan(ctx)
+		Relation("Jobs")
+
+	if hasCached && lastCheckTimestamp > 0 {
+		// Only fetch submissions after the last check
+		query = query.Where("created_at > ?", lastCheckTimestamp)
+	}
+
+	err := query.Scan(ctx)
 	if err != nil {
 		return models.UserScoreWithStages{}, err
 	}
 
-	if len(subs) == 0 {
+	// If no cached data and no submissions, return error
+	if !hasCached && len(subs) == 0 {
 		return models.UserScoreWithStages{}, fmt.Errorf("no submissions found")
 	}
 
+	// Start with cached values if available
 	var bestSub models.Submission
 	var bestScore models.Score
 	var bestIsFinal bool
 	bestScoreValue := int64(-1)
 
+	if hasCached {
+		bestScore = cachedHighest.Score
+		bestScoreValue = cachedHighest.Score.Score
+		bestIsFinal = cachedHighest.IsFinal
+		bestSub.CreatedAt = cachedHighest.CreatedAt
+	}
+
+	// Track if all new submissions are final and the max created_at
+	allNewFinal := true
+	var maxCreatedAt int64
+
+	// Check new submissions
 	for _, sub := range subs {
+		// Track max created_at from new submissions
+		if sub.CreatedAt > maxCreatedAt {
+			maxCreatedAt = sub.CreatedAt
+		}
+
 		problem, err := self.GetProblem(ctx, sub.ProblemSHA1)
 		if err != nil {
 			return models.UserScoreWithStages{}, err
@@ -1182,6 +1228,10 @@ func (self *Postgres) getUserHighestScoreWithStages(
 			scoreResult, isFinal = utils.CalcScore(problem, sub)
 		}
 
+		if !isFinal {
+			allNewFinal = false
+		}
+
 		if scoreResult.Score > bestScoreValue {
 			bestScoreValue = scoreResult.Score
 			bestSub = sub
@@ -1190,14 +1240,33 @@ func (self *Postgres) getUserHighestScoreWithStages(
 		}
 	}
 
-	return models.UserScoreWithStages{
-		Id:       id,
-		Username: user.Username,
-		Score:    bestScore,
-
+	result := models.UserScoreWithStages{
+		Id:        id,
+		Username:  user.Username,
+		Score:     bestScore,
 		CreatedAt: bestSub.CreatedAt,
 		IsFinal:   bestIsFinal,
-	}, nil
+	}
+
+	// Update cache only if all new submissions are final
+	// Use max created_at as timestamp to ensure we don't miss any submissions
+	if self.cache != nil && allNewFinal && len(subs) > 0 {
+		newTimestamp := maxCreatedAt
+		if lastCheckTimestamp > newTimestamp {
+			newTimestamp = lastCheckTimestamp
+		}
+		newCached := models.CachedHighestScore{
+			UserScoreWithStages: result,
+			LastCheckTimestamp:  newTimestamp,
+		}
+		_ = self.cache.Set(&cache.Item{
+			Key:   cacheUserHighestScoreKey(refId, id),
+			Value: &newCached,
+			TTL:   time.Hour,
+		})
+	}
+
+	return result, nil
 }
 
 func (self *Postgres) GetUserScoreWithStages(

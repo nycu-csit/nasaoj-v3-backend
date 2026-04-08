@@ -22,3 +22,10 @@ type UserScoreWithStages struct {
 	CreatedAt int64 `json:"createdAt"`
 	IsFinal   bool  `json:"-"`
 }
+
+// CachedHighestScore stores the highest score along with the timestamp
+// when it was last computed, enabling incremental updates.
+type CachedHighestScore struct {
+	UserScoreWithStages
+	LastCheckTimestamp int64 `json:"lastCheckTimestamp"`
+}
