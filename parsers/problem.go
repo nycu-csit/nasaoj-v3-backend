@@ -21,17 +21,18 @@ type ProblemSpec struct {
 type problem struct {
 	ProblemId ProblemIdType `yaml:"problemId"`
 
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description"`
-	Spec        ProblemSpec       `yaml:"spec"`
-	Stages      map[string]Stage  `yaml:"stages"`
-	Args        map[string]string `yaml:"args"`
-	Tag         TagType           `yaml:"tag"`
-	PreScript   Content           `yaml:"preScript"`
-	PostScript  Content           `yaml:"postScript"`
-	Cooldown    int64             `yaml:"cooldown"`
-	Deadline    int64             `yaml:"deadline"`
-	ScoreType   string            `yaml:"scoreType"`
+	Name            string            `yaml:"name"`
+	Description     string            `yaml:"description"`
+	Spec            ProblemSpec       `yaml:"spec"`
+	Stages          map[string]Stage  `yaml:"stages"`
+	Args            map[string]string `yaml:"args"`
+	Tag             TagType           `yaml:"tag"`
+	PreScript       Content           `yaml:"preScript"`
+	PostScript      Content           `yaml:"postScript"`
+	Cooldown        int64             `yaml:"cooldown"`
+	Deadline        int64             `yaml:"deadline"`
+	ScoreInputType  string            `yaml:"scoreInputType"`
+	ScoreOutputType string            `yaml:"scoreOutputType"`
 }
 
 type Problem struct {
@@ -76,13 +77,22 @@ func (self *Problem) UnmarshalYAML(v *yaml.Node) error {
 			self.problem.Spec.Type)
 	}
 
-	switch self.problem.ScoreType {
+	switch self.problem.ScoreInputType {
 	case "", "default":
-		self.problem.ScoreType = "default"
+		self.problem.ScoreInputType = "default"
 	case "self-managed":
 	default:
-		return fmt.Errorf("invalid scoreType: %q, must be 'default' or 'self-managed'",
-			self.problem.ScoreType)
+		return fmt.Errorf("invalid scoreInputType: %q, must be 'default' or 'self-managed'",
+			self.problem.ScoreInputType)
+	}
+
+	switch self.problem.ScoreOutputType {
+	case "", "latest":
+		self.problem.ScoreOutputType = "latest"
+	case "highest":
+	default:
+		return fmt.Errorf("invalid scoreOutputType: %q, must be 'latest' or 'highest'",
+			self.problem.ScoreOutputType)
 	}
 
 	return nil
@@ -92,12 +102,20 @@ func (self *Problem) ToModelProblem(
 	ctx context.Context,
 	contentFiles map[string]models.ContentFile,
 ) (models.Problem, error) {
-	var scoreType models.ScoreTypeType
-	switch self.ScoreType {
+	var scoreInputType models.ScoreInputTypeType
+	switch self.ScoreInputType {
 	case "self-managed":
-		scoreType = models.ScoreTypeSelfManaged
+		scoreInputType = models.ScoreInputTypeSelfManaged
 	default:
-		scoreType = models.ScoreTypeDefault
+		scoreInputType = models.ScoreInputTypeDefault
+	}
+
+	var scoreOutputType models.ScoreOutputTypeType
+	switch self.ScoreOutputType {
+	case "highest":
+		scoreOutputType = models.ScoreOutputTypeHighest
+	default:
+		scoreOutputType = models.ScoreOutputTypeLatest
 	}
 
 	ret := models.Problem{
@@ -109,12 +127,13 @@ func (self *Problem) ToModelProblem(
 			Type: self.Spec.Type,
 			Link: self.Spec.Link,
 		},
-		Stages:    make(map[string]models.Stage),
-		Args:      self.Args,
-		Tag:       self.Tag,
-		Deadline:  self.Deadline,
-		Cooldown:  self.Cooldown,
-		ScoreType: scoreType,
+		Stages:          make(map[string]models.Stage),
+		Args:            self.Args,
+		Tag:             self.Tag,
+		Deadline:        self.Deadline,
+		Cooldown:        self.Cooldown,
+		ScoreInputType:  scoreInputType,
+		ScoreOutputType: scoreOutputType,
 	}
 
 	if res, err := self.PreScript.ToModelContent(ctx, contentFiles); err == nil {

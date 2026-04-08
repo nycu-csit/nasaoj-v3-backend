@@ -63,7 +63,7 @@ func (self *Handlers) PutScore(
 	err = self.submissions.UpdateSubmissionScore(ctx,
 		scoreReq.SubId, scoreReq.Score)
 	if err != nil {
-		if errors.Is(err, types.ScoreTypeNotSelfManaged) {
+		if errors.Is(err, types.ScoreInputTypeNotSelfManaged) {
 			return middlewares.HTTPError{
 				StatusCode: http.StatusMethodNotAllowed,
 				Message:    "score type is not self managed",

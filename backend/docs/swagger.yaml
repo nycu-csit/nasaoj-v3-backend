@@ -73,8 +73,10 @@ definitions:
         type: string
       problemId:
         type: integer
-      scoreType:
-        $ref: '#/definitions/models.ScoreTypeType'
+      scoreInputType:
+        $ref: '#/definitions/models.ScoreInputTypeType'
+      scoreOutputType:
+        $ref: '#/definitions/models.ScoreOutputTypeType'
       sha1:
         type: string
       spec:
@@ -138,8 +140,10 @@ definitions:
         $ref: '#/definitions/models.Content'
       problemId:
         type: integer
-      scoreType:
-        $ref: '#/definitions/models.ScoreTypeType'
+      scoreInputType:
+        $ref: '#/definitions/models.ScoreInputTypeType'
+      scoreOutputType:
+        $ref: '#/definitions/models.ScoreOutputTypeType'
       spec:
         $ref: '#/definitions/models.ProblemSpec'
       stages:
@@ -531,14 +535,22 @@ definitions:
     x-enum-varnames:
     - RefTypeProblem
     - RefTypeTool
-  models.ScoreTypeType:
+  models.ScoreInputTypeType:
     enum:
     - 0
     - 1
     type: integer
     x-enum-varnames:
-    - ScoreTypeDefault
-    - ScoreTypeSelfManaged
+    - ScoreInputTypeDefault
+    - ScoreInputTypeSelfManaged
+  models.ScoreOutputTypeType:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - ScoreOutputTypeLatest
+    - ScoreOutputTypeHighest
   models.Stage:
     properties:
       args:

@@ -13,18 +13,19 @@ import (
 )
 
 type PutProblemsInputProblem struct {
-	ProblemId   int64                   `json:"problemId"`
-	Name        string                  `json:"name"`
-	Description string                  `json:"description"`
-	Spec        models.ProblemSpec      `json:"spec"`
-	Stages      map[string]models.Stage `json:"stages"`
-	Args        map[string]string       `json:"args"`
-	Tag         string                  `json:"tag"`
-	PreScript   models.Content          `json:"preScript"`
-	PostScript  models.Content          `json:"postScript"`
-	Cooldown    int64                   `json:"cooldown"`
-	Deadline    int64                   `json:"deadline"`
-	ScoreType   models.ScoreTypeType    `json:"scoreType"`
+	ProblemId       int64                      `json:"problemId"`
+	Name            string                     `json:"name"`
+	Description     string                     `json:"description"`
+	Spec            models.ProblemSpec         `json:"spec"`
+	Stages          map[string]models.Stage    `json:"stages"`
+	Args            map[string]string          `json:"args"`
+	Tag             string                     `json:"tag"`
+	PreScript       models.Content             `json:"preScript"`
+	PostScript      models.Content             `json:"postScript"`
+	Cooldown        int64                      `json:"cooldown"`
+	Deadline        int64                      `json:"deadline"`
+	ScoreInputType  models.ScoreInputTypeType  `json:"scoreInputType"`
+	ScoreOutputType models.ScoreOutputTypeType `json:"scoreOutputType"`
 }
 
 type PutProblemsOutputProblem struct {
@@ -66,18 +67,19 @@ func (self *Handlers) PutProblems(
 	var res []PutProblemsOutputProblem
 	for _, input := range inputProblems {
 		problem := models.Problem{
-			ProblemId:   input.ProblemId,
-			Name:        input.Name,
-			Description: input.Description,
-			Spec:        input.Spec,
-			Stages:      input.Stages,
-			Args:        input.Args,
-			Tag:         input.Tag,
-			PreScript:   input.PreScript,
-			PostScript:  input.PostScript,
-			Cooldown:    input.Cooldown,
-			Deadline:    input.Deadline,
-			ScoreType:   input.ScoreType,
+			ProblemId:       input.ProblemId,
+			Name:            input.Name,
+			Description:     input.Description,
+			Spec:            input.Spec,
+			Stages:          input.Stages,
+			Args:            input.Args,
+			Tag:             input.Tag,
+			PreScript:       input.PreScript,
+			PostScript:      input.PostScript,
+			Cooldown:        input.Cooldown,
+			Deadline:        input.Deadline,
+			ScoreInputType:  input.ScoreInputType,
+			ScoreOutputType: input.ScoreOutputType,
 		}
 		if err := utils.CheckDeps(ctx, problem); err != nil {
 			return middlewares.HTTPError{

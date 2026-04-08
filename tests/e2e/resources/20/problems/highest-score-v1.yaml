@@ -1,0 +1,19 @@
+---
+name: highest-score-test
+problemId: 22
+description: Test scoreOutputType highest - v1 sets score to 50
+cooldown: 0
+scoreInputType: self-managed
+scoreOutputType: highest
+args:
+  endpoint: http://backend:8080
+  score: "50"
+stages:
+  main:
+    testcases:
+      - name: put-score
+        files:
+          - put-score.sh.tmpl
+        scripts:
+          - bash put-score.sh.tmpl
+    score: 0

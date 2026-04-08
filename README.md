@@ -8,7 +8,7 @@ NASAOJ Judge is a distributed online judge system for automated problem
 submission and grading. It evaluates student submissions across multiple
 problem stages with dependency management and distributed worker processing.
 
-**Language**: Go 1.25.0 \
+**Language**: Go 1.26.1 \
 **Module**: `gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge`
 
 ## Common Commands
