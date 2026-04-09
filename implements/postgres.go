@@ -488,6 +488,7 @@ func (self *Postgres) UpdateProblemState(
 	isEnabled bool,
 ) error {
 	var sha1 string
+	var problemId int64
 	if isEnabled {
 		err := self.db.RunInTx(ctx, &sql.TxOptions{},
 			func(ctx context.Context, tx bun.Tx) error {
@@ -501,6 +502,7 @@ func (self *Postgres) UpdateProblemState(
 					return err
 				}
 				sha1 = problem.SHA1
+				problemId = problem.ProblemId
 				_, err = tx.NewUpdate().
 					Model((*models.ProblemMarshaled)(nil)).
 					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
@@ -521,20 +523,43 @@ func (self *Postgres) UpdateProblemState(
 				Where("sha1 LIKE ?", sha1Prefix+"%").
 				Limit(1)).
 			Set("is_enabled = ?", false).
-			Returning("sha1").
+			Returning("sha1", "problem_id").
 			Exec(ctx)
 		if err != nil {
 			return err
 		}
 		sha1 = problem.SHA1
+		problemId = problem.ProblemId
 	}
 	if self.cache != nil {
-		if err := self.cache.Delete(
-			ctx, cacheProblemSHA1Key(sha1)); err != nil {
+		// Invalidate problem caches
+		pending := []string{
+			cacheProblemSHA1Key(sha1),
+			cacheProblemEnabledKey(),
+			// Invalidate score-related caches for this problem
+			// This is necessary when ScoreOutputType changes (e.g., latest -> highest)
+			cacheScoresKey(problemId),
+			cacheScoresWStagesKey(problemId),
+			cacheUsersKey(problemId),
+		}
+
+		// Invalidate per-user score caches
+		users, err := self.getSubmittedUsers(ctx, problemId)
+		if err != nil {
 			return err
 		}
-		if err := self.cache.Delete(ctx, cacheProblemEnabledKey()); err != nil {
-			return err
+		for _, userId := range users {
+			pending = append(pending,
+				cacheUserScoresKey(problemId, userId),
+				cacheUserStageScoresKey(problemId, userId),
+				cacheUserHighestScoreKey(problemId, userId),
+			)
+		}
+
+		for _, key := range pending {
+			if err := self.cache.Delete(ctx, key); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
