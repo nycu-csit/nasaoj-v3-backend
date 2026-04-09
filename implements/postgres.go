@@ -1698,6 +1698,7 @@ func (self *Postgres) DeleteSubmission(
 	pending := []string{
 		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
 		cacheUserStageScoresKey(sub.ProblemId, sub.OwnerId),
+		cacheUserHighestScoreKey(sub.ProblemId, sub.OwnerId),
 		cacheUsersKey(sub.ProblemId),
 		cacheScoresKey(sub.ProblemId),
 		cacheScoresWStagesKey(sub.ProblemId),
@@ -1835,6 +1836,7 @@ func (self *Postgres) DeleteUserAndSubmissions(
 
 	for _, sub := range subs {
 		pending = append(pending, cacheUserScoresKey(sub.ProblemId, id))
+		pending = append(pending, cacheUserHighestScoreKey(sub.ProblemId, id))
 		pending = append(pending, cacheUsersKey(sub.ProblemId))
 		pending = append(pending, cacheScoresKey(sub.ProblemId))
 		pending = append(pending, cacheScoresWStagesKey(sub.ProblemId))
@@ -1977,6 +1979,7 @@ func (self *Postgres) UpdateJob(
 	}
 
 	pending := []string{
+		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
 		cacheUsersKey(sub.ProblemId),
 		cacheScoresKey(sub.ProblemId),
 		cacheScoresWStagesKey(sub.ProblemId),
@@ -2030,6 +2033,7 @@ func (self *Postgres) UpdateSubmissionScore(
 
 	pending := []string{
 		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
+		cacheUserHighestScoreKey(sub.ProblemId, sub.OwnerId),
 		cacheUsersKey(sub.ProblemId),
 		cacheScoresKey(sub.ProblemId),
 		cacheScoresWStagesKey(sub.ProblemId),
