@@ -16,8 +16,8 @@ import (
 )
 
 var scoresCmd = &cobra.Command{
-	Use:     "scores",
-	Short:   "Get scores [problem id]",
+	Use:     "scores [problem id]",
+	Short:   "Get scores",
 	Args:    cobra.ExactArgs(1),
 	Aliases: []string{"score"},
 	Run: func(cmd *cobra.Command, args []string) {
