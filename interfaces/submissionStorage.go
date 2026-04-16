@@ -62,6 +62,7 @@ type SubmissionStorage interface {
 	UpdateJob(
 		ctx context.Context,
 		job *models.Job,
+		jobStatus models.JobStatus,
 	) error
 
 	CancelSubmission(

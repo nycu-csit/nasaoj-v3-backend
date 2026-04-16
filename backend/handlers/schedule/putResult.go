@@ -75,7 +75,7 @@ func (self *Handlers) PutScheduleResult(
 			}
 		}
 	}
-	if err = self.jobs.UpdateJob(ctx, &job); err != nil {
+	if err = self.jobs.UpdateJob(ctx, &job, models.StatusRunning); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "failed to update job",

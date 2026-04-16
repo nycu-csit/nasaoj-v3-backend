@@ -89,7 +89,7 @@ func RunTool(
 		RefSHA1: submission.ToolSHA1,
 	}
 
-	if err := jobs.UpdateJob(ctx, &job); err != nil {
+	if err := jobs.UpdateJob(ctx, &job, models.StatusBlocked); err != nil {
 		tracing.Logger.Ctx(ctx).
 			Error("failed to update job status",
 				zap.Error(err))

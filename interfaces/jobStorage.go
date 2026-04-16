@@ -10,6 +10,7 @@ type JobStorage interface {
 	UpdateJob(
 		ctx context.Context,
 		job *models.Job,
+		jobStatus models.JobStatus,
 	) error
 
 	SkipJobs(

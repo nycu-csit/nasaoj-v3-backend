@@ -1971,6 +1971,7 @@ func (self *Postgres) SkipJobWithStages(
 func (self *Postgres) UpdateJob(
 	ctx context.Context,
 	job *models.Job,
+	jobStatus models.JobStatus,
 ) error {
 	var sub models.Submission
 	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
@@ -1985,7 +1986,7 @@ func (self *Postgres) UpdateJob(
 		res, err := tx.NewUpdate().
 			Model(job).
 			WherePK().
-			Where("status != ?", models.StatusSkipped).
+			Where("status = ?", jobStatus).
 			Exec(ctx)
 		if err != nil {
 			return err
@@ -2157,7 +2158,7 @@ func (self *Postgres) TimeoutJobById(
 		Status:    models.StatusMissing,
 	}
 
-	if err := self.UpdateJob(ctx, &job); err != nil {
+	if err := self.UpdateJob(ctx, &job, models.StatusRunning); err != nil {
 		return err
 	}
 

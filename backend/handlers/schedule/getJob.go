@@ -116,7 +116,7 @@ func (self *Handlers) GetScheduleJob(
 	}
 
 	job.Status = models.StatusRunning
-	if err = self.jobs.UpdateJob(ctx, &job); err != nil {
+	if err = self.jobs.UpdateJob(ctx, &job, models.StatusPending); err != nil {
 		// Rollback worker job tracking on failure
 		_ = self.workers.RemoveWorkerJob(ctx, workerName, job.Id())
 		return middlewares.HTTPError{

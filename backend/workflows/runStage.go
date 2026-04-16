@@ -111,7 +111,7 @@ func RunStage(
 			Image:         testcase.Image,
 		}
 
-		if err := jobs.UpdateJob(ctx, &job); err != nil {
+		if err := jobs.UpdateJob(ctx, &job, models.StatusBlocked); err != nil {
 			if errors.Is(err, types.JobAlreadySkippedError) {
 				tracing.Logger.Ctx(ctx).
 					Warn("job has already skipped")
