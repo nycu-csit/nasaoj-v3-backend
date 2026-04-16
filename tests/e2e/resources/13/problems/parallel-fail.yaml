@@ -1,6 +1,6 @@
 ---
 name: Parallel branch failure
-problemId: 13
+problemId: 1302
 description: Test parallel branches where one fails and skips its dependents
 cooldown: 0
 stages:

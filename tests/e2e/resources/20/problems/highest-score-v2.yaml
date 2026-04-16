@@ -1,6 +1,6 @@
 ---
 name: highest-score-test
-problemId: 22
+problemId: 2001
 description: Test scoreOutputType highest - v2 sets score to 100
 cooldown: 0
 scoreInputType: self-managed

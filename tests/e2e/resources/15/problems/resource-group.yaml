@@ -1,6 +1,6 @@
 ---
 name: Resource group test
-problemId: 15
+problemId: 1501
 description: Test resource group mutex
 cooldown: 0
 stages:

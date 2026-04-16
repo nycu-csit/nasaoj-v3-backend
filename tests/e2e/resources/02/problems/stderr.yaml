@@ -1,6 +1,6 @@
 ---
 name: Test stderr
-problemId: 4
+problemId: 204
 description: Test stderr
 cooldown: 0
 stages:

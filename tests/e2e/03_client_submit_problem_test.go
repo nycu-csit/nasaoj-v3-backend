@@ -20,16 +20,16 @@ type problemResult struct {
 
 var (
 	results = []problemResult{
-		{1, "0af723a5cf7cb08c9948ae3047374ef94ec18daf", 92},
-		{2, "3541688775fdea60324f4e91e1a3747c4cea3425", 92},
-		{3, "b877820b286ba70440186892a9e0de705e462989", 0},
-		{4, "76aceec98b2d88400e284e29df5dae321be0db34", 100},
-		{5, "1474c7716c887846b1a29c113bf3788546e48d14", 0},
-		{6, "b3105aa485cd0ec41eb5f1aca74489821f2eab46", 0},
-		{7, "7c1f9ec90d93b9a076457107e2c9ca7c76438c79", 100},
-		{8, "9fd4f21eafbf4df4a8a89a3ca14bbcb25a644fcc", 0},
-		// {9, "7928a05138203d53299ae07c67d134281444731e", 100},
-		{10, "ba59a03d19a6e90b6206e5a6c138c91505c9ac72", 100},
+		{201, "feb6c36a5f427d96e589a297ef8704d8867d8ec4", 92},  // hw1
+		{202, "3799f9e91d7271b1cf13a13beb2ad186b534be6d", 92},  // hw2
+		{203, "3a9ebccf7aac84c510e9a57ac58b7e793d968a91", 0},   // test3
+		{204, "b5bbe8a2488c6141013c3339351a6a520ad7c5f4", 100}, // Test stderr
+		{205, "a39d2dc0606913f70dc8fbc3d226e67041df43c9", 0},   // Split verdicts
+		{206, "3afac455f961371d56ae0ae5819a44fb1dbdafa0", 0},   // Timeout
+		{207, "f8c856d773ff99bf69eff129fccdcdde41ec2c4e", 100}, // Go Templates
+		{208, "db6269055fa2d1a9e056b96cd636872496799f59", 0},   // Skip jobs
+		// {209, "6bf6350c87d69cf51b09e207996c13bf884d2505", 100}, // Long awaiting
+		{210, "2658de25c7adc74ee3beca8821104ca86cd3b599", 100}, // pdf
 	}
 )
 

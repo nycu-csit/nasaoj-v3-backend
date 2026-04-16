@@ -1,6 +1,6 @@
 ---
 name: Complex dependencies
-problemId: 12
+problemId: 1301
 description: Check parsing complex dependencies
 cooldown: 0
 stages:

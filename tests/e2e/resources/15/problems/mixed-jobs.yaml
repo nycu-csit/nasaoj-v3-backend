@@ -1,0 +1,48 @@
+---
+name: Mixed resource group and normal jobs
+problemId: 1502
+description: Test that normal jobs are not blocked by resource group jobs
+cooldown: 0
+stages:
+  rg:
+    testcases:
+      - name: rg1
+        resourceGroup: exclusive
+        files:
+          - run.sh
+        scripts:
+          - bash run.sh
+      - name: rg2
+        resourceGroup: exclusive
+        files:
+          - run.sh
+        scripts:
+          - bash run.sh
+      - name: rg3
+        resourceGroup: exclusive
+        files:
+          - run.sh
+        scripts:
+          - bash run.sh
+    score: 50
+  normal_first:
+    testcases:
+      - name: normal1
+        files:
+          - quick.sh
+        scripts:
+          - bash quick.sh
+    before:
+      - normal
+  normal:
+    testcases:
+      - name: normal2
+        files:
+          - quick.sh
+        scripts:
+          - bash quick.sh
+      - name: normal3
+        files:
+          - quick.sh
+        scripts:
+          - bash quick.sh

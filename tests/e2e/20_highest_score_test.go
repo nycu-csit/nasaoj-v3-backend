@@ -18,7 +18,7 @@ func waitForSubmissionComplete(t *testing.T) int64 {
 	for i := 0; i < maxRetries; i++ {
 		resp, err := client.R().
 			SetResult(&result).
-			SetQueryParam("refId", "22").
+			SetQueryParam("refId", "2001").
 			SetQueryParam("type", "0"). // RefTypeProblem
 			Get("/api/results")
 		if err != nil || resp.StatusCode() != http.StatusOK {
@@ -40,7 +40,7 @@ func waitForSubmissionComplete(t *testing.T) int64 {
 			// Refetch to get updated score
 			resp, err = client.R().
 				SetResult(&result).
-				SetQueryParam("refId", "22").
+				SetQueryParam("refId", "2001").
 				SetQueryParam("type", "0").
 				Get("/api/results")
 			if err != nil || resp.StatusCode() != http.StatusOK {
@@ -57,14 +57,14 @@ func waitForSubmissionComplete(t *testing.T) int64 {
 	return 0
 }
 
-// getScoreFromScoreboard returns the score from the scoreboard for problem 22
+// getScoreFromScoreboard returns the score from the scoreboard for problem 2001
 func getScoreFromScoreboard(t *testing.T) int64 {
 	t.Helper()
 
 	var scores []models.UserScore
 	resp, err := client.R().
 		SetResult(&scores).
-		SetQueryParam("problemId", "22").
+		SetQueryParam("problemId", "2001").
 		Get("/api/scores")
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		t.Fatalf("failed to get /api/scores: %v", resp)

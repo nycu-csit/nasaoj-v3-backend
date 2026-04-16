@@ -22,36 +22,36 @@ func (self *Handlers) GetScheduleJob(
 	tags := req.URL.Query().Get("tags")
 	tagList := strings.Split(tags, ",")
 
-	// Get Job from retry queue or normal queue
 	var err error
 	var job models.Job
 	var jobFound bool
 
-	for !jobFound {
+	for i := 0; !jobFound; i++ {
 		var foundInThisIteration bool
 		var currentTag string
 
-		// Try each tag's retry queue first, then normal queue
 		for _, tag := range tagList {
-			// First check retry queue
-			job, err = self.jobQue.GetRetryJob(ctx, tag)
-			if err == nil {
-				foundInThisIteration = true
-				currentTag = tag
-				break
-			}
-
-			// Then check normal queue
-			job, err = self.jobQue.GetJob(ctx, tag)
-			if err == nil {
-				foundInThisIteration = true
-				currentTag = tag
-				break
+			if i%2 == 0 {
+				job, err = self.jobQue.GetRetryJob(ctx, tag)
+				if err == nil {
+					foundInThisIteration = true
+					currentTag = tag
+					break
+				}
+			} else {
+				job, err = self.jobQue.GetJob(ctx, tag)
+				if err == nil {
+					foundInThisIteration = true
+					currentTag = tag
+					break
+				}
 			}
 		}
 
 		if !foundInThisIteration {
-			// No jobs available in any queue
+			if i < 2 {
+				continue
+			}
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusNoContent,
 				Message:     "no job left in queue",
@@ -59,7 +59,6 @@ func (self *Handlers) GetScheduleJob(
 			}
 		}
 
-		// Try to acquire lock for this job
 		if err = self.jobQue.Lock(ctx, &job); err != nil {
 			// Lock acquisition failed - put job in retry queue
 			tracing.Logger.Ctx(ctx).

@@ -33,7 +33,7 @@ func Test_17_3_Check_self_managed_score(t *testing.T) {
 	for i := 0; i < maxRetries; i++ {
 		resp, err := client.R().
 			SetResult(&result).
-			SetQueryParam("refId", "18").
+			SetQueryParam("refId", "1701").
 			SetQueryParam("type", "0"). // RefTypeProblem
 			Get("/api/results")
 		if err != nil || resp.StatusCode() != http.StatusOK {
@@ -56,14 +56,14 @@ func Test_17_3_Check_self_managed_score(t *testing.T) {
 			// Refetch to get updated score
 			resp, err = client.R().
 				SetResult(&result).
-				SetQueryParam("refId", "18").
+				SetQueryParam("refId", "1701").
 				SetQueryParam("type", "0").
 				Get("/api/results")
 			if err != nil || resp.StatusCode() != http.StatusOK {
 				t.Fatalf("failed to refetch results: %v\n", resp)
 			}
 
-			t.Logf("Problem 18 completed. Score: %d", result.Score)
+			t.Logf("Problem 1701 completed. Score: %d", result.Score)
 
 			// The testcase script sets score to 42
 			expectedScore := int64(42)
@@ -92,7 +92,7 @@ func Test_17_4_Check_scores_endpoint(t *testing.T) {
 	var scores []models.UserScore
 	resp, err := client.R().
 		SetResult(&scores).
-		SetQueryParam("problemId", "18").
+		SetQueryParam("problemId", "1701").
 		Get("/api/scores")
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		t.Fatalf("failed to get /api/scores: %v", resp)
@@ -108,5 +108,5 @@ func Test_17_4_Check_scores_endpoint(t *testing.T) {
 		t.Fatalf("expected score %d, got %d", expectedScore, scores[0].Score)
 	}
 
-	t.Logf("scores for problem 18: %+v", scores)
+	t.Logf("scores for problem 1701: %+v", scores)
 }

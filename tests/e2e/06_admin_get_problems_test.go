@@ -37,13 +37,13 @@ func Test_06_2_Get_problems_dup(t *testing.T) {
 
 	countWithoutAll := 0
 	for _, p := range problems {
-		if p.ProblemId == 11 {
+		if p.ProblemId == 601 {
 			countWithoutAll++
 		}
 	}
 
 	if countWithoutAll != 3 {
-		t.Fatalf("expected 3 problems with problemId=11 without --all, got %d",
+		t.Fatalf("expected 3 problems with problemId=601 without --all, got %d",
 			countWithoutAll)
 	}
 
@@ -65,13 +65,13 @@ func Test_06_2_Get_problems_dup(t *testing.T) {
 
 	countWithAll := 0
 	for _, p := range problems {
-		if p.ProblemId == 11 {
+		if p.ProblemId == 601 {
 			countWithAll++
 		}
 	}
 
 	if countWithAll != 4 {
-		t.Fatalf("expected 4 problems with problemId=11 with --all, got %d",
+		t.Fatalf("expected 4 problems with problemId=601 with --all, got %d",
 			countWithAll)
 	}
 }

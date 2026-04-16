@@ -1,6 +1,6 @@
 ---
 name: Timeout
-problemId: 6
+problemId: 206
 description: Test for timeout handling
 cooldown: 0
 stages:

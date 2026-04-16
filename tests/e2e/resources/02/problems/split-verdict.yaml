@@ -1,6 +1,6 @@
 ---
 name: Split verdicts
-problemId: 5
+problemId: 205
 description: Test for split verdicts
 cooldown: 0
 stages:

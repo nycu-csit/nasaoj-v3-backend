@@ -1,6 +1,6 @@
 ---
 name: Test cancel
-problemId: 14
+problemId: 1401
 description: Test cancel mechanism
 cooldown: 0
 stages:

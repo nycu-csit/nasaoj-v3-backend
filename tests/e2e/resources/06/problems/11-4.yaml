@@ -1,6 +1,6 @@
 ---
 name: Test admin get problems dup 4
-problemId: 11
+problemId: 601
 description: Test admin CLI get problems dup auto hide
 cooldown: 0
 stages:

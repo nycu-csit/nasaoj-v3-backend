@@ -1,6 +1,6 @@
 ---
 name: identical-testcase-b
-problemId: 17
+problemId: 1602
 description: Problem B with identical testcase in path2
 cooldown: 0
 stages:

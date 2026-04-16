@@ -1,6 +1,6 @@
 ---
 name: self-managed-score
-problemId: 18
+problemId: 1701
 description: Test self-managed scoring
 cooldown: 0
 scoreInputType: self-managed

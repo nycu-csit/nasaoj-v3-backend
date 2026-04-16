@@ -94,7 +94,8 @@ func (self *Handlers) GetCallback(
 	}
 
 	// Check if user exists, register if not
-	exist, err := self.db.ExistUserResourceBySourceId(ctx, models.LoginSourceCSSSO, claim.CsId)
+	exist, err := self.db.ExistUserResourceBySourceId(ctx,
+		models.LoginSourceCSSSO, claim.CsId)
 	if err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusUnauthorized,
@@ -122,7 +123,8 @@ func (self *Handlers) GetCallback(
 	}
 
 	// Get user resource to get user ID and update IsAdmin
-	user, err := self.db.GetUserResourceBySourceId(ctx, models.LoginSourceCSSSO, claim.CsId)
+	user, err := self.db.GetUserResourceBySourceId(ctx,
+		models.LoginSourceCSSSO, claim.CsId)
 	if err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,

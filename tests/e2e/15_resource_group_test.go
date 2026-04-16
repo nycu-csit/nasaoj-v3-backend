@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	test15SHA1  string
-	test15RefId int64
+	test15SHA1      string
+	test15RefId     int64
+	test15MixedSHA1 string
 )
 
 func Test_15_1_Import_and_enable_problem(t *testing.T) {
@@ -22,7 +23,7 @@ func Test_15_1_Import_and_enable_problem(t *testing.T) {
 	if len(result.SHA1s) == 0 {
 		t.Fatal("no problems imported")
 	}
-	test15SHA1 = result.SHA1s[0]
+	test15SHA1 = GetProblemSHA1ByID(t, 1501)
 	t.Logf("Imported and enabled problem SHA1: %s", test15SHA1)
 }
 
@@ -212,4 +213,96 @@ func Test_15_4_Check_timestamps(t *testing.T) {
 	}
 
 	t.Logf("All %d jobs ran sequentially without overlap", len(ranges))
+}
+
+func Test_15_5_Import_mixed_jobs_problem(t *testing.T) {
+	test15MixedSHA1 = GetProblemSHA1ByID(t, 1502)
+	t.Logf("Mixed-jobs problem SHA1: %s", test15MixedSHA1)
+}
+
+func Test_15_6_Normal_jobs_not_blocked_by_resource_group(t *testing.T) {
+	var submitOutput api.SubmitOutput
+	resp, err := client.R().
+		SetBody(api.SubmitInput{
+			RefSHA1: test15MixedSHA1,
+			Type:    models.RefTypeProblem,
+		}).
+		SetResult(&submitOutput).
+		Post("/api/submit")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Logf("%v", resp)
+		t.Fatalf("failed to submit problem: %v", err)
+	}
+
+	refId := submitOutput.RefId
+	t.Logf("submitted mixed-jobs problem refId: %d, subId: %d", refId, submitOutput.Id)
+
+	// Verify that normal jobs complete while RG jobs are still running
+	normalJobsDone := false
+	rgJobsDone := false
+	normalDoneWhileRgRunning := false
+	maxRetries := 30
+
+	for i := range maxRetries {
+		var result api.ResultOutput
+		resp, err := client.R().
+			SetResult(&result).
+			SetQueryParam("refId", strconv.FormatInt(refId, 10)).
+			SetQueryParam("type", "0").
+			Get("/api/results")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			t.Fatalf("failed to get results: %v\n", resp)
+		}
+
+		// Check status of normal jobs (normal1, normal2) and resource group jobs (rg1, rg2)
+		normalComplete := 0
+		rgComplete := 0
+		for _, job := range result.Jobs {
+			isComplete := job.Status != models.StatusPending &&
+				job.Status != models.StatusRunning &&
+				job.Status != models.StatusBlocked
+
+			switch job.TestName {
+			case "normal1", "normal2":
+				if isComplete {
+					normalComplete++
+				}
+			case "rg1", "rg2":
+				if isComplete {
+					rgComplete++
+				}
+			}
+		}
+
+		t.Logf("poll %d: normal=%d/2, rg=%d/2", i, normalComplete, rgComplete)
+
+		if normalComplete == 2 && !normalJobsDone {
+			normalJobsDone = true
+			// Check if RG jobs are still running when normal jobs complete
+			if rgComplete < 2 {
+				normalDoneWhileRgRunning = true
+				t.Logf("poll %d: normal jobs completed while RG jobs still running (%d/2)", i, rgComplete)
+			}
+		}
+		if rgComplete == 2 && !rgJobsDone {
+			rgJobsDone = true
+			t.Logf("poll %d: resource group jobs completed", i)
+		}
+
+		if normalJobsDone && rgJobsDone {
+			break
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if !normalJobsDone || !rgJobsDone {
+		t.Fatal("jobs did not complete within timeout")
+	}
+
+	if !normalDoneWhileRgRunning {
+		t.Fatal("normal jobs should complete while resource group jobs are still running")
+	}
+
+	t.Log("Normal jobs completed while resource group jobs were still running")
 }

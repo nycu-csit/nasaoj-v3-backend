@@ -28,7 +28,7 @@ func Test_19_2_Submit_timeout_score_problem(t *testing.T) {
 }
 
 func Test_19_3_Check_timeout_score_not_put(t *testing.T) {
-	problemIDs := []int64{20, 21}
+	problemIDs := []int64{1901, 1902}
 
 	for _, problemID := range problemIDs {
 		t.Run("problem_"+string(rune('0'+problemID%10)), func(t *testing.T) {
@@ -93,7 +93,7 @@ func Test_19_3_Check_timeout_score_not_put(t *testing.T) {
 }
 
 func Test_19_4_Check_scores_endpoint_no_score(t *testing.T) {
-	problemIDs := []int64{20, 21}
+	problemIDs := []int64{1901, 1902}
 
 	for _, problemID := range problemIDs {
 		t.Run("problem_"+string(rune('0'+problemID%10)), func(t *testing.T) {

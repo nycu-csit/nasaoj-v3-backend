@@ -1,6 +1,6 @@
 ---
 name: Go Templates
-problemId: 7
+problemId: 207
 description: Test for go templates
 cooldown: 0
 stages:

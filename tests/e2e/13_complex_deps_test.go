@@ -75,7 +75,7 @@ func findAndEnableProblemByNameAndId(t *testing.T, problemId int64, name string)
 
 func Test_13_1_Import_and_enable_complex_deps(t *testing.T) {
 	ImportProblems(t, ProblemsDir(13), TestcasesDir(13))
-	test13SHA1 = findAndEnableProblemByNameAndId(t, 12, "Complex dependencies")
+	test13SHA1 = findAndEnableProblemByNameAndId(t, 1301, "Complex dependencies")
 }
 
 func Test_13_2_Submit_problem(t *testing.T) {
@@ -158,7 +158,7 @@ func Test_13_3_Check_results(t *testing.T) {
 func Test_13_4_Enable_parallel_fail_problem(t *testing.T) {
 	// Re-import to ensure latest version, then find and enable parallel-fail
 	ImportProblems(t, ProblemsDir(13), TestcasesDir(13))
-	parallelFailSHA1 = findAndEnableProblemByNameAndId(t, 13, "Parallel branch failure")
+	parallelFailSHA1 = findAndEnableProblemByNameAndId(t, 1302, "Parallel branch failure")
 }
 
 func Test_13_5_Submit_parallel_fail_problem(t *testing.T) {

@@ -1,6 +1,6 @@
 ---
 name: timeout-score-source
-problemId: 20
+problemId: 1901
 description: |
   Test that score is not put when job times out
   Using bash source
