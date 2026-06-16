@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# Every push to main builds the judge binary and publishes it as a new
+# GitHub release tagged main-<date>-<short sha>.
+# Testing and image packaging stay in the GitLab pipeline (.gitlab/).
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -o judge-linux-${{ matrix.goarch }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: judge-linux-${{ matrix.goarch }}
+          path: judge-linux-${{ matrix.goarch }}
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: judge-linux-*
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha256sum judge-linux-* > SHA256SUMS
+          tag="main-$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --generate-notes \
+            judge-linux-* SHA256SUMS

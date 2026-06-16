@@ -1,6 +1,6 @@
 ---
 include:
-  - pipeline/cache.yml
+  - .gitlab/cache.yml
 
 go-test:
   tags: [e2e]

@@ -1,9 +1,9 @@
 ---
 include:
-  - pipeline/build.yml
-  - pipeline/test.yml
-  - pipeline/package.yml
-  - pipeline/deploy.yml
+  - .gitlab/build.yml
+  - .gitlab/test.yml
+  - .gitlab/package.yml
+  - .gitlab/deploy.yml
 
 stages:
   - build
