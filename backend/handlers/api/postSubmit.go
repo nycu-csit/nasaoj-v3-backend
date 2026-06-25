@@ -217,26 +217,13 @@ func (self *Handlers) PostSubmit(
 				submission.Args[key] = val
 			}
 
+			// InsertSubmissionByProblem also enqueues the submission in the
+			// same transaction (submission + jobs + queue entry are atomic).
 			if err := self.submissions.InsertSubmissionByProblem(
 				ctx, &submission, problem); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to insert problem submission",
-					OriginError: err,
-				}
-			}
-
-			if err := self.subQueue.Enqueue(ctx, models.SubmissionQueueItem{
-				SubmissionId: submission.Id,
-				UserId:       submission.OwnerId,
-				ProblemId:    submission.ProblemId,
-				ProblemSHA1:  submission.ProblemSHA1,
-				Type:         models.RefTypeProblem,
-				Tag:          problem.Tag,
-			}); err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "failed to enqueue submission",
 					OriginError: err,
 				}
 			}
@@ -335,26 +322,13 @@ func (self *Handlers) PostSubmit(
 				submission.Args[key] = val
 			}
 
+			// InsertSubmissionByTool also enqueues the submission in the same
+			// transaction (submission + job + queue entry are atomic).
 			if err := self.submissions.InsertSubmissionByTool(
 				ctx, &submission, tool); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
 					Message:     "failed to insert tool submission",
-					OriginError: err,
-				}
-			}
-
-			if err := self.subQueue.Enqueue(ctx, models.SubmissionQueueItem{
-				SubmissionId: submission.Id,
-				UserId:       submission.OwnerId,
-				ProblemId:    submission.ToolId,
-				ProblemSHA1:  submission.ToolSHA1,
-				Type:         models.RefTypeTool,
-				Tag:          tool.Tag,
-			}); err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "failed to enqueue submission",
 					OriginError: err,
 				}
 			}

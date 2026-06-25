@@ -6,13 +6,10 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+// SubmissionQueueStorage manages the durable queue of unprocessed submissions.
+// Enqueueing happens inside SubmissionStorage.InsertSubmissionBy{Problem,Tool}
+// so the queue entry is atomic with the submission and its jobs.
 type SubmissionQueueStorage interface {
-	// Enqueue adds an unprocessed submission to the durable queue.
-	Enqueue(
-		ctx context.Context,
-		item models.SubmissionQueueItem,
-	) error
-
 	// ClaimNext atomically selects one queued submission whose tag is in
 	// `tags`, marks it assigned to `workerName`, and returns it. Returns
 	// sql.ErrNoRows when no submission is available. Uses

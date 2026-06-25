@@ -1771,6 +1771,22 @@ func (self *Postgres) InsertSubmissionByProblem(
 			}
 		}
 
+		// Enqueue the submission in the same transaction as the submission and
+		// its jobs, so a submission can never exist without its queue entry.
+		queueItem := models.SubmissionQueueItem{
+			SubmissionId: submission.Id,
+			UserId:       submission.OwnerId,
+			ProblemId:    submission.ProblemId,
+			ProblemSHA1:  submission.ProblemSHA1,
+			Type:         models.RefTypeProblem,
+			Tag:          problem.Tag,
+			Status:       models.SubQueued,
+			EnqueuedAt:   time.Now().Unix(),
+		}
+		if _, err = tx.NewInsert().Model(&queueItem).Exec(ctx); err != nil {
+			return err
+		}
+
 		_, err = tx.NewUpdate().
 			Model(submission).
 			WherePK().
@@ -1825,6 +1841,21 @@ func (self *Postgres) InsertSubmissionByTool(
 			Model(&job).
 			Exec(ctx)
 		if err != nil {
+			return err
+		}
+
+		// Enqueue in the same transaction as the submission and its job.
+		queueItem := models.SubmissionQueueItem{
+			SubmissionId: submission.Id,
+			UserId:       submission.OwnerId,
+			ProblemId:    submission.ToolId,
+			ProblemSHA1:  submission.ToolSHA1,
+			Type:         models.RefTypeTool,
+			Tag:          tool.Tag,
+			Status:       models.SubQueued,
+			EnqueuedAt:   time.Now().Unix(),
+		}
+		if _, err = tx.NewInsert().Model(&queueItem).Exec(ctx); err != nil {
 			return err
 		}
 
@@ -2165,19 +2196,6 @@ func (self *Postgres) GetRunningJobs(
 		return nil, err
 	}
 	return jobs, nil
-}
-
-func (self *Postgres) Enqueue(
-	ctx context.Context,
-	item models.SubmissionQueueItem,
-) error {
-	item.Status = models.SubQueued
-	item.EnqueuedAt = time.Now().Unix()
-	_, err := self.db.NewInsert().
-		Model(&item).
-		On("CONFLICT (submission_id) DO NOTHING").
-		Exec(ctx)
-	return err
 }
 
 func (self *Postgres) ClaimNext(
