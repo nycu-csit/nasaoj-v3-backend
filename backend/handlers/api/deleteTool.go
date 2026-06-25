@@ -13,11 +13,13 @@ import (
 
 // DeleteTool
 //
-//	@Param		toolSHA1	query		string	true	"Tool SHA1"
-//	@Success	200			{object}	string
-//	@Failure	400			{object}	string
-//	@Failure	401			{object}	string
-//	@Router		/api/admin/tool [delete]
+//	@Summary		Delete a tool
+//	@Description	Deletes a tool and its submissions by SHA1 prefix. Admin only.
+//	@Param			toolSHA1	query		string	true	"Tool SHA1"
+//	@Success		200			{object}	string
+//	@Failure		400			{object}	string
+//	@Failure		401			{object}	string
+//	@Router			/api/admin/tool [delete]
 func (self *Handlers) DeleteTool(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

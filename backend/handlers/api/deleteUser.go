@@ -11,12 +11,14 @@ import (
 
 // DeleteUser
 //
-//	@Param		id		query		string	true	"User Id"
-//	@Param		prune	query		bool	false	"If delete submissions"	attribute(optional)
-//	@Success	200		{object}	string
-//	@Failure	400		{object}	string
-//	@Failure	401		{object}	string
-//	@Router		/api/admin/user [delete]
+//	@Summary		Delete a user
+//	@Description	Deletes a user and all of their submissions. Admin only.
+//	@Param			id		query		string	true	"User Id"
+//	@Param			prune	query		bool	false	"If delete submissions"	attribute(optional)
+//	@Success		200		{object}	string
+//	@Failure		400		{object}	string
+//	@Failure		401		{object}	string
+//	@Router			/api/admin/user [delete]
 func (self *Handlers) DeleteUser(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

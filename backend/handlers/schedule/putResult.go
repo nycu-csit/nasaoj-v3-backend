@@ -16,6 +16,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// PutScheduleResult
+//
+//	@Summary		Report a finished job's result
+//	@Description	Persists a single job's terminal result (status, stdout,
+//	@Description	stderr) and skips downstream jobs on failure.
+//	@Accept			json
+//	@Produce		json
+//	@Param			X-Worker-Name	header		string		true	"worker name"
+//	@Param			request			body		models.Job	true	"job result"
+//	@Success		200				{object}	string		"success"
+//	@Failure		400				{object}	string		"bad request"
+//	@Failure		500				{object}	string		"internal error"
+//	@Router			/schedule/result [put]
 func (self *Handlers) PutScheduleResult(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {
@@ -101,26 +114,17 @@ func (self *Handlers) PutScheduleResult(
 		}
 	}
 
-	submission, err := self.submissions.GetSubmission(ctx, job.SubId)
-	if err != nil {
+	// Triggering the next stage is the worker's responsibility; the backend
+	// only persists this job's terminal result. Downstream jobs are still
+	// skipped in the DB above so scoring stays correct.
+	//
+	// Once every job of the submission is terminal, remove it from the queue.
+	if err := workflows.CompleteIfDone(ctx,
+		self.submissions, self.subQueue, job.SubId); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
-			Message:     "failed to get submission",
+			Message:     "failed to complete submission",
 			OriginError: err,
-		}
-	}
-
-	if job.Status == models.StatusSuccess &&
-		submission.Type == models.RefTypeProblem {
-		err = workflows.HandleJobDone(ctx, self.db, self.jobQue, self.s3,
-			self.problems, self.contents, self.jobs, self.tokens,
-			submission, job)
-		if err != nil {
-			return middlewares.HTTPError{
-				StatusCode:  http.StatusInternalServerError,
-				Message:     "handle job done failed",
-				OriginError: err,
-			}
 		}
 	}
 

@@ -33,25 +33,29 @@ const pageSize int = 20
 
 // GetAdminSubmissions
 //
-//	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		ownerId	query		int64				false	"Filter by OwnerId"							attribute(optional)
-//	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
-//	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
-//	@Success	200		{object}	SubmissionsOutput	"Submissions"
-//	@Failure	400		{object}	string				"Problem Id invalid"
-//	@Failure	401		{object}	string				"not admin or didn't login"
-//	@Router		/api/admin/submissions [get]
+//	@Summary		List submissions (admin)
+//	@Description	Returns a paginated list of submissions for any user. Admin only.
+//	@Param			pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
+//	@Param			ownerId	query		int64				false	"Filter by OwnerId"							attribute(optional)
+//	@Param			refId	query		int64				false	"Filter by RefId"							attribute(optional)
+//	@Param			type	query		int					false	"Filter by Type"							attribute(optional)
+//	@Success		200		{object}	SubmissionsOutput	"Submissions"
+//	@Failure		400		{object}	string				"Problem Id invalid"
+//	@Failure		401		{object}	string				"not admin or didn't login"
+//	@Router			/api/admin/submissions [get]
 func getAdminSubmissionsPlaceHolder() {}
 
 // GetSubmissions
 //
-//	@Param		pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
-//	@Param		refId	query		int64				false	"Filter by RefId"							attribute(optional)
-//	@Param		type	query		int					false	"Filter by Type"							attribute(optional)
-//	@Success	200		{object}	SubmissionsOutput	"Submissions"
-//	@Failure	400		{object}	string				"Problem Id invalid"
-//	@Failure	401		{object}	string				"didn't login"
-//	@Router		/api/submissions [get]
+//	@Summary		List submissions
+//	@Description	Returns a paginated list of the caller's submissions.
+//	@Param			pageNum	query		int64				false	"Page number, one page is 20 submissions"	default(0)
+//	@Param			refId	query		int64				false	"Filter by RefId"							attribute(optional)
+//	@Param			type	query		int					false	"Filter by Type"							attribute(optional)
+//	@Success		200		{object}	SubmissionsOutput	"Submissions"
+//	@Failure		400		{object}	string				"Problem Id invalid"
+//	@Failure		401		{object}	string				"didn't login"
+//	@Router			/api/submissions [get]
 func (self *Handlers) GetSubmissions(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {

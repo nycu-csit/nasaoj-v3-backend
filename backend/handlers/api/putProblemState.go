@@ -19,12 +19,14 @@ type PutProblemStateInput struct {
 
 // PutProblemState
 //
-//	@Param		request	body	PutProblemStateInput	true	"problem state"
-//	@Accept		json
-//	@Success	200	{object}	string	"success"
-//	@Failure	400	{object}	string
-//	@Failure	401	{object}	string
-//	@Router		/api/admin/problem/state [put]
+//	@Summary		Enable or disable a problem
+//	@Description	Toggles the enabled state of a problem by SHA1 prefix. Admin only.
+//	@Param			request	body	PutProblemStateInput	true	"problem state"
+//	@Accept			json
+//	@Success		200	{object}	string	"success"
+//	@Failure		400	{object}	string
+//	@Failure		401	{object}	string
+//	@Router			/api/admin/problem/state [put]
 func (self *Handlers) PutProblemState(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

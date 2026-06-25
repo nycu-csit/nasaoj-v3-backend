@@ -29,18 +29,22 @@ type ToolOutput struct {
 
 // GetAdminTools
 //
-//	@Produce	json
-//	@Success	200	{object}	[]ToolOutput
-//	@Failure	401
-//	@Router		/api/admin/tools [get]
+//	@Summary		List all tools (admin)
+//	@Description	Returns all tools, including disabled ones. Admin only.
+//	@Produce		json
+//	@Success		200	{object}	[]ToolOutput
+//	@Failure		401
+//	@Router			/api/admin/tools [get]
 func getAdminToolsPlaceholder() {}
 
 // GetTools
 //
-//	@Produce	json
-//	@Success	200	{object}	[]ToolOutput
-//	@Failure	401
-//	@Router		/api/tools [get]
+//	@Summary		List tools
+//	@Description	Returns the enabled tools visible to the caller.
+//	@Produce		json
+//	@Success		200	{object}	[]ToolOutput
+//	@Failure		401
+//	@Router			/api/tools [get]
 func (self *Handlers) GetTools(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {

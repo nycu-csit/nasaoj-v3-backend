@@ -1758,7 +1758,8 @@ func (self *Postgres) InsertSubmissionByProblem(
 					StageName: stageName,
 					TestName:  testcase.Name,
 
-					Status: models.StatusBlocked,
+					// Queued; becomes Blocked once a worker claims the submission.
+					Status: models.StatusPending,
 				}
 
 				_, err = tx.NewInsert().
@@ -1817,7 +1818,8 @@ func (self *Postgres) InsertSubmissionByTool(
 			StageName: "tool",
 			TestName:  tool.Testcase.Name,
 
-			Status: models.StatusBlocked,
+			// Queued; becomes Blocked once a worker claims the submission.
+			Status: models.StatusPending,
 		}
 		_, err = tx.NewInsert().
 			Model(&job).
@@ -2078,7 +2080,7 @@ func (self *Postgres) CancelSubmission(
 	ctx context.Context,
 	subId int64,
 	ownerId int64,
-) ([]string, error) {
+) error {
 	var sub models.Submission
 	err := self.db.NewSelect().
 		Model(&sub).
@@ -2086,25 +2088,11 @@ func (self *Postgres) CancelSubmission(
 		Where("owner_id = ?", ownerId).
 		Scan(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// Get running jobs before marking them as skipped
-	var runningJobs []models.Job
-	err = self.db.NewSelect().
-		Model(&runningJobs).
-		Where("sub_id = ?", subId).
-		Where("status = ?", models.StatusRunning).
-		Scan(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	runningJobIds := make([]string, len(runningJobs))
-	for i, job := range runningJobs {
-		runningJobIds[i] = job.Id()
-	}
-
+	// Skip not-yet-started jobs. Running jobs are killed by the owning worker
+	// when it aborts the submission (signalled via the heartbeat).
 	_, err = self.db.NewUpdate().
 		Model((*models.Job)(nil)).
 		Set("status = ?", models.StatusSkipped).
@@ -2116,7 +2104,7 @@ func (self *Postgres) CancelSubmission(
 		}).
 		Exec(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	pending := []string{
@@ -2127,11 +2115,11 @@ func (self *Postgres) CancelSubmission(
 
 	for _, key := range pending {
 		if err := self.cache.Delete(ctx, key); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return runningJobIds, nil
+	return nil
 }
 
 func (self *Postgres) TimeoutJobById(
@@ -2177,6 +2165,155 @@ func (self *Postgres) GetRunningJobs(
 		return nil, err
 	}
 	return jobs, nil
+}
+
+func (self *Postgres) Enqueue(
+	ctx context.Context,
+	item models.SubmissionQueueItem,
+) error {
+	item.Status = models.SubQueued
+	item.EnqueuedAt = time.Now().Unix()
+	_, err := self.db.NewInsert().
+		Model(&item).
+		On("CONFLICT (submission_id) DO NOTHING").
+		Exec(ctx)
+	return err
+}
+
+func (self *Postgres) ClaimNext(
+	ctx context.Context,
+	workerName string,
+	tags []string,
+) (models.SubmissionQueueItem, error) {
+	var item models.SubmissionQueueItem
+	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		err := tx.NewSelect().
+			Model(&item).
+			Where("status = ?", models.SubQueued).
+			Where("tag IN (?)", bun.In(tags)).
+			Order("enqueued_at ASC").
+			Limit(1).
+			For("UPDATE SKIP LOCKED").
+			Scan(ctx)
+		if err != nil {
+			return err
+		}
+
+		item.Status = models.SubAssigned
+		item.WorkerName = workerName
+		item.AssignedAt = time.Now().Unix()
+		_, err = tx.NewUpdate().
+			Model(&item).
+			WherePK().
+			Column("status", "worker_name", "assigned_at").
+			Exec(ctx)
+		return err
+	})
+	if err != nil {
+		return models.SubmissionQueueItem{}, err
+	}
+	return item, nil
+}
+
+func (self *Postgres) CompleteSubmission(
+	ctx context.Context,
+	submissionId int64,
+) error {
+	// A completed submission is removed from the queue entirely; the queue only
+	// tracks unprocessed (queued) and in-flight (assigned) submissions.
+	_, err := self.db.NewDelete().
+		Model((*models.SubmissionQueueItem)(nil)).
+		Where("submission_id = ?", submissionId).
+		Exec(ctx)
+	return err
+}
+
+func (self *Postgres) RefreshLease(
+	ctx context.Context,
+	workerName string,
+) error {
+	if workerName == "" {
+		return nil
+	}
+	_, err := self.db.NewUpdate().
+		Model((*models.SubmissionQueueItem)(nil)).
+		Set("assigned_at = ?", time.Now().Unix()).
+		Where("worker_name = ?", workerName).
+		Where("status = ?", models.SubAssigned).
+		Exec(ctx)
+	return err
+}
+
+func (self *Postgres) ReclaimExpired(
+	ctx context.Context,
+	leaseSeconds int64,
+) ([]models.SubmissionQueueItem, error) {
+	cutoff := time.Now().Unix() - leaseSeconds
+	var reclaimed []models.SubmissionQueueItem
+	_, err := self.db.NewUpdate().
+		Model((*models.SubmissionQueueItem)(nil)).
+		Set("status = ?", models.SubQueued).
+		Set("worker_name = NULL").
+		Set("assigned_at = NULL").
+		Where("status = ?", models.SubAssigned).
+		Where("assigned_at < ?", cutoff).
+		Returning("*").
+		Exec(ctx, &reclaimed)
+	if err != nil {
+		return nil, err
+	}
+	return reclaimed, nil
+}
+
+func (self *Postgres) SubmissionWorker(
+	ctx context.Context,
+	submissionId int64,
+) (string, error) {
+	var item models.SubmissionQueueItem
+	err := self.db.NewSelect().
+		Model(&item).
+		Column("worker_name", "status").
+		Where("submission_id = ?", submissionId).
+		Scan(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	if item.Status != models.SubAssigned {
+		return "", nil
+	}
+	return item.WorkerName, nil
+}
+
+func (self *Postgres) BlockSubmissionJobs(
+	ctx context.Context,
+	subId int64,
+) error {
+	_, err := self.db.NewUpdate().
+		Model((*models.Job)(nil)).
+		Set("status = ?", models.StatusBlocked).
+		Where("sub_id = ?", subId).
+		Where("status = ?", models.StatusPending).
+		Exec(ctx)
+	return err
+}
+
+func (self *Postgres) ResetSubmissionActiveJobs(
+	ctx context.Context,
+	subId int64,
+) error {
+	_, err := self.db.NewUpdate().
+		Model((*models.Job)(nil)).
+		Set("status = ?", models.StatusPending).
+		Where("sub_id = ?", subId).
+		Where("status IN (?)", bun.In([]models.JobStatus{
+			models.StatusRunning,
+			models.StatusBlocked,
+		})).
+		Exec(ctx)
+	return err
 }
 
 func (self *Postgres) GetUserResource(

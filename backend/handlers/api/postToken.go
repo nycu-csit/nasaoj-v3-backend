@@ -20,13 +20,15 @@ type PostTokenOutput struct {
 
 // PostToken
 //
-//	@Param		request	body	PostTokenInput	true	"token type"
-//	@Accept		json
-//	@Success	200	{object}	PostTokenOutput
-//	@Failure	400	{object}	string
-//	@Failure	401	{object}	string
+//	@Summary		Create an API token
+//	@Description	Issues a new worker or admin API token. Admin only.
+//	@Param			request	body	PostTokenInput	true	"token type"
+//	@Accept			json
+//	@Success		200	{object}	PostTokenOutput
+//	@Failure		400	{object}	string
+//	@Failure		401	{object}	string
 //
-//	@Router		/api/admin/token [post]
+//	@Router			/api/admin/token [post]
 func (self *Handlers) PostToken(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

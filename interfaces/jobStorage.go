@@ -32,4 +32,19 @@ type JobStorage interface {
 	GetRunningJobs(
 		ctx context.Context,
 	) ([]models.Job, error)
+
+	// BlockSubmissionJobs moves a submission's queued jobs (Pending) to Blocked
+	// once a worker has claimed the submission.
+	BlockSubmissionJobs(
+		ctx context.Context,
+		subId int64,
+	) error
+
+	// ResetSubmissionActiveJobs sets a submission's in-flight jobs
+	// (Running/Blocked) back to Pending so a re-claiming worker can re-run them
+	// after the submission is requeued.
+	ResetSubmissionActiveJobs(
+		ctx context.Context,
+		subId int64,
+	) error
 }

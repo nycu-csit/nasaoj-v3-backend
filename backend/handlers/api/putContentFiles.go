@@ -20,11 +20,13 @@ type PutContentFilesInput struct {
 
 // PutContentFiles
 //
-//	@Param		request	body	[]PutContentFilesInput	true	"content files"
-//	@Accept		json
-//	@Success	200	{object}	string	"success"
-//	@Failure	401	{object}	string
-//	@Router		/api/admin/content-files [put]
+//	@Summary		Upload content files
+//	@Description	Uploads SHA1-addressed content files used by problems and tools. Admin only.
+//	@Param			request	body	[]PutContentFilesInput	true	"content files"
+//	@Accept			json
+//	@Success		200	{object}	string	"success"
+//	@Failure		401	{object}	string
+//	@Router			/api/admin/content-files [put]
 func (self *Handlers) PutContentFiles(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

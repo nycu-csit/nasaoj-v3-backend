@@ -3,3 +3,4 @@ go.work.sum
 **/.env
 judge
 CLAUDE.md
+REQUIREMENTS.md

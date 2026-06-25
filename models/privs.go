@@ -26,7 +26,11 @@ type Token struct {
 
 func NewWorkerPrivs() Privileges {
 	return Privileges{
-		CanScheduleAPI: ScopeAll,
+		// Workers forward put-args / put-score requests on behalf of jobs, so
+		// they need user-args write in addition to the schedule API. The actual
+		// target is verified by the submission-queue ownership check.
+		CanScheduleAPI:   ScopeAll,
+		CanUserArgsWrite: ScopeAll,
 	}
 }
 

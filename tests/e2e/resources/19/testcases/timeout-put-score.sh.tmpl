@@ -14,11 +14,11 @@ sleep 5
 
 # This should never be reached due to timeout
 echo "Putting score 99..."
-curl "$ENDPOINT/api/score" -X PUT \
+curl "$ENDPOINT/score" -X PUT \
   -H "Authorization: Bearer $JOB_TOKEN" \
   -H "Content-Type: application/json" \
   --fail --no-progress-meter -v \
-  -d "{\"subId\": $SUB_ID, \"score\": 99}"
+  -d "{\"score\": 99}"
 
 echo "Score updated successfully"
 

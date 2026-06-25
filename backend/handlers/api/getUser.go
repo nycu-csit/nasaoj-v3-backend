@@ -10,10 +10,12 @@ import (
 
 // GetUser
 //
-//	@Param		id	query		int64	true	"User Id to be queried"
-//	@Success	200	{object}	map[string]string
-//	@Failure	401	{object}	string	"not admin or not login"
-//	@Router		/api/admin/user [get]
+//	@Summary		Get a user (admin)
+//	@Description	Returns a single user's profile by id. Admin only.
+//	@Param			id	query		int64	true	"User Id to be queried"
+//	@Success		200	{object}	map[string]string
+//	@Failure		401	{object}	string	"not admin or not login"
+//	@Router			/api/admin/user [get]
 func (self *Handlers) GetUser(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

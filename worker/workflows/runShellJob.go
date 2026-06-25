@@ -21,7 +21,6 @@ func RunShellJob(
 	pctx context.Context,
 	retCh chan error,
 	job *models.JobWithFile,
-	cancelRegistry *CancelRegistry,
 ) {
 	// Setup environment
 	refpath := path.Join(viper.GetString("running-dir"), job.RefFilename())
@@ -108,14 +107,10 @@ func RunShellJob(
 	duration := time.Duration(job.Timeout) * time.Second
 	gracePeriod := time.Duration(job.GracePeriod) * time.Second
 
+	// The context is a child of the submission context, so cancelling the
+	// submission cancels this job too.
 	ctx, cancel := context.WithTimeout(pctx, duration+gracePeriod)
 	defer cancel()
-
-	// Register cancel function so heartbeat can cancel this job
-	if cancelRegistry != nil {
-		cancelRegistry.Register(job.Id(), cancel)
-		defer cancelRegistry.Unregister(job.Id())
-	}
 
 	// Run script (don't use CommandContext since we handle signals manually)
 	cmd := exec.Command("bash", job.Id()+".bash")

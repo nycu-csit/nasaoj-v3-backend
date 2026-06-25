@@ -20,11 +20,13 @@ type PutUsersPlainInputUser struct {
 
 // PutUsersPlain
 //
-//	@Param		request	body	[]PutUsersPlainInputUser	true	"request body"
-//	@Accept		json
-//	@Success	200
-//	@Failure	401
-//	@Router		/api/admin/users/plain [put]
+//	@Summary		Import plain users
+//	@Description	Imports or updates username/password users. Admin only.
+//	@Param			request	body	[]PutUsersPlainInputUser	true	"request body"
+//	@Accept			json
+//	@Success		200
+//	@Failure		401
+//	@Router			/api/admin/users/plain [put]
 func (self *Handlers) PutUsersPlain(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

@@ -15,7 +15,7 @@ cat "$JOB_SCRIPT"
 echo
 
 put_args() {
-  curl "$ENDPOINT/api/user" -X PUT \
+  curl "$ENDPOINT/args" -X PUT \
     -H "Authorization: Bearer $JOB_TOKEN" \
     --fail --no-progress-meter --json @-
 }

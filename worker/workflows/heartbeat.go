@@ -3,6 +3,7 @@ package workflows
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,14 +15,20 @@ import (
 )
 
 type heartbeatRequest struct {
-	Tags []string `json:"tags"`
+	Tags        []string `json:"tags"`
+	Submissions []int64  `json:"submissions"`
 }
 
 type heartbeatResponse struct {
-	CancelJobs []string `json:"cancelJobs"`
+	CancelSubmissions []int64 `json:"cancelSubmissions"`
 }
 
-func Heartbeat(client *resty.Client, pctx context.Context, cancelRegistry *CancelRegistry) {
+func Heartbeat(
+	client *resty.Client,
+	pctx context.Context,
+	subCancel *CancelRegistry,
+	active *ActiveSubs,
+) {
 	tickCh := time.Tick(time.Duration(
 		viper.GetInt64("heartbeat-sec")) * time.Second)
 
@@ -35,7 +42,7 @@ func Heartbeat(client *resty.Client, pctx context.Context, cancelRegistry *Cance
 		var result heartbeatResponse
 		resp, err := client.R().
 			SetContext(ctx).
-			SetBody(heartbeatRequest{Tags: tags}).
+			SetBody(heartbeatRequest{Tags: tags, Submissions: active.List()}).
 			SetResult(&result).
 			Post("/schedule/heartbeat")
 		if err != nil {
@@ -51,12 +58,17 @@ func Heartbeat(client *resty.Client, pctx context.Context, cancelRegistry *Cance
 			return
 		}
 
-		// Cancel jobs that the backend requested to be cancelled
-		if len(result.CancelJobs) > 0 {
+		// Abort whole submissions the backend cancelled. Cancelling a
+		// submission's context cancels all of its in-flight jobs too.
+		if len(result.CancelSubmissions) > 0 {
 			tracing.Logger.Ctx(ctx).
-				Info("cancelling jobs",
-					zap.Strings("jobIds", result.CancelJobs))
-			cancelRegistry.CancelAll(result.CancelJobs)
+				Info("cancelling submissions",
+					zap.Int64s("subIds", result.CancelSubmissions))
+			subKeys := make([]string, len(result.CancelSubmissions))
+			for i, id := range result.CancelSubmissions {
+				subKeys[i] = strconv.FormatInt(id, 10)
+			}
+			subCancel.CancelAll(subKeys)
 		}
 	}
 

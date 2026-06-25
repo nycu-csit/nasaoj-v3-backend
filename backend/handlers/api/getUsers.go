@@ -9,9 +9,11 @@ import (
 
 // GetUsers
 //
-//	@Success	200	{object}	[]models.UserResource
-//	@Failure	401	{object}	string	"not admin or not login"
-//	@Router		/api/admin/users [get]
+//	@Summary		List users (admin)
+//	@Description	Returns all users. Admin only.
+//	@Success		200	{object}	[]models.UserResource
+//	@Failure		401	{object}	string	"not admin or not login"
+//	@Router			/api/admin/users [get]
 func (self *Handlers) GetUsers(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

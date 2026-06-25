@@ -212,6 +212,15 @@ definitions:
       toolId:
         type: integer
     type: object
+  api.PutUserInput:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      subId:
+        type: integer
+    type: object
   api.PutUsersCSSSOInputUser:
     properties:
       args:
@@ -476,6 +485,48 @@ definitions:
       sha1:
         type: string
     type: object
+  models.Job:
+    properties:
+      execAt:
+        type: integer
+      gracePeriod:
+        type: integer
+      image:
+        type: string
+      input:
+        type: string
+      jobFileUrl:
+        type: string
+      refFileUrl:
+        type: string
+      refSHA1:
+        type: string
+      resourceGroup:
+        type: string
+      retCode:
+        type: integer
+      script:
+        description: On Schedule
+        type: string
+      stageName:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.JobStatus'
+        description: Metadata
+      stderr:
+        type: string
+      stdout:
+        description: Return values
+        type: string
+      subId:
+        description: Job Id
+        type: integer
+      testName:
+        type: string
+      timeout:
+        type: integer
+    type: object
   models.JobStatus:
     enum:
     - 260
@@ -518,6 +569,45 @@ definitions:
       canUserArgsWrite:
         type: integer
       ownerId:
+        type: integer
+    type: object
+  models.Problem:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      cooldown:
+        type: integer
+      deadline:
+        type: integer
+      description:
+        type: string
+      importedAt:
+        type: integer
+      isEnabled:
+        type: boolean
+      name:
+        type: string
+      postScript:
+        $ref: '#/definitions/models.Content'
+      preScript:
+        $ref: '#/definitions/models.Content'
+      problemId:
+        type: integer
+      scoreInputType:
+        $ref: '#/definitions/models.ScoreInputTypeType'
+      scoreOutputType:
+        $ref: '#/definitions/models.ScoreOutputTypeType'
+      spec:
+        $ref: '#/definitions/models.ProblemSpec'
+      stages:
+        additionalProperties:
+          $ref: '#/definitions/models.Stage'
+        type: object
+      tag:
+        type: string
+      totalScore:
         type: integer
     type: object
   models.ProblemSpec:
@@ -572,6 +662,40 @@ definitions:
           $ref: '#/definitions/models.Testcase'
         type: array
     type: object
+  models.Submission:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      createdAt:
+        type: integer
+      id:
+        type: integer
+      inputArgs:
+        additionalProperties:
+          type: string
+        type: object
+      jobs:
+        items:
+          $ref: '#/definitions/models.Job'
+        type: array
+      ownerId:
+        type: integer
+      problemId:
+        type: integer
+      problemSHA1:
+        type: string
+      score:
+        description: self-managed score
+        type: integer
+      toolId:
+        type: integer
+      toolSHA1:
+        type: string
+      type:
+        $ref: '#/definitions/models.RefType'
+    type: object
   models.Testcase:
     properties:
       args:
@@ -595,6 +719,37 @@ definitions:
           type: string
         type: array
       timeout:
+        type: integer
+    type: object
+  models.Tool:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      cooldown:
+        type: integer
+      description:
+        type: string
+      importedAt:
+        type: integer
+      inputArgs:
+        items:
+          $ref: '#/definitions/models.ToolInputArg'
+        type: array
+      isEnabled:
+        type: boolean
+      name:
+        type: string
+      postScript:
+        $ref: '#/definitions/models.Content'
+      preScript:
+        $ref: '#/definitions/models.Content'
+      tag:
+        type: string
+      testcase:
+        $ref: '#/definitions/models.Testcase'
+      toolId:
         type: integer
     type: object
   models.ToolInputArg:
@@ -648,6 +803,46 @@ definitions:
       username:
         type: string
     type: object
+  schedule.GetSubmissionOutput:
+    properties:
+      problem:
+        $ref: '#/definitions/models.Problem'
+      submission:
+        $ref: '#/definitions/models.Submission'
+      tool:
+        $ref: '#/definitions/models.Tool'
+    type: object
+  schedule.HeartbeatRequest:
+    properties:
+      submissions:
+        items:
+          type: integer
+        type: array
+      tags:
+        items:
+          type: string
+        type: array
+    type: object
+  schedule.HeartbeatResponse:
+    properties:
+      cancelSubmissions:
+        items:
+          type: integer
+        type: array
+    type: object
+  schedule.MarshalJobRequest:
+    properties:
+      endpoint:
+        type: string
+      jobToken:
+        type: string
+      stageName:
+        type: string
+      subId:
+        type: integer
+      testName:
+        type: string
+    type: object
   types.ToolInputTypeType:
     enum:
     - 0
@@ -662,7 +857,6 @@ info:
   contact: {}
   license:
     name: 0BSD
-  termsOfService: http://swagger.io/terms/
   title: NASAOJ v3
   version: "3.0"
 paths:
@@ -670,6 +864,8 @@ paths:
     put:
       consumes:
       - application/json
+      description: Uploads SHA1-addressed content files used by problems and tools.
+        Admin only.
       parameters:
       - description: content files
         in: body
@@ -688,8 +884,11 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Upload content files
   /api/admin/dump-scores/{problemId}:
     get:
+      description: Returns every user's score for a problem, honoring the deadline.
+        Admin only.
       parameters:
       - description: problem id
         format: int64
@@ -706,8 +905,10 @@ paths:
             items:
               $ref: '#/definitions/models.UserScore'
             type: array
+      summary: Dump scores for a problem
   /api/admin/problem:
     delete:
+      description: Deletes a problem and its submissions by SHA1 prefix. Admin only.
       parameters:
       - description: Problem SHA1
         in: query
@@ -727,10 +928,12 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Delete a problem
   /api/admin/problem/state:
     put:
       consumes:
       - application/json
+      description: Toggles the enabled state of a problem by SHA1 prefix. Admin only.
       parameters:
       - description: problem state
         in: body
@@ -751,8 +954,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Enable or disable a problem
   /api/admin/problems:
     get:
+      description: Returns all problems, including disabled ones. Admin only.
       produces:
       - application/json
       responses:
@@ -766,9 +971,11 @@ paths:
           description: Problem loading error
           schema:
             type: string
+      summary: List all problems (admin)
     put:
       consumes:
       - application/json
+      description: Imports or updates problem definitions. Admin only.
       parameters:
       - description: problems
         in: body
@@ -789,8 +996,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Import problems
   /api/admin/results:
     get:
+      description: Returns the jobs and statuses of any submission. Admin only.
       parameters:
       - description: Submission Id
         in: query
@@ -808,8 +1017,10 @@ paths:
           description: Unauthorized
         "404":
           description: Not Found
+      summary: Get submission results (admin)
   /api/admin/scores:
     get:
+      description: Returns all users' scores for a problem. Admin only.
       parameters:
       - description: Problem ID
         in: query
@@ -827,8 +1038,10 @@ paths:
           description: Invalid problem id
           schema:
             type: string
+      summary: Get scores (admin)
   /api/admin/stderr:
     get:
+      description: Returns the stderr of any submission's testcase result. Admin only.
       parameters:
       - description: Submission id
         in: query
@@ -854,8 +1067,10 @@ paths:
           description: Bad Request
         "404":
           description: Not Found
+      summary: Get a job's stderr (admin)
   /api/admin/stdout:
     get:
+      description: Returns the stdout of any submission's testcase result. Admin only.
       parameters:
       - description: Submission id
         in: query
@@ -881,8 +1096,10 @@ paths:
           description: Bad Request
         "404":
           description: Not Found
+      summary: Get a job's stdout (admin)
   /api/admin/submission:
     delete:
+      description: Deletes a single submission and its jobs by id. Admin only.
       parameters:
       - description: Submission Id
         format: int64
@@ -903,8 +1120,11 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Delete a submission
   /api/admin/submission/cancel:
     put:
+      description: Cancels any in-flight submission and signals workers to stop it.
+        Admin only.
       parameters:
       - description: query body
         in: body
@@ -925,8 +1145,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Cancel a submission (admin)
   /api/admin/submissions:
     get:
+      description: Returns a paginated list of submissions for any user. Admin only.
       parameters:
       - default: 0
         description: Page number, one page is 20 submissions
@@ -961,10 +1183,13 @@ paths:
           description: not admin or didn't login
           schema:
             type: string
+      summary: List submissions (admin)
   /api/admin/submit:
     post:
       consumes:
       - application/json
+      description: Creates a submission for a given owner, bypassing cooldown. Admin
+        only.
       parameters:
       - description: query params
         in: body
@@ -981,10 +1206,12 @@ paths:
           description: Bad Request
         "401":
           description: Unauthorized
+      summary: Submit on behalf of a user (admin)
   /api/admin/token:
     post:
       consumes:
       - application/json
+      description: Issues a new worker or admin API token. Admin only.
       parameters:
       - description: token type
         in: body
@@ -1005,10 +1232,12 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Create an API token
   /api/admin/token/state:
     put:
       consumes:
       - application/json
+      description: Toggles whether an API token is active. Admin only.
       parameters:
       - description: query params
         in: body
@@ -1029,8 +1258,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Enable or disable a token
   /api/admin/tokens:
     get:
+      description: Returns all issued API tokens and their privileges. Admin only.
       produces:
       - application/json
       responses:
@@ -1044,8 +1275,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: List API tokens
   /api/admin/tool:
     delete:
+      description: Deletes a tool and its submissions by SHA1 prefix. Admin only.
       parameters:
       - description: Tool SHA1
         in: query
@@ -1065,10 +1298,12 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Delete a tool
   /api/admin/tool/state:
     put:
       consumes:
       - application/json
+      description: Toggles the enabled state of a tool by SHA1 prefix. Admin only.
       parameters:
       - description: tool state
         in: body
@@ -1089,8 +1324,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Enable or disable a tool
   /api/admin/tools:
     get:
+      description: Returns all tools, including disabled ones. Admin only.
       produces:
       - application/json
       responses:
@@ -1102,9 +1339,11 @@ paths:
             type: array
         "401":
           description: Unauthorized
+      summary: List all tools (admin)
     put:
       consumes:
       - application/json
+      description: Imports or updates tool definitions. Admin only.
       parameters:
       - description: tools
         in: body
@@ -1125,8 +1364,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Import tools
   /api/admin/user:
     delete:
+      description: Deletes a user and all of their submissions. Admin only.
       parameters:
       - description: User Id
         in: query
@@ -1150,7 +1391,9 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Delete a user
     get:
+      description: Returns a single user's profile by id. Admin only.
       parameters:
       - description: User Id to be queried
         format: int64
@@ -1169,8 +1412,10 @@ paths:
           description: not admin or not login
           schema:
             type: string
+      summary: Get a user (admin)
   /api/admin/users:
     get:
+      description: Returns all users. Admin only.
       responses:
         "200":
           description: OK
@@ -1182,10 +1427,12 @@ paths:
           description: not admin or not login
           schema:
             type: string
+      summary: List users (admin)
   /api/admin/users/cssso:
     put:
       consumes:
       - application/json
+      description: Imports or updates users authenticated via CS SSO. Admin only.
       parameters:
       - description: request body
         in: body
@@ -1204,10 +1451,12 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Import CS SSO users
   /api/admin/users/plain:
     put:
       consumes:
       - application/json
+      description: Imports or updates username/password users. Admin only.
       parameters:
       - description: request body
         in: body
@@ -1222,8 +1471,11 @@ paths:
           description: OK
         "401":
           description: Unauthorized
+      summary: Import plain users
   /api/admin/worker/state:
     get:
+      description: Returns the registered workers, their tags, and running jobs. Admin
+        only.
       produces:
       - application/json
       responses:
@@ -1237,6 +1489,7 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: List worker states
   /api/healthz:
     get:
       responses:
@@ -1244,6 +1497,7 @@ paths:
           description: OK
   /api/me:
     get:
+      description: Returns the authenticated user's profile and resource args.
       responses:
         "200":
           description: OK
@@ -1253,8 +1507,10 @@ paths:
           description: missing credential
           schema:
             type: string
+      summary: Get the current user
   /api/problem:
     get:
+      description: Returns a single enabled problem by SHA1.
       parameters:
       - description: problem sha1
         in: query
@@ -1276,8 +1532,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Get a problem
   /api/problems:
     get:
+      description: Returns the enabled problems visible to the caller.
       produces:
       - application/json
       responses:
@@ -1291,8 +1549,10 @@ paths:
           description: Problem loading error
           schema:
             type: string
+      summary: List problems
   /api/results:
     get:
+      description: Returns the jobs and statuses of one of the caller's submissions.
       parameters:
       - description: Ref Id
         in: query
@@ -1320,6 +1580,7 @@ paths:
           description: Unauthorized
         "404":
           description: Not Found
+      summary: Get submission results
   /api/score:
     put:
       consumes:
@@ -1355,6 +1616,7 @@ paths:
       summary: Update submission score for self-managed scoring
   /api/scores:
     get:
+      description: Returns the caller's score for a problem.
       parameters:
       - description: Problem ID
         in: query
@@ -1372,8 +1634,10 @@ paths:
           description: Invalid problem id
           schema:
             type: string
+      summary: Get scores
   /api/stdout:
     get:
+      description: Returns the stdout of one of the caller's own testcase results.
       parameters:
       - description: Submission id
         in: query
@@ -1399,8 +1663,10 @@ paths:
           description: Bad Request
         "404":
           description: Not Found
+      summary: Get a job's stdout
   /api/submission/cancel:
     put:
+      description: Cancels one of the caller's in-flight submissions.
       parameters:
       - description: query body
         in: body
@@ -1425,8 +1691,10 @@ paths:
           description: Forbidden
           schema:
             type: string
+      summary: Cancel a submission
   /api/submissions:
     get:
+      description: Returns a paginated list of the caller's submissions.
       parameters:
       - default: 0
         description: Page number, one page is 20 submissions
@@ -1456,10 +1724,12 @@ paths:
           description: didn't login
           schema:
             type: string
+      summary: List submissions
   /api/submit:
     post:
       consumes:
       - application/json
+      description: Creates a submission for the caller and enqueues it for scheduling.
       parameters:
       - description: query params
         in: body
@@ -1482,8 +1752,10 @@ paths:
           description: Too Many Requests
           schema:
             $ref: '#/definitions/api.SubmitTimeoutOutput'
+      summary: Submit a problem or tool
   /api/tool:
     get:
+      description: Returns a single enabled tool by SHA1.
       parameters:
       - description: tool sha1
         in: query
@@ -1505,8 +1777,10 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Get a tool
   /api/tools:
     get:
+      description: Returns the enabled tools visible to the caller.
       produces:
       - application/json
       responses:
@@ -1518,19 +1792,20 @@ paths:
             type: array
         "401":
           description: Unauthorized
+      summary: List tools
   /api/user:
     put:
       consumes:
       - application/json
+      description: Merges args into a user's resource; used by jobs via the worker
+        to persist outputs.
       parameters:
       - description: User resource
         in: body
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/api.PutUserInput'
       responses:
         "200":
           description: success
@@ -1540,6 +1815,7 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      summary: Put user args
   /auth/callback:
     get:
       description: Oauth callback endpoint
@@ -1568,6 +1844,7 @@ paths:
             type: ""
   /auth/login/plain:
     post:
+      description: Authenticates a plain user and redirects with session cookies.
       parameters:
       - description: query params
         in: body
@@ -1580,6 +1857,7 @@ paths:
           description: Found
           schema:
             type: ""
+      summary: Log in with username and password
   /auth/logout:
     put:
       description: Logout endpoint
@@ -1588,4 +1866,146 @@ paths:
           description: 302 Found
           schema:
             type: ""
+  /schedule/heartbeat:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Refreshes the worker's status and submission-queue lease, and
+        returns jobs / submissions the backend wants cancelled.
+      parameters:
+      - description: worker name
+        in: header
+        name: X-Worker-Name
+        required: true
+        type: string
+      - description: tags and active submissions
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/schedule.HeartbeatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: jobs/submissions to cancel
+          schema:
+            $ref: '#/definitions/schedule.HeartbeatResponse'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Worker heartbeat
+  /schedule/job/marshal:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Builds the ref/job tars for one job on demand from the
+        worker-supplied identity, marks the job Running, and returns
+        the job with presigned download URLs.
+      parameters:
+      - description: worker name
+        in: header
+        name: X-Worker-Name
+        required: true
+        type: string
+      - description: job identity, jobToken, endpoint
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/schedule.MarshalJobRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: marshalled job
+          schema:
+            $ref: '#/definitions/models.Job'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "409":
+          description: job already skipped or cancelled
+          schema:
+            type: string
+        "503":
+          description: job update failed
+          schema:
+            type: string
+      summary: Marshal a single job
+  /schedule/result:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Persists a single job's terminal result (status, stdout,
+        stderr) and skips downstream jobs on failure.
+      parameters:
+      - description: worker name
+        in: header
+        name: X-Worker-Name
+        required: true
+        type: string
+      - description: job result
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Job'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Report a finished job's result
+  /schedule/submission:
+    get:
+      description: |-
+        Claims one queued submission for the requesting worker,
+        marks its jobs Blocked, and returns the submission with its
+        (dehydrated) problem/tool definition.
+      parameters:
+      - description: comma-separated worker tags
+        in: query
+        name: tags
+        type: string
+      - description: worker name
+        in: header
+        name: X-Worker-Name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: claimed submission
+          schema:
+            $ref: '#/definitions/schedule.GetSubmissionOutput'
+        "204":
+          description: no submission in queue
+          schema:
+            type: string
+        "503":
+          description: claim failed
+          schema:
+            type: string
+      summary: Claim a queued submission
 swagger: "2.0"

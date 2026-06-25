@@ -10,10 +10,12 @@ import (
 
 // GetDumpScores
 //
-//	@Param		problemId	path	int64	true	"problem id"
-//	@Produce	json
-//	@Success	200	{object}	[]models.UserScore	"scores"
-//	@Router		/api/admin/dump-scores/{problemId} [get]
+//	@Summary		Dump scores for a problem
+//	@Description	Returns every user's score for a problem, honoring the deadline. Admin only.
+//	@Param			problemId	path	int64	true	"problem id"
+//	@Produce		json
+//	@Success		200	{object}	[]models.UserScore	"scores"
+//	@Router			/api/admin/dump-scores/{problemId} [get]
 func (self *Handlers) GetDumpScores(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

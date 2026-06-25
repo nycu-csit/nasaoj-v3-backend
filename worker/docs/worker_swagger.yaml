@@ -1,0 +1,85 @@
+basePath: /
+definitions:
+  api.ScoreInput:
+    properties:
+      score:
+        type: integer
+    type: object
+info:
+  contact: {}
+  license:
+    name: 0BSD
+  title: NASAOJ v3 Worker
+  version: "3.0"
+paths:
+  /args:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Forwards a job's put-args to the backend, tagging it with the
+        subId from the verified jobToken.
+      parameters:
+      - description: args to merge
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+        "401":
+          description: invalid job token
+          schema:
+            type: string
+        "403":
+          description: submission not owned by this worker
+          schema:
+            type: string
+        "502":
+          description: backend request failed
+          schema:
+            type: string
+      summary: Put user args on behalf of a job
+  /score:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Forwards a job's put-score to the backend. The submission is
+        taken from the verified jobToken, not the request body.
+      parameters:
+      - description: score
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.ScoreInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+        "401":
+          description: invalid job token
+          schema:
+            type: string
+        "403":
+          description: submission not owned by this worker
+          schema:
+            type: string
+        "502":
+          description: backend request failed
+          schema:
+            type: string
+      summary: Put a submission score on behalf of a job
+swagger: "2.0"

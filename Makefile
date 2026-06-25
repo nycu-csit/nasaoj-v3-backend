@@ -59,7 +59,10 @@ bench:
 
 swagger:
 	$(SWAG) fmt
-	$(SWAG) init -o backend/docs -g cmds/serve/backend.go -pdl 1
+	$(SWAG) init --instanceName backend -o backend/docs -pdl 1 -g backend.go \
+		-d cmds/serve,backend/handlers/api,backend/handlers/auth,backend/handlers/schedule
+	$(SWAG) init --instanceName worker -o worker/docs -g worker.go -pdl 1 \
+		-d cmds/serve,worker/handlers/api
 
 $(TARGET): $(SOURCE)
 	$(GO_ENV) go build -o $@

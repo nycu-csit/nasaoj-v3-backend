@@ -9,18 +9,19 @@ import (
 type JobStatus = int64
 
 /*
-	(Generate jobs)
-		-> (With dependencies) StatusBlocked
-			-> (Trigger by prev stage completion) StatusPending
-			-> (Trigger by failed or timeout) StatusSkipped
-		-> (With no dependencies) StatusPending
-			-> (GET /schedule/job) StatusRunning
-				-> (Worker Timeout) StatusMissing
+	Submission-level scheduling: the backend queues a whole submission and a
+	worker claims it; the worker resolves stage dependencies and runs the jobs.
+
+	(Generate jobs on submit) StatusPending          // submission Queued
+		-> (Worker claims submission) StatusBlocked  // submission Assigned
+			-> (Worker marshals job: POST /schedule/job/marshal) StatusRunning
 				-> (PUT /schedule/result)
 					-> (If RetCode == 0) StatusSuccess
-						-> (Trigger next stage to run)
 					-> (If RetCode != 0) StatusFailed
 					-> (If timeout) StatusTimeout
+					-> (If cancelled) StatusCancelled
+				-> (Upstream stage failed) StatusSkipped
+			-> (Worker died: reclaim resets to StatusPending; orphan -> StatusMissing)
 */
 
 const (

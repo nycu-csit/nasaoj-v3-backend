@@ -16,9 +16,11 @@ type MeOutput struct {
 
 // GetMe
 //
-//	@Success	200	{object}	MeOutput
-//	@Failure	401	{object}	string	"missing credential"
-//	@Router		/api/me [get]
+//	@Summary		Get the current user
+//	@Description	Returns the authenticated user's profile and resource args.
+//	@Success		200	{object}	MeOutput
+//	@Failure		401	{object}	string	"missing credential"
+//	@Router			/api/me [get]
 func (self *Handlers) GetMe(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

@@ -39,24 +39,28 @@ type ResultOutput struct {
 
 // GetAdminResults
 //
-//	@Param		subId	query		int				true	"Submission Id"
-//	@Success	200		{object}	ResultOutput	"Submission"
-//	@Failure	400
-//	@Failure	401
-//	@Failure	404
-//	@Router		/api/admin/results [get]
+//	@Summary		Get submission results (admin)
+//	@Description	Returns the jobs and statuses of any submission. Admin only.
+//	@Param			subId	query		int				true	"Submission Id"
+//	@Success		200		{object}	ResultOutput	"Submission"
+//	@Failure		400
+//	@Failure		401
+//	@Failure		404
+//	@Router			/api/admin/results [get]
 func getAdminResultsPlaceholder() {}
 
 // GetResults
 //
-//	@Param		refId	query		int				false	"Ref Id"			attribute(optional)
-//	@Param		type	query		models.RefType	false	"Submission Type"	attribute(optional)
-//	@Param		subId	query		int				false	"Submission Id"		attribute(optional)
-//	@Success	200		{object}	ResultOutput	"Last submission to the ref / tool"
-//	@Failure	400
-//	@Failure	401
-//	@Failure	404
-//	@Router		/api/results [get]
+//	@Summary		Get submission results
+//	@Description	Returns the jobs and statuses of one of the caller's submissions.
+//	@Param			refId	query		int				false	"Ref Id"			attribute(optional)
+//	@Param			type	query		models.RefType	false	"Submission Type"	attribute(optional)
+//	@Param			subId	query		int				false	"Submission Id"		attribute(optional)
+//	@Success		200		{object}	ResultOutput	"Last submission to the ref / tool"
+//	@Failure		400
+//	@Failure		401
+//	@Failure		404
+//	@Router			/api/results [get]
 func (self *Handlers) GetResults(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
