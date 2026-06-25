@@ -12,7 +12,6 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
@@ -52,26 +51,30 @@ type SubmitTimeoutOutput struct {
 
 // PostAdminSubmit
 //
-//	@Param		request	body	AdminSubmitInput	true	"query params"
-//	@Accept		json
-//	@Success	200	{object}	SubmitOutput
-//	@Failure	400
-//	@Failure	401
+//	@Summary		Submit on behalf of a user (admin)
+//	@Description	Creates a submission for a given owner, bypassing cooldown. Admin only.
+//	@Param			request	body	AdminSubmitInput	true	"query params"
+//	@Accept			json
+//	@Success		200	{object}	SubmitOutput
+//	@Failure		400
+//	@Failure		401
 //
-//	@Router		/api/admin/submit [post]
+//	@Router			/api/admin/submit [post]
 func putAdminSubmitPlaceholder() {}
 
 // PostSubmit
 //
-//	@Param		request	body	SubmitInput	true	"query params"
-//	@Accept		json
-//	@Success	200	{object}	SubmitOutput
-//	@Failure	400
-//	@Failure	401
-//	@Failure	412
-//	@Failure	429	{object}	SubmitTimeoutOutput
+//	@Summary		Submit a problem or tool
+//	@Description	Creates a submission for the caller and enqueues it for scheduling.
+//	@Param			request	body	SubmitInput	true	"query params"
+//	@Accept			json
+//	@Success		200	{object}	SubmitOutput
+//	@Failure		400
+//	@Failure		401
+//	@Failure		412
+//	@Failure		429	{object}	SubmitTimeoutOutput
 //
-//	@Router		/api/submit [post]
+//	@Router			/api/submit [post]
 func (self *Handlers) PostSubmit(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -223,12 +226,17 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 
-			if err := workflows.RunProblem(ctx, self.jobQue, self.db, self.s3,
-				self.problems, self.contents, self.jobs,
-				self.tokens, submission); err != nil {
+			if err := self.subQueue.Enqueue(ctx, models.SubmissionQueueItem{
+				SubmissionId: submission.Id,
+				UserId:       submission.OwnerId,
+				ProblemId:    submission.ProblemId,
+				ProblemSHA1:  submission.ProblemSHA1,
+				Type:         models.RefTypeProblem,
+				Tag:          problem.Tag,
+			}); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
-					Message:     "failed to run problem",
+					Message:     "failed to enqueue submission",
 					OriginError: err,
 				}
 			}
@@ -336,12 +344,17 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 
-			if err := workflows.RunTool(ctx, self.jobQue, self.db, self.s3,
-				self.tools, self.contents, self.jobs, self.tokens,
-				submission); err != nil {
+			if err := self.subQueue.Enqueue(ctx, models.SubmissionQueueItem{
+				SubmissionId: submission.Id,
+				UserId:       submission.OwnerId,
+				ProblemId:    submission.ToolId,
+				ProblemSHA1:  submission.ToolSHA1,
+				Type:         models.RefTypeTool,
+				Tag:          tool.Tag,
+			}); err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
-					Message:     "failed to run tool",
+					Message:     "failed to enqueue submission",
 					OriginError: err,
 				}
 			}

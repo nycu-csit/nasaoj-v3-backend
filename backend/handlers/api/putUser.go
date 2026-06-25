@@ -12,13 +12,23 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 )
 
+// PutUserInput is sent by a worker forwarding a job's put-args. `SubId`
+// identifies the submission (for the ownership check and to resolve the target
+// user); `Args` are the user args to merge.
+type PutUserInput struct {
+	SubId int64             `json:"subId"`
+	Args  map[string]string `json:"args"`
+}
+
 // PutUser
 //
-//	@Param		request	body	map[string]string	true	"User resource"
-//	@Accept		json
-//	@Success	200	{object}	string	"success"
-//	@Failure	401	{object}	string
-//	@Router		/api/user [put]
+//	@Summary		Put user args
+//	@Description	Merges args into a user's resource; used by jobs via the worker to persist outputs.
+//	@Param			request	body	PutUserInput	true	"User resource"
+//	@Accept			json
+//	@Success		200	{object}	string	"success"
+//	@Failure		401	{object}	string
+//	@Router			/api/user [put]
 func (self *Handlers) PutUser(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {
@@ -41,8 +51,8 @@ func (self *Handlers) PutUser(
 		}
 	}
 
-	var inputArgs map[string]string
-	if err := json.Unmarshal(b, &inputArgs); err != nil {
+	var input PutUserInput
+	if err := json.Unmarshal(b, &input); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusBadRequest,
 			Message:     "json unmarshal failed",
@@ -50,10 +60,40 @@ func (self *Handlers) PutUser(
 		}
 	}
 
+	// Resolve the target user. A worker forwards on behalf of a job: verify the
+	// submission is owned by that worker, then derive the owner from it. Direct
+	// callers (legacy) update themselves.
+	ownerId := privs.OwnerId
+	if workerName := req.Header.Get("X-Worker-Name"); workerName != "" {
+		owner, err := self.subQueue.SubmissionWorker(ctx, input.SubId)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to check submission owner",
+				OriginError: err,
+			}
+		}
+		if owner != workerName {
+			return middlewares.HTTPError{
+				StatusCode: http.StatusForbidden,
+				Message:    "submission not owned by this worker",
+			}
+		}
+		submission, err := self.submissions.GetSubmission(ctx, input.SubId)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to get submission",
+				OriginError: err,
+			}
+		}
+		ownerId = submission.OwnerId
+	}
+
 	if err := self.db.UpdateUserArgsById(ctx,
 		models.UserResource{
-			Id:   privs.OwnerId,
-			Args: inputArgs,
+			Id:   ownerId,
+			Args: input.Args,
 		}); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,

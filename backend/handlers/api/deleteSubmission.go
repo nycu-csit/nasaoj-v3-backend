@@ -11,11 +11,13 @@ import (
 
 // DeleteSubmission
 //
-//	@Param		subId	query		int64	true	"Submission Id"
-//	@Success	200		{object}	string
-//	@Failure	400		{object}	string
-//	@Failure	401		{object}	string
-//	@Router		/api/admin/submission [delete]
+//	@Summary		Delete a submission
+//	@Description	Deletes a single submission and its jobs by id. Admin only.
+//	@Param			subId	query		int64	true	"Submission Id"
+//	@Success		200		{object}	string
+//	@Failure		400		{object}	string
+//	@Failure		401		{object}	string
+//	@Router			/api/admin/submission [delete]
 func (self *Handlers) DeleteSubmission(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

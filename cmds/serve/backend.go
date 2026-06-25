@@ -35,9 +35,8 @@ import (
 	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/docs"
 )
 
-//	@title			NASAOJ v3
-//	@version		3.0
-//	@termsOfService	http://swagger.io/terms/
+//	@title		NASAOJ v3
+//	@version	3.0
 
 // @license.name	0BSD
 // @BasePath		/
@@ -132,7 +131,7 @@ var backendCmd = &cobra.Command{
 		if viper.GetBool("swagger") {
 			backend.GET("/swagger/*any",
 				bunrouter.HTTPHandlerFunc(
-					httpSwagger.Handler()))
+					httpSwagger.Handler(httpSwagger.InstanceName("backend"))))
 		}
 
 		authHandlers := auth.NewHandlers(db)
@@ -266,8 +265,10 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanScheduleAPI: models.ScopeAll,
 			}))
-		scheduleGroup.GET("/job",
-			scheduleHandlers.GetScheduleJob)
+		scheduleGroup.GET("/submission",
+			scheduleHandlers.GetScheduleSubmission)
+		scheduleGroup.POST("/job/marshal",
+			scheduleHandlers.PostScheduleMarshalJob)
 		scheduleGroup.PUT("/result",
 			scheduleHandlers.PutScheduleResult)
 		scheduleGroup.POST("/heartbeat",
@@ -275,7 +276,8 @@ var backendCmd = &cobra.Command{
 
 		// Start cron jobs
 		go crons.CheckWorkerStatus(ctx, kv, db)
-		go crons.CleanOrphanedJobs(ctx, kv, db)
+		// Submission-level lease reclaim supersedes per-job orphan cleanup.
+		go crons.ReclaimSubmissions(ctx, db, db)
 
 		log.Println(http.ListenAndServe(
 			":"+viper.GetString("port"),

@@ -32,11 +32,13 @@ type PutToolsOutputTool struct {
 
 // PutTools
 //
-//	@Param		request	body	[]PutToolsInputTool	true	"tools"
-//	@Accept		json
-//	@Success	200	{object}	[]PutToolsOutputTool	"tools"
-//	@Failure	401	{object}	string
-//	@Router		/api/admin/tools [put]
+//	@Summary		Import tools
+//	@Description	Imports or updates tool definitions. Admin only.
+//	@Param			request	body	[]PutToolsInputTool	true	"tools"
+//	@Accept			json
+//	@Success		200	{object}	[]PutToolsOutputTool	"tools"
+//	@Failure		401	{object}	string
+//	@Router			/api/admin/tools [put]
 func (self *Handlers) PutTools(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

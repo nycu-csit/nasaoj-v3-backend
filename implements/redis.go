@@ -469,55 +469,55 @@ func (self *Redis) GetWorkerJobs(
 	return res, nil
 }
 
-const cancelledJobsKey = "cancelled-jobs"
+const cancelledSubsKey = "cancelled-subs"
 
-func (self *Redis) AddCancelledJobs(
+func (self *Redis) AddCancelledSubmissions(
 	ctx context.Context,
-	jobIds []string,
+	subIds []int64,
 ) error {
-	if len(jobIds) == 0 {
+	if len(subIds) == 0 {
 		return nil
 	}
-	members := make([]interface{}, len(jobIds))
-	for i, id := range jobIds {
+	members := make([]interface{}, len(subIds))
+	for i, id := range subIds {
 		members[i] = id
 	}
-	_, err := self.rdb.SAdd(ctx, cancelledJobsKey, members...).Result()
+	_, err := self.rdb.SAdd(ctx, cancelledSubsKey, members...).Result()
 	return err
 }
 
-func (self *Redis) GetCancelledJobs(
+func (self *Redis) GetCancelledSubmissions(
 	ctx context.Context,
-	jobIds []string,
-) ([]string, error) {
-	if len(jobIds) == 0 {
+	subIds []int64,
+) ([]int64, error) {
+	if len(subIds) == 0 {
 		return nil, nil
 	}
-	var cancelled []string
-	for _, jobId := range jobIds {
-		exists, err := self.rdb.SIsMember(ctx, cancelledJobsKey, jobId).Result()
+	var cancelled []int64
+	for _, subId := range subIds {
+		exists, err := self.rdb.SIsMember(ctx, cancelledSubsKey, subId).Result()
 		if err != nil {
 			return nil, err
 		}
 		if exists {
-			cancelled = append(cancelled, jobId)
+			cancelled = append(cancelled, subId)
 		}
 	}
 	return cancelled, nil
 }
 
-func (self *Redis) RemoveCancelledJobs(
+func (self *Redis) RemoveCancelledSubmissions(
 	ctx context.Context,
-	jobIds []string,
+	subIds []int64,
 ) error {
-	if len(jobIds) == 0 {
+	if len(subIds) == 0 {
 		return nil
 	}
-	members := make([]interface{}, len(jobIds))
-	for i, id := range jobIds {
+	members := make([]interface{}, len(subIds))
+	for i, id := range subIds {
 		members[i] = id
 	}
-	_, err := self.rdb.SRem(ctx, cancelledJobsKey, members...).Result()
+	_, err := self.rdb.SRem(ctx, cancelledSubsKey, members...).Result()
 	return err
 }
 

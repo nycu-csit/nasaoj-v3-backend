@@ -18,11 +18,13 @@ type PutUsersCSSSOInputUser struct {
 
 // PutUsersCSSSO
 //
-//	@Param		request	body	[]PutUsersCSSSOInputUser	true	"request body"
-//	@Accept		json
-//	@Success	200	{object}	string	"success"
-//	@Failure	401	{object}	string
-//	@Router		/api/admin/users/cssso [put]
+//	@Summary		Import CS SSO users
+//	@Description	Imports or updates users authenticated via CS SSO. Admin only.
+//	@Param			request	body	[]PutUsersCSSSOInputUser	true	"request body"
+//	@Accept			json
+//	@Success		200	{object}	string	"success"
+//	@Failure		401	{object}	string
+//	@Router			/api/admin/users/cssso [put]
 func (self *Handlers) PutUsersCSSSO(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

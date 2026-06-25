@@ -20,7 +20,6 @@ func RunContainerJob(
 	pctx context.Context,
 	retCh chan error,
 	job *models.JobWithFile,
-	cancelRegistry *CancelRegistry,
 	criClient *cri.Client,
 	workerBinary string,
 ) {
@@ -150,13 +149,10 @@ func RunContainerJob(
 	duration := time.Duration(job.Timeout) * time.Second
 	gracePeriod := time.Duration(job.GracePeriod) * time.Second
 
+	// The context is a child of the submission context, so cancelling the
+	// submission cancels this job too.
 	ctx, cancel := context.WithTimeout(pctx, duration+gracePeriod)
 	defer cancel()
-
-	if cancelRegistry != nil {
-		cancelRegistry.Register(job.Id(), cancel)
-		defer cancelRegistry.Unregister(job.Id())
-	}
 
 	// Calculate host paths for CRI mounts
 	// When worker runs in Docker but CRI-O runs on host, paths need translation

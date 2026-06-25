@@ -9,8 +9,10 @@ type Handlers struct {
 	db          interfaces.Database
 	jobs        interfaces.JobStorage
 	problems    interfaces.ProblemStorage
+	tools       interfaces.ToolStorage
 	contents    interfaces.ContentFileStorage
 	submissions interfaces.SubmissionStorage
+	subQueue    interfaces.SubmissionQueueStorage
 
 	jobQue  interfaces.JobQueue
 	tokens  interfaces.TokenStorage
@@ -28,8 +30,10 @@ func NewHandlers(
 		db:          db,
 		jobs:        db,
 		problems:    db,
+		tools:       db,
 		contents:    db,
 		submissions: db,
+		subQueue:    db,
 
 		jobQue:  kv,
 		tokens:  kv,

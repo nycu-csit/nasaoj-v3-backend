@@ -7,6 +7,7 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
@@ -18,21 +19,25 @@ type PutCancelSubmissionInput struct {
 
 // PutAdminCancelSubmission
 //
-//	@Param		request	body		PutCancelSubmissionInput	true	"query body"
-//	@Success	200		{object}	string
-//	@Failure	400		{object}	string
-//	@Failure	401		{object}	string
-//	@Router		/api/admin/submission/cancel [put]
+//	@Summary		Cancel a submission (admin)
+//	@Description	Cancels any in-flight submission and signals workers to stop it. Admin only.
+//	@Param			request	body		PutCancelSubmissionInput	true	"query body"
+//	@Success		200		{object}	string
+//	@Failure		400		{object}	string
+//	@Failure		401		{object}	string
+//	@Router			/api/admin/submission/cancel [put]
 func putAdminCancelSubmissionPlaceholder() {}
 
 // PutCancelSubmission
 //
-//	@Param		request	body		PutCancelSubmissionInput	true	"query body"
-//	@Success	200		{object}	string
-//	@Failure	400		{object}	string
-//	@Failure	401		{object}	string
-//	@Failure	403		{object}	string
-//	@Router		/api/submission/cancel [put]
+//	@Summary		Cancel a submission
+//	@Description	Cancels one of the caller's in-flight submissions.
+//	@Param			request	body		PutCancelSubmissionInput	true	"query body"
+//	@Success		200		{object}	string
+//	@Failure		400		{object}	string
+//	@Failure		401		{object}	string
+//	@Failure		403		{object}	string
+//	@Router			/api/submission/cancel [put]
 func (self *Handlers) PutCancelSubmission(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {
@@ -80,9 +85,8 @@ func (self *Handlers) PutCancelSubmission(
 			ownerId = privs.OwnerId
 		}
 
-		runningJobIds, err := self.submissions.CancelSubmission(ctx,
-			input.SubId, ownerId)
-		if err != nil {
+		if err := self.submissions.CancelSubmission(ctx,
+			input.SubId, ownerId); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusForbidden,
 				Message:     "submission cancel failed",
@@ -90,14 +94,26 @@ func (self *Handlers) PutCancelSubmission(
 			}
 		}
 
-		// Add running jobs to cancelled set so workers can be notified
-		if len(runningJobIds) > 0 {
-			if err := self.workers.AddCancelledJobs(ctx, runningJobIds); err != nil {
-				return middlewares.HTTPError{
-					StatusCode:  http.StatusInternalServerError,
-					Message:     "failed to add cancelled jobs",
-					OriginError: err,
-				}
+		// Mark the whole submission cancelled. The owning worker aborts it on
+		// the next heartbeat, which cancels its in-flight jobs too.
+		if err := self.workers.AddCancelledSubmissions(ctx,
+			[]int64{input.SubId}); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to add cancelled submission",
+				OriginError: err,
+			}
+		}
+
+		// If no jobs remain running (e.g. the submission was still queued),
+		// it is already done and can be removed from the queue now. Otherwise
+		// the running jobs' results complete it.
+		if err := workflows.CompleteIfDone(ctx,
+			self.submissions, self.subQueue, input.SubId); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to complete submission",
+				OriginError: err,
 			}
 		}
 

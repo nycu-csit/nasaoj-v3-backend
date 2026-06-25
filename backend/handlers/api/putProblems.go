@@ -36,11 +36,13 @@ type PutProblemsOutputProblem struct {
 
 // PutProblems
 //
-//	@Param		request	body	[]PutProblemsInputProblem	true	"problems"
-//	@Accept		json
-//	@Success	200	{object}	[]PutProblemsOutputProblem	"problems"
-//	@Failure	401	{object}	string
-//	@Router		/api/admin/problems [put]
+//	@Summary		Import problems
+//	@Description	Imports or updates problem definitions. Admin only.
+//	@Param			request	body	[]PutProblemsInputProblem	true	"problems"
+//	@Accept			json
+//	@Success		200	{object}	[]PutProblemsOutputProblem	"problems"
+//	@Failure		401	{object}	string
+//	@Router			/api/admin/problems [put]
 func (self *Handlers) PutProblems(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

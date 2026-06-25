@@ -45,18 +45,18 @@ type WorkerStatusStorage interface {
 		workerName string,
 	) ([]string, error)
 
-	AddCancelledJobs(
+	AddCancelledSubmissions(
 		ctx context.Context,
-		jobIds []string,
+		subIds []int64,
 	) error
 
-	GetCancelledJobs(
+	GetCancelledSubmissions(
 		ctx context.Context,
-		jobIds []string,
-	) ([]string, error)
+		subIds []int64,
+	) ([]int64, error)
 
-	RemoveCancelledJobs(
+	RemoveCancelledSubmissions(
 		ctx context.Context,
-		jobIds []string,
+		subIds []int64,
 	) error
 }

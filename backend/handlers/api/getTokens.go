@@ -16,10 +16,12 @@ type GetTokensOutput struct {
 
 // GetTokens
 //
-//	@Produce	json
-//	@Success	200	{object}	[]GetTokensOutput
-//	@Failure	401	{object}	string
-//	@Router		/api/admin/tokens [get]
+//	@Summary		List API tokens
+//	@Description	Returns all issued API tokens and their privileges. Admin only.
+//	@Produce		json
+//	@Success		200	{object}	[]GetTokensOutput
+//	@Failure		401	{object}	string
+//	@Router			/api/admin/tokens [get]
 func (self *Handlers) GetTokens(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

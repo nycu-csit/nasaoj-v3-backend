@@ -14,7 +14,6 @@ func RunJob(
 	pctx context.Context,
 	retCh chan error,
 	job *models.JobWithFile,
-	cancelRegistry *CancelRegistry,
 	criClient *cri.Client,
 	workerBinary string,
 ) {
@@ -33,8 +32,8 @@ func RunJob(
 			tracing.Logger.Ctx(ctx).
 				Warn("running containerized job outside of container")
 		}
-		RunShellJob(ctx, retCh, job, cancelRegistry)
+		RunShellJob(ctx, retCh, job)
 		return
 	}
-	RunContainerJob(ctx, retCh, job, cancelRegistry, criClient, workerBinary)
+	RunContainerJob(ctx, retCh, job, criClient, workerBinary)
 }

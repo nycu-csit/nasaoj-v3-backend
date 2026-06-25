@@ -17,10 +17,12 @@ type GetWorkerStatesOutput struct {
 
 // GetWorkerState
 //
-//	@Produce	json
-//	@Success	200	{object}	[]GetWorkerStatesOutput
-//	@Failure	401	{object}	string
-//	@Router		/api/admin/worker/state [get]
+//	@Summary		List worker states
+//	@Description	Returns the registered workers, their tags, and running jobs. Admin only.
+//	@Produce		json
+//	@Success		200	{object}	[]GetWorkerStatesOutput
+//	@Failure		401	{object}	string
+//	@Router			/api/admin/worker/state [get]
 func (self *Handlers) GetWorkerStates(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

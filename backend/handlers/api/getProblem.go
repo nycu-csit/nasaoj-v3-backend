@@ -9,12 +9,14 @@ import (
 
 // GetProblem
 //
-//	@Param		problemSHA1	query	string	true	"problem sha1"
-//	@Produce	json
-//	@Success	200	{object}	ProblemOutput
-//	@Failure	400	{object}	string
-//	@Failure	401	{object}	string
-//	@Router		/api/problem [get]
+//	@Summary		Get a problem
+//	@Description	Returns a single enabled problem by SHA1.
+//	@Param			problemSHA1	query	string	true	"problem sha1"
+//	@Produce		json
+//	@Success		200	{object}	ProblemOutput
+//	@Failure		400	{object}	string
+//	@Failure		401	{object}	string
+//	@Router			/api/problem [get]
 func (self *Handlers) GetProblem(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

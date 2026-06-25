@@ -44,18 +44,22 @@ type ProblemOutput struct {
 
 // GetAdminProblems
 //
-//	@Produce	json
-//	@Success	200	{object}	[]ProblemOutput
-//	@Failure	500	{object}	string	"Problem loading error"
-//	@Router		/api/admin/problems [get]
+//	@Summary		List all problems (admin)
+//	@Description	Returns all problems, including disabled ones. Admin only.
+//	@Produce		json
+//	@Success		200	{object}	[]ProblemOutput
+//	@Failure		500	{object}	string	"Problem loading error"
+//	@Router			/api/admin/problems [get]
 func getAdminProblemsPlaceholder() {}
 
 // GetProblems
 //
-//	@Produce	json
-//	@Success	200	{object}	[]ProblemOutput
-//	@Failure	500	{object}	string	"Problem loading error"
-//	@Router		/api/problems [get]
+//	@Summary		List problems
+//	@Description	Returns the enabled problems visible to the caller.
+//	@Produce		json
+//	@Success		200	{object}	[]ProblemOutput
+//	@Failure		500	{object}	string	"Problem loading error"
+//	@Router			/api/problems [get]
 func (self *Handlers) GetProblems(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {

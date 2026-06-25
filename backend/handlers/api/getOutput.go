@@ -18,35 +18,41 @@ import (
 
 // GetAdminStderr
 //
-//	@Param		subId		query		number	true	"Submission id"
-//	@Param		stage		query		string	true	"Stage name"
-//	@Param		testcase	query		string	true	"Testcase name"
-//	@Success	200			{string}	string	"Testcase result stderr"
-//	@Failure	400
-//	@Failure	404
-//	@Router		/api/admin/stderr [get]
+//	@Summary		Get a job's stderr (admin)
+//	@Description	Returns the stderr of any submission's testcase result. Admin only.
+//	@Param			subId		query		number	true	"Submission id"
+//	@Param			stage		query		string	true	"Stage name"
+//	@Param			testcase	query		string	true	"Testcase name"
+//	@Success		200			{string}	string	"Testcase result stderr"
+//	@Failure		400
+//	@Failure		404
+//	@Router			/api/admin/stderr [get]
 func getAdminStderrPlaceholder() {}
 
 // GetAdminStdout
 //
-//	@Param		subId		query		number	true	"Submission id"
-//	@Param		stage		query		string	true	"Stage name"
-//	@Param		testcase	query		string	true	"Testcase name"
-//	@Success	200			{string}	string	"Testcase result stdout"
-//	@Failure	400
-//	@Failure	404
-//	@Router		/api/admin/stdout [get]
+//	@Summary		Get a job's stdout (admin)
+//	@Description	Returns the stdout of any submission's testcase result. Admin only.
+//	@Param			subId		query		number	true	"Submission id"
+//	@Param			stage		query		string	true	"Stage name"
+//	@Param			testcase	query		string	true	"Testcase name"
+//	@Success		200			{string}	string	"Testcase result stdout"
+//	@Failure		400
+//	@Failure		404
+//	@Router			/api/admin/stdout [get]
 func getAdminStdoutPlaceholder() {}
 
 // GetStdout
 //
-//	@Param		subId		query		number	true	"Submission id"
-//	@Param		stage		query		string	true	"Stage name"
-//	@Param		testcase	query		string	true	"Testcase name"
-//	@Success	200			{string}	string	"Testcase result stdout"
-//	@Failure	400
-//	@Failure	404
-//	@Router		/api/stdout [get]
+//	@Summary		Get a job's stdout
+//	@Description	Returns the stdout of one of the caller's own testcase results.
+//	@Param			subId		query		number	true	"Submission id"
+//	@Param			stage		query		string	true	"Stage name"
+//	@Param			testcase	query		string	true	"Testcase name"
+//	@Success		200			{string}	string	"Testcase result stdout"
+//	@Failure		400
+//	@Failure		404
+//	@Router			/api/stdout [get]
 func (self *Handlers) GetOutput(
 	target string,
 	isAdmin bool,

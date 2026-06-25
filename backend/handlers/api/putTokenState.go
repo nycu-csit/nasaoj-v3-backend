@@ -17,12 +17,14 @@ type PutTokenStateInput struct {
 
 // PutTokenState
 //
-//	@Accept		json
-//	@Param		request	body		PutTokenStateInput	true	"query params"
-//	@Success	200		{object}	string
-//	@Failure	400		{object}	string
-//	@Failure	401		{object}	string
-//	@Router		/api/admin/token/state [put]
+//	@Summary		Enable or disable a token
+//	@Description	Toggles whether an API token is active. Admin only.
+//	@Accept			json
+//	@Param			request	body		PutTokenStateInput	true	"query params"
+//	@Success		200		{object}	string
+//	@Failure		400		{object}	string
+//	@Failure		401		{object}	string
+//	@Router			/api/admin/token/state [put]
 func (self *Handlers) PutTokenState(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

@@ -10,18 +10,22 @@ import (
 
 // GetAdminScores
 //
-//	@Param		problemId	query		int								true	"Problem ID"
-//	@Success	200			{object}	[]models.UserScoreWithStages	"Scores"
-//	@Failure	400			{object}	string							"Invalid problem id"
-//	@Router		/api/admin/scores [get]
+//	@Summary		Get scores (admin)
+//	@Description	Returns all users' scores for a problem. Admin only.
+//	@Param			problemId	query		int								true	"Problem ID"
+//	@Success		200			{object}	[]models.UserScoreWithStages	"Scores"
+//	@Failure		400			{object}	string							"Invalid problem id"
+//	@Router			/api/admin/scores [get]
 func getAdminScoresPlaceholder() {}
 
 // GetScores
 //
-//	@Param		problemId	query		int					true	"Problem ID"
-//	@Success	200			{object}	[]models.UserScore	"Scores"
-//	@Failure	400			{object}	string				"Invalid problem id"
-//	@Router		/api/scores [get]
+//	@Summary		Get scores
+//	@Description	Returns the caller's score for a problem.
+//	@Param			problemId	query		int					true	"Problem ID"
+//	@Success		200			{object}	[]models.UserScore	"Scores"
+//	@Failure		400			{object}	string				"Invalid problem id"
+//	@Router			/api/scores [get]
 func (self *Handlers) GetScores(
 	isAdmin bool,
 ) func(http.ResponseWriter, bunrouter.Request) error {

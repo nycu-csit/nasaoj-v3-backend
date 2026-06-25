@@ -221,10 +221,12 @@ func Test_09_4a_Check_user_args(t *testing.T) {
 			t.Fatalf("failed to unmarshal yaml: %v", err)
 		}
 
-		// Check if all jobs are done (status >= 262 means completed, 262=Success)
+		// Check if all jobs are done (terminal = Success(262) or >= 460)
 		allDone := len(lastResult.Jobs) > 0
 		for _, job := range lastResult.Jobs {
-			if job.Status < 262 {
+			// Not done: Pending(260), Running(261), Blocked(263).
+			// Note StatusBlocked(263) is numerically above Success(262).
+			if job.Status == 260 || job.Status == 261 || job.Status == 263 {
 				allDone = false
 				break
 			}
@@ -528,7 +530,9 @@ func Test_09_9b_Check_args_override(t *testing.T) {
 		// Check if all jobs are done (status >= 262 means completed)
 		allDone := len(lastResult.Jobs) > 0
 		for _, job := range lastResult.Jobs {
-			if job.Status < 262 {
+			// Not done: Pending(260), Running(261), Blocked(263).
+			// Note StatusBlocked(263) is numerically above Success(262).
+			if job.Status == 260 || job.Status == 261 || job.Status == 263 {
 				allDone = false
 				break
 			}

@@ -19,9 +19,11 @@ type LoginPlainInput struct {
 
 // PostLoginPlain
 //
-//	@Param		request	body	LoginPlainInput	true	"query params"
-//	@Response	302		{}		string
-//	@Router		/auth/login/plain [post]
+//	@Summary		Log in with username and password
+//	@Description	Authenticates a plain user and redirects with session cookies.
+//	@Param			request	body	LoginPlainInput	true	"query params"
+//	@Response		302		{}		string
+//	@Router			/auth/login/plain [post]
 func (self *Handlers) PostLoginPlain(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

@@ -59,6 +59,25 @@ func (self *Handlers) PutScore(
 	span.SetAttributes(
 		attribute.Int64("submission.id", scoreReq.SubId))
 
+	// When a worker forwards a job's put-score, verify the submission is
+	// actually owned by that worker's submission queue.
+	if workerName := req.Header.Get("X-Worker-Name"); workerName != "" {
+		owner, err := self.subQueue.SubmissionWorker(ctx, scoreReq.SubId)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to check submission owner",
+				OriginError: err,
+			}
+		}
+		if owner != workerName {
+			return middlewares.HTTPError{
+				StatusCode: http.StatusForbidden,
+				Message:    "submission not owned by this worker",
+			}
+		}
+	}
+
 	// Update submission score
 	err = self.submissions.UpdateSubmissionScore(ctx,
 		scoreReq.SubId, scoreReq.Score)

@@ -13,11 +13,13 @@ import (
 
 // DeleteProblem
 //
-//	@Param		problemSHA1	query		string	true	"Problem SHA1"
-//	@Success	200			{object}	string
-//	@Failure	400			{object}	string
-//	@Failure	401			{object}	string
-//	@Router		/api/admin/problem [delete]
+//	@Summary		Delete a problem
+//	@Description	Deletes a problem and its submissions by SHA1 prefix. Admin only.
+//	@Param			problemSHA1	query		string	true	"Problem SHA1"
+//	@Success		200			{object}	string
+//	@Failure		400			{object}	string
+//	@Failure		401			{object}	string
+//	@Router			/api/admin/problem [delete]
 func (self *Handlers) DeleteProblem(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

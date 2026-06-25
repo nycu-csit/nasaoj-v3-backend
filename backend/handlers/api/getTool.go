@@ -9,12 +9,14 @@ import (
 
 // GetTool
 //
-//	@Param		toolSHA1	query	string	true	"tool sha1"
-//	@Produce	json
-//	@Success	200	{object}	ToolOutput
-//	@Failure	400	{object}	string
-//	@Failure	401	{object}	string
-//	@Router		/api/tool [get]
+//	@Summary		Get a tool
+//	@Description	Returns a single enabled tool by SHA1.
+//	@Param			toolSHA1	query	string	true	"tool sha1"
+//	@Produce		json
+//	@Success		200	{object}	ToolOutput
+//	@Failure		400	{object}	string
+//	@Failure		401	{object}	string
+//	@Router			/api/tool [get]
 func (self *Handlers) GetTool(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {

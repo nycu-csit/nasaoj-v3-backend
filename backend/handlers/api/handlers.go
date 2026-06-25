@@ -11,6 +11,7 @@ type Handlers struct {
 	tools       interfaces.ToolStorage
 	contents    interfaces.ContentFileStorage
 	submissions interfaces.SubmissionStorage
+	subQueue    interfaces.SubmissionQueueStorage
 	jobs        interfaces.JobStorage
 	scores      interfaces.ScoreStorage
 
@@ -34,6 +35,7 @@ func NewHandlers(
 		tools:       db,
 		contents:    db,
 		submissions: db,
+		subQueue:    db,
 		jobs:        db,
 		scores:      db,
 

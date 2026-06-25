@@ -1,19 +1,30 @@
 package serve
 
 import (
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/cri"
+	workerapi "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/workflows"
 	"go.uber.org/zap"
+
+	_ "gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/docs"
 )
 
+//	@title		NASAOJ v3 Worker
+//	@version	3.0
+
+// @license.name	0BSD
+// @BasePath		/
 var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "NASAOJ worker server",
@@ -54,52 +65,83 @@ var workerCmd = &cobra.Command{
 		}
 
 		workerBinary := viper.GetString("worker-binary")
+		accessToken := viper.GetString("access-token")
 
 		client := resty.New()
 		client.SetHeader("X-Worker-Name", viper.GetString("name"))
 		client.SetAuthScheme("Bearer")
-		client.SetAuthToken(viper.GetString("access-token"))
+		client.SetAuthToken(accessToken)
 		client.SetBaseURL(viper.GetString("scheduler-url"))
 
-		jobIn := make(chan models.JobWithFile)
-		jobOut := make(chan models.JobWithFile, viper.GetInt64("threads")*2)
+		subCancel := workflows.NewCancelRegistry()
+		active := workflows.NewActiveSubs()
 
-		cancelRegistry := workflows.NewCancelRegistry()
-		go workflows.Heartbeat(client, ctx, cancelRegistry)
+		// Worker API server: jobs call this to put args / scores. It verifies
+		// the worker-signed jobToken and forwards to the backend.
+		apiHandlers := workerapi.NewHandlers(client)
+		apiRouter := bunrouter.New()
+		if viper.GetBool("swagger") {
+			apiRouter.GET("/swagger/*any",
+				bunrouter.HTTPHandlerFunc(
+					httpSwagger.Handler(httpSwagger.InstanceName("worker"))))
+		}
+		jobGroup := apiRouter.NewGroup("").
+			Use(middlewares.ErrorHandler).
+			Use(middlewares.CheckJobToken([]byte(accessToken)))
+		jobGroup.PUT("/args", apiHandlers.PutArgs)
+		jobGroup.PUT("/score", apiHandlers.PutScore)
 
-		go func() { // FetchJob threads
-			retCh := make(chan error)
-			for {
-				go workflows.FetchJob(client, ctx, retCh, jobIn)
-				ret := <-retCh
-				if ret != nil {
-					tracing.Logger.Ctx(ctx).
-						Warn("fetch thread end with error",
-							zap.Error(ret))
-					time.Sleep(time.Duration(
-						viper.GetInt64("thread-backoff")) * time.Second)
-				}
+		go func() {
+			addr := viper.GetString("api-listen")
+			tracing.Logger.Ctx(ctx).
+				Info("starting worker api server",
+					zap.String("addr", addr))
+			if err := http.ListenAndServe(addr, apiRouter); err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("worker api server stopped",
+						zap.Error(err))
 			}
 		}()
 
-		go func() { // PutJob threads
-			retCh := make(chan error)
-			for {
-				go workflows.PutJob(client, ctx, retCh, jobOut)
-				ret := <-retCh
-				if ret != nil {
-					tracing.Logger.Ctx(ctx).
-						Error("thread 'PutJob' end with error",
-							zap.Error(ret))
-				}
-			}
-		}()
+		go workflows.Heartbeat(client, ctx, subCancel, active)
 
-		for i := int64(0); i < viper.GetInt64("threads"); i++ {
-			go workflows.WorkerThread(ctx, jobIn, jobOut, cancelRegistry, criClient, workerBinary)
+		runner := &workflows.Runner{
+			Root:         ctx,
+			Client:       client,
+			Sem:          make(chan struct{}, viper.GetInt64("threads")),
+			Secret:       []byte(accessToken),
+			Endpoint:     viper.GetString("worker-api-endpoint"),
+			SubCancel:    subCancel,
+			Active:       active,
+			CriClient:    criClient,
+			WorkerBinary: workerBinary,
 		}
 
-		<-ctx.Done()
+		// Submission claim loop. Concurrent submissions are bounded by the
+		// max-submissions semaphore; jobs across all submissions share the
+		// thread pool.
+		subSem := make(chan struct{}, viper.GetInt64("max-submissions"))
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			subSem <- struct{}{}
+			claim, ok := workflows.ClaimSubmission(client, ctx)
+			if !ok {
+				<-subSem
+				time.Sleep(time.Duration(
+					viper.GetInt64("thread-backoff")) * time.Second)
+				continue
+			}
+
+			go func(claim workflows.ClaimResponse) {
+				defer func() { <-subSem }()
+				runner.RunSubmission(claim)
+			}(claim)
+		}
 	},
 }
 
@@ -111,7 +153,16 @@ func init() {
 	workerCmd.Flags().
 		String("name", hostname, "Worker name")
 	workerCmd.Flags().
-		Int64("threads", 20, "Threads count")
+		Int64("threads", 20, "Max concurrent jobs across all submissions")
+	workerCmd.Flags().
+		Int64("max-submissions", 4, "Max concurrent submissions claimed at once")
+	workerCmd.Flags().
+		String("api-listen", ":8081", "Listen address for the worker API server")
+	workerCmd.Flags().
+		Bool("swagger", false, "Enable swagger")
+	workerCmd.Flags().
+		String("worker-api-endpoint", "http://127.0.0.1:8081",
+			"Worker API endpoint advertised to jobs (env WORKER_API_ENDPOINT)")
 	workerCmd.Flags().
 		Int64("thread-backoff", 2, "Thread backoff seconds")
 	workerCmd.Flags().

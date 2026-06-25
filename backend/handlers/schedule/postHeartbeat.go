@@ -11,13 +11,27 @@ import (
 )
 
 type HeartbeatRequest struct {
-	Tags []string `json:"tags"`
+	Tags        []string `json:"tags"`
+	Submissions []int64  `json:"submissions"`
 }
 
 type HeartbeatResponse struct {
-	CancelJobs []string `json:"cancelJobs"`
+	CancelSubmissions []int64 `json:"cancelSubmissions"`
 }
 
+// PostScheduleHeartbeat
+//
+//	@Summary		Worker heartbeat
+//	@Description	Refreshes the worker's status and submission-queue lease, and
+//	@Description	returns jobs / submissions the backend wants cancelled.
+//	@Accept			json
+//	@Produce		json
+//	@Param			X-Worker-Name	header		string				true	"worker name"
+//	@Param			request			body		HeartbeatRequest	true	"tags and active submissions"
+//	@Success		200				{object}	HeartbeatResponse	"jobs/submissions to cancel"
+//	@Failure		400				{object}	string				"bad request"
+//	@Failure		500				{object}	string				"internal error"
+//	@Router			/schedule/heartbeat [post]
 func (self *Handlers) PostScheduleHeartbeat(
 	w http.ResponseWriter, req bunrouter.Request,
 ) error {
@@ -54,36 +68,35 @@ func (self *Handlers) PostScheduleHeartbeat(
 		}
 	}
 
-	// Get jobs running on this worker
-	workerJobs, err := self.workers.GetWorkerJobs(ctx, workerName)
-	if err != nil {
+	// Keep the submission-queue lease alive for this worker.
+	if err := self.subQueue.RefreshLease(ctx, workerName); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
-			Message:     "failed to get worker jobs",
+			Message:     "failed to refresh submission lease",
 			OriginError: err,
 		}
 	}
 
-	// Check which jobs should be cancelled
-	cancelJobs, err := self.workers.GetCancelledJobs(ctx, workerJobs)
+	// Determine which of the worker's active submissions have been cancelled.
+	cancelSubs, err := self.workers.GetCancelledSubmissions(ctx, heartbeat.Submissions)
 	if err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
-			Message:     "failed to get cancelled jobs",
+			Message:     "failed to get cancelled submissions",
 			OriginError: err,
 		}
 	}
-
-	// Remove cancelled jobs from the set (they will be handled by the worker)
-	if len(cancelJobs) > 0 {
-		if err := self.workers.RemoveCancelledJobs(ctx, cancelJobs); err != nil {
+	if len(cancelSubs) > 0 {
+		if err := self.workers.RemoveCancelledSubmissions(ctx, cancelSubs); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
-				Message:     "failed to remove cancelled jobs",
+				Message:     "failed to remove cancelled submissions",
 				OriginError: err,
 			}
 		}
 	}
 
-	return bunrouter.JSON(w, HeartbeatResponse{CancelJobs: cancelJobs})
+	return bunrouter.JSON(w, HeartbeatResponse{
+		CancelSubmissions: cancelSubs,
+	})
 }

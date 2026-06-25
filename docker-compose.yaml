@@ -102,6 +102,8 @@ services:
       target: worker_runtime
     env_file:
       - path: ./worker/.env
+    ports:
+      - 8081:8081
     volumes:
       #- /var/run/crio/crio.sock:/var/run/crio/crio.sock:rw
       - /var/run/containerd/containerd.sock:/var/run/containerd/containerd.sock:rw
