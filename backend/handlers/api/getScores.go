@@ -42,8 +42,10 @@ func (self *Handlers) GetScores(
 			}
 		}
 
+		namespaceId := middlewares.NamespaceIdFromContext(ctx)
+
 		if isAdmin {
-			scores, err := self.scores.GetScoresWithStages(ctx, problemId)
+			scores, err := self.scores.GetScoresWithStages(ctx, namespaceId, problemId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,
@@ -54,7 +56,7 @@ func (self *Handlers) GetScores(
 
 			return bunrouter.JSON(w, scores)
 		} else {
-			scores, err := self.scores.GetScores(ctx, problemId)
+			scores, err := self.scores.GetScores(ctx, namespaceId, problemId)
 			if err != nil {
 				return middlewares.HTTPError{
 					StatusCode:  http.StatusInternalServerError,

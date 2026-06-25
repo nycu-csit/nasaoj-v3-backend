@@ -62,10 +62,13 @@ func (self *Handlers) PutTools(
 		}
 	}
 
+	namespaceId := middlewares.NamespaceIdFromContext(ctx)
+
 	var res []PutToolsOutputTool
 	for _, input := range inputTools {
 		tool := models.Tool{
 			ToolId:      input.ToolId,
+			NamespaceId: namespaceId,
 			Name:        input.Name,
 			Description: input.Description,
 			Testcase:    input.Testcase,

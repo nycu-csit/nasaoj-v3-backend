@@ -156,7 +156,10 @@ var backendCmd = &cobra.Command{
 		apiReadGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIRead: models.ScopeSelf,
-			}))
+			})).
+			Use(middlewares.CheckNamespace(db, models.NamespaceRead))
+		apiReadGroup.GET("/scores/sum",
+			apiHandlers.GetScoreSum)
 		apiReadGroup.GET("/problem",
 			apiHandlers.GetProblem)
 		apiReadGroup.GET("/problems",
@@ -171,15 +174,22 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetResults(false))
 		apiReadGroup.GET("/scores",
 			apiHandlers.GetScores(false))
-		apiReadGroup.GET("/me",
-			apiHandlers.GetMe)
 		apiReadGroup.GET("/submissions",
 			apiHandlers.GetSubmissions(false))
+
+		// /me is identity, not namespace-scoped data: only require auth/read.
+		apiSelfGroup := apiGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIRead: models.ScopeSelf,
+			}))
+		apiSelfGroup.GET("/me",
+			apiHandlers.GetMe)
 
 		apiWriteGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIWrite: models.ScopeSelf,
-			}))
+			})).
+			Use(middlewares.CheckNamespace(db, models.NamespaceRead))
 		apiWriteGroup.POST("/submit",
 			apiHandlers.PostSubmit(false))
 		apiWriteGroup.PUT("/submission/cancel",
@@ -198,7 +208,10 @@ var backendCmd = &cobra.Command{
 		apiAdminReadGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIRead: models.ScopeAll,
-			}))
+			})).
+			Use(middlewares.CheckNamespace(db, models.NamespaceAdmin))
+		apiAdminReadGroup.GET("/namespaces",
+			apiHandlers.GetNamespaces)
 		apiAdminReadGroup.GET("/stdout",
 			apiHandlers.GetOutput("stdout", true))
 		apiAdminReadGroup.GET("/stderr",
@@ -227,7 +240,12 @@ var backendCmd = &cobra.Command{
 		apiAdminWriteGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIWrite: models.ScopeAll,
-			}))
+			})).
+			Use(middlewares.CheckNamespace(db, models.NamespaceAdmin))
+		apiAdminWriteGroup.POST("/namespace",
+			apiHandlers.PostNamespace)
+		apiAdminWriteGroup.PUT("/namespace/state",
+			apiHandlers.PutNamespaceState)
 		apiAdminWriteGroup.PUT("/problems",
 			apiHandlers.PutProblems)
 		apiAdminWriteGroup.PUT("/content-files",
@@ -259,6 +277,17 @@ var backendCmd = &cobra.Command{
 		apiAdminWriteGroup.PUT("/submission/cancel",
 			apiHandlers.PutCancelSubmission(true))
 
+		// Namespace member management is allowed for namespace admins (AdminIn)
+		// as well as global admins; CheckNamespace(NamespaceAdmin) enforces both.
+		apiNsAdminGroup := apiAdminGroup.NewGroup("").
+			Use(middlewares.CheckNamespace(db, models.NamespaceAdmin))
+		apiNsAdminGroup.PUT("/namespace/users",
+			apiHandlers.PutNamespaceUsers)
+		apiNsAdminGroup.DELETE("/namespace/users",
+			apiHandlers.DeleteNamespaceUsers)
+		apiNsAdminGroup.GET("/namespace/users",
+			apiHandlers.GetNamespaceUsers)
+
 		scheduleHandlers := schedule.NewHandlers(db, kv, s3)
 		scheduleGroup := backend.NewGroup("/schedule").
 			Use(middlewares.CheckAuth(db, kv)).
@@ -289,6 +318,10 @@ func init() {
 	// HTTP Server
 	backendCmd.Flags().
 		String("port", "8080", "Port to listen on")
+	backendCmd.Flags().
+		String("namespace-source", "header",
+			"Where request namespaces come from: 'header' (X-Namespace) or "+
+				"'jwt' (derive from the caller's membership)")
 
 	// JWT Cookies
 	backendCmd.Flags().

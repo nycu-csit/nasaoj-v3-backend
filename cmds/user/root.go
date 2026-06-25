@@ -322,6 +322,7 @@ var RootCmd = &cobra.Command{
 				zap.String("url", viper.GetString("endpoint")))
 
 		client := resty.New()
+		client.SetHeader("X-Namespace", viper.GetString("namespace"))
 		client.SetRedirectPolicy(resty.NoRedirectPolicy())
 		client.SetRetryCount(3)
 		client.AddRetryCondition(func(r *resty.Response, err error) bool {
@@ -376,5 +377,8 @@ func init() {
 	RootCmd.PersistentFlags().
 		String("access-token", "",
 			"The access token to use instead of oidc")
+	RootCmd.PersistentFlags().
+		StringP("namespace", "n", "default",
+			"Namespace to operate in (sent as the X-Namespace header)")
 
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/uptrace/bunrouter"
@@ -158,6 +159,14 @@ func (self *Handlers) GetResults(
 					StatusCode: http.StatusBadRequest,
 					Message:    "invalid query param",
 				}
+			}
+		}
+
+		if !slices.Contains(
+			middlewares.NamespaceIdsFromContext(ctx), submission.NamespaceId) {
+			return middlewares.HTTPError{
+				StatusCode: http.StatusNotFound,
+				Message:    "submission not in namespace",
 			}
 		}
 

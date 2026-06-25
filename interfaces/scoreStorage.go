@@ -9,16 +9,19 @@ import (
 type ScoreStorage interface {
 	GetScores(
 		ctx context.Context,
+		namespaceId int64,
 		refId int64,
 	) ([]models.UserScore, error)
 
 	GetScoresWithStages(
 		ctx context.Context,
+		namespaceId int64,
 		refId int64,
 	) ([]models.UserScoreWithStages, error)
 
 	GetScoresWithDeadline(
 		ctx context.Context,
+		namespaceId int64,
 		refId int64,
 	) ([]models.UserScore, error)
 
@@ -26,4 +29,11 @@ type ScoreStorage interface {
 		ctx context.Context,
 		subId int64,
 	) (models.UserScore, error)
+
+	// GetNamespaceScoreboard returns each member's total score across all
+	// enabled problems in the namespace.
+	GetNamespaceScoreboard(
+		ctx context.Context,
+		namespaceId int64,
+	) ([]models.ScoreboardEntry, error)
 }

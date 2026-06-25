@@ -27,8 +27,9 @@ type Tool struct {
 	PostScript  Content           `json:"postScript"`
 	Cooldown    int64             `json:"cooldown"`
 
-	ImportedAt int64 `json:"importedAt"`
-	IsEnabled  bool  `json:"isEnabled"`
+	NamespaceId int64 `json:"namespaceId"`
+	ImportedAt  int64 `json:"importedAt"`
+	IsEnabled   bool  `json:"isEnabled"`
 }
 
 type toolHash struct {
@@ -47,18 +48,20 @@ type toolHash struct {
 type ToolMarshaled struct {
 	bun.BaseModel `bun:"table:tool"`
 
-	SHA1       string `bun:"sha1,pk"`
-	Payload    string `bun:"payload"`
-	ToolId     int64  `bun:"tool_id"`
-	ImportedAt int64  `bun:"imported_at"`
-	IsEnabled  bool   `bun:"is_enabled"`
+	SHA1        string `bun:"sha1,pk"`
+	Payload     string `bun:"payload"`
+	ToolId      int64  `bun:"tool_id"`
+	NamespaceId int64  `bun:"namespace_id"`
+	ImportedAt  int64  `bun:"imported_at"`
+	IsEnabled   bool   `bun:"is_enabled"`
 }
 
 func (self Tool) Marshal() (ToolMarshaled, error) {
 	ret := ToolMarshaled{
-		ToolId:     self.ToolId,
-		ImportedAt: time.Now().Unix(),
-		IsEnabled:  false,
+		ToolId:      self.ToolId,
+		NamespaceId: self.NamespaceId,
+		ImportedAt:  time.Now().Unix(),
+		IsEnabled:   false,
 	}
 
 	b, err := json.Marshal(toolHash{
@@ -90,5 +93,6 @@ func (self ToolMarshaled) Unmarshal() (Tool, error) {
 	}
 	ret.IsEnabled = self.IsEnabled
 	ret.ImportedAt = self.ImportedAt
+	ret.NamespaceId = self.NamespaceId
 	return ret, nil
 }

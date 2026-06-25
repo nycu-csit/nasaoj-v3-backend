@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -36,6 +37,14 @@ func (self *Handlers) GetProblem(
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "get problem failed",
 			OriginError: err,
+		}
+	}
+
+	if !slices.Contains(
+		middlewares.NamespaceIdsFromContext(ctx), problem.NamespaceId) {
+		return middlewares.HTTPError{
+			StatusCode: http.StatusNotFound,
+			Message:    "problem not in namespace",
 		}
 	}
 

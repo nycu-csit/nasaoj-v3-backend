@@ -43,9 +43,10 @@ type Problem struct {
 	ScoreInputType  ScoreInputTypeType  `json:"scoreInputType" yaml:"scoreInputType"`
 	ScoreOutputType ScoreOutputTypeType `json:"scoreOutputType" yaml:"scoreOutputType"`
 
-	ImportedAt int64 `json:"importedAt" yaml:"importedAt"`
-	IsEnabled  bool  `json:"isEnabled" yaml:"isEnabled"`
-	TotalScore int64 `json:"totalScore" yaml:"totalScore"`
+	NamespaceId int64 `json:"namespaceId" yaml:"namespaceId"`
+	ImportedAt  int64 `json:"importedAt" yaml:"importedAt"`
+	IsEnabled   bool  `json:"isEnabled" yaml:"isEnabled"`
+	TotalScore  int64 `json:"totalScore" yaml:"totalScore"`
 }
 
 type problemHash struct {
@@ -67,8 +68,9 @@ type problemHash struct {
 type ProblemMarshaled struct {
 	bun.BaseModel `bun:"table:problem"`
 
-	Payload   string `bun:"payload"`
-	ProblemId int64  `bun:"problem_id"`
+	Payload     string `bun:"payload"`
+	ProblemId   int64  `bun:"problem_id"`
+	NamespaceId int64  `bun:"namespace_id"`
 
 	SHA1       string `bun:"sha1,pk"`
 	ImportedAt int64  `bun:"imported_at"`
@@ -77,9 +79,10 @@ type ProblemMarshaled struct {
 
 func (self Problem) Marshal() (ProblemMarshaled, error) {
 	ret := ProblemMarshaled{
-		ProblemId:  self.ProblemId,
-		ImportedAt: time.Now().Unix(),
-		IsEnabled:  false,
+		ProblemId:   self.ProblemId,
+		NamespaceId: self.NamespaceId,
+		ImportedAt:  time.Now().Unix(),
+		IsEnabled:   false,
 	}
 
 	b, err := json.Marshal(problemHash{
@@ -114,6 +117,7 @@ func (self ProblemMarshaled) Unmarshal() (Problem, error) {
 	}
 	ret.IsEnabled = self.IsEnabled
 	ret.ImportedAt = self.ImportedAt
+	ret.NamespaceId = self.NamespaceId
 	ret.TotalScore = 0
 	for _, stage := range ret.Stages {
 		ret.TotalScore += stage.Score

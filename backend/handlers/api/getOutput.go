@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/uptrace/bunrouter"
@@ -83,6 +84,14 @@ func (self *Handlers) GetOutput(
 				StatusCode:  http.StatusNotFound,
 				Message:     "submission id not found",
 				OriginError: err,
+			}
+		}
+
+		if !slices.Contains(
+			middlewares.NamespaceIdsFromContext(ctx), submission.NamespaceId) {
+			return middlewares.HTTPError{
+				StatusCode: http.StatusNotFound,
+				Message:    "submission not in namespace",
 			}
 		}
 

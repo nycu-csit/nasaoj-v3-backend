@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -66,8 +67,14 @@ func (self *Handlers) GetTools(
 			}
 		}
 
+		namespaceIds := middlewares.NamespaceIdsFromContext(ctx)
+
 		ret := []ToolOutput{}
 		for sha1, tool := range resTools {
+			// Scope the listing to the requested namespace(s).
+			if !slices.Contains(namespaceIds, tool.NamespaceId) {
+				continue
+			}
 			ret = append(ret, ToolOutput{
 				Name:        tool.Name,
 				SHA1:        sha1,

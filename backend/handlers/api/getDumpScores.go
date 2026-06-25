@@ -31,7 +31,8 @@ func (self *Handlers) GetDumpScores(
 		}
 	}
 
-	scores, err := self.scores.GetScoresWithDeadline(ctx, problemId)
+	scores, err := self.scores.GetScoresWithDeadline(ctx,
+		middlewares.NamespaceIdFromContext(ctx), problemId)
 	if err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,

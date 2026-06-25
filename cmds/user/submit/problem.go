@@ -57,6 +57,7 @@ var problemCmd = &cobra.Command{
 		tracing.InitTracer("nasaoj-cli")
 
 		client := resty.New()
+		client.SetHeader("X-Namespace", viper.GetString("namespace"))
 		client.SetRedirectPolicy(resty.NoRedirectPolicy())
 
 		// Try to load session for autocomplete with token refresh support

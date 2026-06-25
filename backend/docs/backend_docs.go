@@ -85,6 +85,243 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "/api/admin/namespace": {
+            "post": {
+                "description": "Creates a namespace. Global admin only.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create a namespace",
+                "parameters": [
+                    {
+                        "description": "namespace",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PostNamespaceInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Namespace"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/namespace/state": {
+            "put": {
+                "description": "Toggles a namespace's enabled state. Global admin only.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Enable or disable a namespace",
+                "parameters": [
+                    {
+                        "description": "state",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PutNamespaceStateInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/namespace/users": {
+            "get": {
+                "description": "Lists members of the namespace from the X-Namespace header.\nGlobal admin or admin of that namespace.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List namespace members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "namespace name or id",
+                        "name": "X-Namespace",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.UserNamespace"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Adds (or updates the admin flag of) users in the namespace\nfrom the X-Namespace header. Global admin or admin of that\nnamespace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Add namespace members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "namespace name or id",
+                        "name": "X-Namespace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "members",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PutNamespaceUsersInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes users from the namespace in the X-Namespace header.\nGlobal admin or admin of that namespace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Remove namespace members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "namespace name or id",
+                        "name": "X-Namespace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "members",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.DeleteNamespaceUsersInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/namespaces": {
+            "get": {
+                "description": "Lists namespaces. Global admin sees all; a namespace admin\nsees only the namespaces they administer.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List namespaces",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Namespace"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/problem": {
             "delete": {
                 "description": "Deletes a problem and its submissions by SHA1 prefix. Admin only.",
@@ -1189,6 +1426,46 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "/api/scores/sum": {
+            "get": {
+                "description": "Per-user total score across all enabled problems in the\nnamespace (from the X-Namespace header), sorted descending.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Sum of scores in a namespace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "namespace name or id",
+                        "name": "X-Namespace",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "score sums",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ScoreboardEntry"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/stdout": {
             "get": {
                 "description": "Returns the stdout of one of the caller's own testcase results.",
@@ -1765,6 +2042,17 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "api.DeleteNamespaceUsersInput": {
+            "type": "object",
+            "properties": {
+                "userIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "api.GetTokensOutput": {
             "type": "object",
             "properties": {
@@ -1816,6 +2104,23 @@ const docTemplatebackend = `{
                 },
                 "isAdmin": {
                     "type": "boolean"
+                }
+            }
+        },
+        "api.PostNamespaceInput": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -1915,6 +2220,31 @@ const docTemplatebackend = `{
                 },
                 "sha1": {
                     "type": "string"
+                }
+            }
+        },
+        "api.PutNamespaceStateInput": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "isEnabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "api.PutNamespaceUsersInput": {
+            "type": "object",
+            "properties": {
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "userIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -2511,6 +2841,10 @@ const docTemplatebackend = `{
                 "jobFileUrl": {
                     "type": "string"
                 },
+                "namespaceId": {
+                    "description": "Metadata",
+                    "type": "integer"
+                },
                 "refFileUrl": {
                     "type": "string"
                 },
@@ -2531,12 +2865,7 @@ const docTemplatebackend = `{
                     "type": "string"
                 },
                 "status": {
-                    "description": "Metadata",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.JobStatus"
-                        }
-                    ]
+                    "$ref": "#/definitions/models.JobStatus"
                 },
                 "stderr": {
                     "type": "string"
@@ -2594,6 +2923,32 @@ const docTemplatebackend = `{
                 "LoginSourceCSSSO"
             ]
         },
+        "models.Namespace": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Privileges": {
             "type": "object",
             "properties": {
@@ -2640,6 +2995,9 @@ const docTemplatebackend = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "namespaceId": {
+                    "type": "integer"
                 },
                 "postScript": {
                     "$ref": "#/definitions/models.Content"
@@ -2717,6 +3075,28 @@ const docTemplatebackend = `{
                 "ScoreOutputTypeHighest"
             ]
         },
+        "models.ScoreboardEntry": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "problems": {
+                    "description": "problemId -\u003e score",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Stage": {
             "type": "object",
             "properties": {
@@ -2775,6 +3155,9 @@ const docTemplatebackend = `{
                     "items": {
                         "$ref": "#/definitions/models.Job"
                     }
+                },
+                "namespaceId": {
+                    "type": "integer"
                 },
                 "ownerId": {
                     "type": "integer"
@@ -2868,6 +3251,9 @@ const docTemplatebackend = `{
                 "name": {
                     "type": "string"
                 },
+                "namespaceId": {
+                    "type": "integer"
+                },
                 "postScript": {
                     "$ref": "#/definitions/models.Content"
                 },
@@ -2896,9 +3282,30 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "models.UserNamespace": {
+            "type": "object",
+            "properties": {
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "namespaceId": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.UserResource": {
             "type": "object",
             "properties": {
+                "adminIn": {
+                    "description": "namespaces where the user is admin",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "args": {
                     "type": "object",
                     "additionalProperties": {
@@ -2909,7 +3316,15 @@ const docTemplatebackend = `{
                     "type": "integer"
                 },
                 "isAdmin": {
+                    "description": "global/super admin",
                     "type": "boolean"
+                },
+                "namespaces": {
+                    "description": "Namespace membership, hydrated from user_namespace (not stored on the row).",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "source": {
                     "$ref": "#/definitions/models.LoginSourceType"
