@@ -68,6 +68,7 @@ func ClaimSubmission(
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
 			Warn("failed to claim submission",
+				zap.String("url", client.BaseURL+"/schedule/submission"),
 				zap.Error(err))
 		return ClaimResponse{}, false
 	}
@@ -75,12 +76,32 @@ func ClaimSubmission(
 		return ClaimResponse{}, false
 	}
 	if !resp.IsSuccess() {
+		// A 502/503/504 here almost always comes from a proxy/ingress in front
+		// of the backend rather than the backend itself, so log the details
+		// that distinguish a proxy error page from a real backend response:
+		// the target URL, latency, proxy-identifying headers, and a truncated
+		// body (proxy error pages name the failed upstream).
 		tracing.Logger.Ctx(ctx).
 			Warn("claim submission returned non-success",
-				zap.Int("status", resp.StatusCode()))
+				zap.Int("status", resp.StatusCode()),
+				zap.String("url", resp.Request.URL),
+				zap.Duration("latency", resp.Time()),
+				zap.String("server", resp.Header().Get("Server")),
+				zap.String("via", resp.Header().Get("Via")),
+				zap.String("content-type", resp.Header().Get("Content-Type")),
+				zap.String("body", truncate(resp.String(), 512)))
 		return ClaimResponse{}, false
 	}
 	return claim, true
+}
+
+// truncate caps a string to n bytes so a large proxy error page (or HTML body)
+// does not flood the logs, appending an ellipsis when clipped.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
 }
 
 func (r *Runner) rgLock(key string) *sync.Mutex {

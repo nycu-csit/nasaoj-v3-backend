@@ -87,6 +87,7 @@ var workerCmd = &cobra.Command{
 		}
 		jobGroup := apiRouter.NewGroup("").
 			Use(middlewares.ErrorHandler).
+			Use(middlewares.AccessLog).
 			Use(middlewares.CheckJobToken([]byte(accessToken)))
 		jobGroup.PUT("/args", apiHandlers.PutArgs)
 		jobGroup.PUT("/score", apiHandlers.PutScore)
