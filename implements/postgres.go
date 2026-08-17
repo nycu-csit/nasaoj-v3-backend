@@ -2,7 +2,9 @@ package implements
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -2953,4 +2955,154 @@ func (self *Postgres) UpdateUserArgsById(
 
 		return nil
 	})
+}
+
+// -- TokenStorage --
+//
+// Postgres is the authoritative store for static bearer tokens; when the
+// cache is backed by Redis (or a local cache in --single-node mode), reads
+// go through self.cache the same way problem/tool/score lookups do.
+
+func tokenSHA256(rawToken string) string {
+	h := sha256.Sum256([]byte(rawToken))
+	return hex.EncodeToString(h[:])
+}
+
+func cacheTokenSHA256Key(sha256Hex string) string {
+	return "token:" + sha256Hex
+}
+
+func (self *Postgres) getToken(
+	ctx context.Context,
+	sha256Hex string,
+) (models.Token, error) {
+	var token models.Token
+	err := self.db.NewSelect().
+		Model(&token).
+		Where("sha256 = ?", sha256Hex).
+		Scan(ctx)
+	return token, err
+}
+
+func (self *Postgres) GetToken(
+	ctx context.Context,
+	rawToken string,
+) (models.Token, error) {
+	sha256Hex := tokenSHA256(rawToken)
+
+	if self.cache != nil {
+		var ret models.Token
+		err := self.cache.Once(&cache.Item{
+			Key:   cacheTokenSHA256Key(sha256Hex),
+			Value: &ret,
+			Do: func(*cache.Item) (interface{}, error) {
+				return self.getToken(ctx, sha256Hex)
+			},
+		})
+		return ret, err
+	}
+	return self.getToken(ctx, sha256Hex)
+}
+
+func (self *Postgres) GetTokens(
+	ctx context.Context,
+) ([]models.Token, error) {
+	var tokens []models.Token
+	err := self.db.NewSelect().
+		Model(&tokens).
+		Order("created_at DESC").
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return tokens, nil
+}
+
+func (self *Postgres) SetAdminToken(
+	ctx context.Context,
+	rawToken string,
+) error {
+	sha256Hex := tokenSHA256(rawToken)
+	token := models.Token{
+		SHA256:      sha256Hex,
+		Description: "bootstrap admin token (--admin-token)",
+		Privs:       models.NewAdminPrivs(0),
+		IsEnabled:   true,
+		CreatedAt:   time.Now().Unix(),
+	}
+
+	_, err := self.db.NewInsert().
+		Model(&token).
+		On("CONFLICT (sha256) DO UPDATE").
+		Set("description = EXCLUDED.description").
+		Set("privs = EXCLUDED.privs").
+		Set("is_enabled = EXCLUDED.is_enabled").
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	if self.cache != nil {
+		return self.cache.Delete(ctx, cacheTokenSHA256Key(sha256Hex))
+	}
+	return nil
+}
+
+func (self *Postgres) GenerateTokenWithoutExpire(
+	ctx context.Context,
+	privs models.Privileges,
+	userId int64,
+	description string,
+) (string, error) {
+	rawToken, err := utils.RandomString(48)
+	if err != nil {
+		return "", err
+	}
+
+	token := models.Token{
+		SHA256:      tokenSHA256(rawToken),
+		UserId:      userId,
+		Description: description,
+		Privs:       privs,
+		IsEnabled:   true,
+		CreatedAt:   time.Now().Unix(),
+	}
+	if _, err := self.db.NewInsert().Model(&token).Exec(ctx); err != nil {
+		return "", err
+	}
+	return rawToken, nil
+}
+
+func (self *Postgres) setTokenState(
+	ctx context.Context,
+	sha256Hex string,
+	isEnabled bool,
+) error {
+	_, err := self.db.NewUpdate().
+		Model((*models.Token)(nil)).
+		Set("is_enabled = ?", isEnabled).
+		Where("sha256 = ?", sha256Hex).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	if self.cache != nil {
+		return self.cache.Delete(ctx, cacheTokenSHA256Key(sha256Hex))
+	}
+	return nil
+}
+
+func (self *Postgres) DisableToken(
+	ctx context.Context,
+	sha256Hex string,
+) error {
+	return self.setTokenState(ctx, sha256Hex, false)
+}
+
+func (self *Postgres) EnableToken(
+	ctx context.Context,
+	sha256Hex string,
+) error {
+	return self.setTokenState(ctx, sha256Hex, true)
 }

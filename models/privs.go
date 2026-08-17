@@ -1,5 +1,7 @@
 package models
 
+import "github.com/uptrace/bun"
+
 // Split it roughly for now, maybe can fine-grained for
 // other usage afterwards
 
@@ -18,20 +20,28 @@ type Privileges struct {
 	CanScheduleAPI   int `json:"canScheduleAPI"`
 }
 
+// Token is a static bearer token, persisted in Postgres (the authoritative
+// store) and cached in front of it when Redis is available. Lookups key off
+// SHA256, the hex digest of the raw token string, so the raw token itself is
+// never stored.
 type Token struct {
+	bun.BaseModel `json:"-" bun:"table:token"`
+
+	SHA256 string `json:"sha256" bun:"sha256,pk"`
+
 	// UserId binds the token to a user: Privs/namespace membership are
 	// resolved live from that user on every request instead of the values
 	// below, which are then just informational. Zero for static
 	// (admin/worker) tokens, where Privs is authoritative.
-	UserId int64 `json:"userId,omitempty" yaml:"userId,omitempty"`
+	UserId int64 `json:"userId,omitempty" bun:"user_id"`
 
 	// Description is required at issuance time so `judge admin get tokens`
 	// can tell tokens apart without decoding the secret itself.
-	Description string `json:"description" yaml:"description"`
+	Description string `json:"description" bun:"description"`
 
-	Privs     Privileges `json:"privs" yaml:"privs"`
-	IsEnabled bool       `json:"isEnabled" yaml:"isEnabled"`
-	CreatedAt int64      `json:"createdAt" yaml:"createdAt"`
+	Privs     Privileges `json:"privs" bun:"privs"`
+	IsEnabled bool       `json:"isEnabled" bun:"is_enabled"`
+	CreatedAt int64      `json:"createdAt" bun:"created_at"`
 }
 
 func NewWorkerPrivs() Privileges {

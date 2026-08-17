@@ -74,8 +74,8 @@ var tokensCmd = &cobra.Command{
 
 		var ret []tokenResult
 		for _, token := range res {
-			privilege := privilegeSummary(token.Token.Privs)
-			if token.Token.UserId != 0 {
+			privilege := privilegeSummary(token.Privs)
+			if token.UserId != 0 {
 				// The token's Privs are just a snapshot from issuance; the
 				// user's live privileges/namespaces are what's actually
 				// enforced on each request.
@@ -84,11 +84,11 @@ var tokensCmd = &cobra.Command{
 
 			ret = append(ret, tokenResult{
 				SHA256:      token.SHA256,
-				Description: token.Token.Description,
-				CreatedAt:   time.Unix(token.Token.CreatedAt, 0).String(),
-				IsEnabled:   token.Token.IsEnabled,
+				Description: token.Description,
+				CreatedAt:   time.Unix(token.CreatedAt, 0).String(),
+				IsEnabled:   token.IsEnabled,
 				Privilege:   privilege,
-				UserId:      token.Token.UserId,
+				UserId:      token.UserId,
 			})
 		}
 

@@ -2,15 +2,16 @@ package interfaces
 
 import (
 	"context"
-	"time"
 
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+// TokenStorage persists static bearer tokens. Postgres is the authoritative
+// store; when Redis is configured, lookups are cached in front of it.
 type TokenStorage interface {
 	GetTokens(
 		ctx context.Context,
-	) (map[string]models.Token, error)
+	) ([]models.Token, error)
 
 	// GetToken returns the stored token record (Privs, UserId, IsEnabled) so
 	// callers can decide whether to trust Privs as-is (static tokens) or
@@ -25,18 +26,10 @@ type TokenStorage interface {
 		token string,
 	) error
 
-	// GenerateToken issues a token that expires after duration. userId is 0
+	// GenerateTokenWithoutExpire issues a token with no expiry. userId is 0
 	// for static (admin/worker) tokens, or the owning user's id for a token
 	// whose privileges/namespaces should be resolved live on each request.
 	// description is required and shown by `judge admin get tokens`.
-	GenerateToken(
-		ctx context.Context,
-		privs models.Privileges,
-		userId int64,
-		description string,
-		duration time.Duration,
-	) (string, error)
-
 	GenerateTokenWithoutExpire(
 		ctx context.Context,
 		privs models.Privileges,
