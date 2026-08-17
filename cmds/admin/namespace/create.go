@@ -13,6 +13,7 @@ import (
 var (
 	createName  string
 	createTitle string
+	createArgs  map[string]string
 )
 
 var createCmd = &cobra.Command{
@@ -31,6 +32,7 @@ var createCmd = &cobra.Command{
 					SetBody(api.PostNamespaceInput{
 						Name:  createName,
 						Title: createTitle,
+						Args:  createArgs,
 					})
 			})
 
@@ -43,5 +45,11 @@ func init() {
 		StringVar(&createName, "name", "", "Namespace name (unique slug)")
 	createCmd.Flags().
 		StringVar(&createTitle, "title", "", "Namespace human-readable title")
+	createCmd.Flags().
+		StringToStringVar(&createArgs, "args", nil,
+			"Default job args for every submission in this namespace "+
+				"(key=value, repeatable) - the outermost layer of the same "+
+				"overlay problem/stage/testcase args use, so they can still "+
+				"override a namespace default for the same key")
 	_ = createCmd.MarkFlagRequired("name")
 }
