@@ -20,7 +20,7 @@ const docTemplatebackend = `{
     "paths": {
         "/api/admin/artifacts": {
             "get": {
-                "description": "Returns the tar of files a testcase declared as artifacts,\nfor any submission. Admin only.",
+                "description": "Returns the tar of files a testcase declared as artifacts,\nfor any submission. Admin only - artifacts may contain\nbuild output/binaries not meant for students, so this is\nkept at the same access level as stderr.",
                 "summary": "Get a job's kept artifacts (admin)",
                 "parameters": [
                     {
@@ -50,6 +50,49 @@ const docTemplatebackend = `{
                         "description": "application/x-tar",
                         "schema": {
                             "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/api/admin/artifacts/url": {
+            "get": {
+                "description": "Presigns a short-lived MinIO URL so a caller (e.g. the admin\nCLI) can download the artifact tar directly from object\nstorage instead of proxying the bytes through the backend.\nAdmin only - same access level as stderr.",
+                "summary": "Get a presigned download URL for a job's kept artifacts (admin)",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.GetArtifactsURLOutput"
                         }
                     },
                     "400": {
@@ -1248,49 +1291,6 @@ const docTemplatebackend = `{
                 }
             }
         },
-        "/api/artifacts": {
-            "get": {
-                "description": "Returns the tar of files a testcase declared as artifacts,\nfor one of the caller's own submissions.",
-                "summary": "Get a job's kept artifacts",
-                "parameters": [
-                    {
-                        "type": "number",
-                        "description": "Submission id",
-                        "name": "subId",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Stage name",
-                        "name": "stage",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Testcase name",
-                        "name": "testcase",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "application/x-tar",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    },
-                    "404": {
-                        "description": "Not Found"
-                    }
-                }
-            }
-        },
         "/api/healthz": {
             "get": {
                 "responses": {
@@ -2136,6 +2136,14 @@ const docTemplatebackend = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "api.GetArtifactsURLOutput": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
                 }
             }
         },

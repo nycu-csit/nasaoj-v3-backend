@@ -222,8 +222,6 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetTools(false))
 		apiReadGroup.GET("/stdout",
 			apiHandlers.GetOutput("stdout", false))
-		apiReadGroup.GET("/artifacts",
-			apiHandlers.GetArtifacts(false))
 		apiReadGroup.GET("/results",
 			apiHandlers.GetResults(false))
 		apiReadGroup.GET("/scores",
@@ -271,7 +269,9 @@ var backendCmd = &cobra.Command{
 		apiAdminReadGroup.GET("/stderr",
 			apiHandlers.GetOutput("stderr", true))
 		apiAdminReadGroup.GET("/artifacts",
-			apiHandlers.GetArtifacts(true))
+			apiHandlers.GetArtifacts)
+		apiAdminReadGroup.GET("/artifacts/url",
+			apiHandlers.GetArtifactsURL)
 		apiAdminReadGroup.GET("/scores",
 			apiHandlers.GetScores(true))
 		apiAdminReadGroup.GET("/dump-scores/:problemId",

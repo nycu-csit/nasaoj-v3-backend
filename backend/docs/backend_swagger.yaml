@@ -21,6 +21,11 @@ definitions:
           type: integer
         type: array
     type: object
+  api.GetArtifactsURLOutput:
+    properties:
+      url:
+        type: string
+    type: object
   api.GetTokensOutput:
     properties:
       createdAt:
@@ -1022,7 +1027,9 @@ paths:
     get:
       description: |-
         Returns the tar of files a testcase declared as artifacts,
-        for any submission. Admin only.
+        for any submission. Admin only - artifacts may contain
+        build output/binaries not meant for students, so this is
+        kept at the same access level as stderr.
       parameters:
       - description: Submission id
         in: query
@@ -1049,6 +1056,39 @@ paths:
         "404":
           description: Not Found
       summary: Get a job's kept artifacts (admin)
+  /api/admin/artifacts/url:
+    get:
+      description: |-
+        Presigns a short-lived MinIO URL so a caller (e.g. the admin
+        CLI) can download the artifact tar directly from object
+        storage instead of proxying the bytes through the backend.
+        Admin only - same access level as stderr.
+      parameters:
+      - description: Submission id
+        in: query
+        name: subId
+        required: true
+        type: number
+      - description: Stage name
+        in: query
+        name: stage
+        required: true
+        type: string
+      - description: Testcase name
+        in: query
+        name: testcase
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GetArtifactsURLOutput'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+      summary: Get a presigned download URL for a job's kept artifacts (admin)
   /api/admin/content-files:
     put:
       consumes:
@@ -1844,37 +1884,6 @@ paths:
           schema:
             type: string
       summary: List worker states
-  /api/artifacts:
-    get:
-      description: |-
-        Returns the tar of files a testcase declared as artifacts,
-        for one of the caller's own submissions.
-      parameters:
-      - description: Submission id
-        in: query
-        name: subId
-        required: true
-        type: number
-      - description: Stage name
-        in: query
-        name: stage
-        required: true
-        type: string
-      - description: Testcase name
-        in: query
-        name: testcase
-        required: true
-        type: string
-      responses:
-        "200":
-          description: application/x-tar
-          schema:
-            type: file
-        "400":
-          description: Bad Request
-        "404":
-          description: Not Found
-      summary: Get a job's kept artifacts
   /api/healthz:
     get:
       responses:

@@ -18,6 +18,7 @@ func init() {
 	RootCmd.AddCommand(resultsCmd)
 	RootCmd.AddCommand(stdoutCmd)
 	RootCmd.AddCommand(stderrCmd)
+	RootCmd.AddCommand(artifactsCmd)
 	RootCmd.AddCommand(submissionsCmd)
 	RootCmd.AddCommand(scoresCmd)
 	RootCmd.AddCommand(meCmd)
