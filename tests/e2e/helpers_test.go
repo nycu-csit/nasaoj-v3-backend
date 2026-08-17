@@ -12,6 +12,37 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
+// runJudge runs the judge CLI with the given args and returns its stdout.
+func runJudge(t *testing.T, args ...string) string {
+	t.Helper()
+
+	cmd := exec.Command("judge", args...)
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("judge %s failed: %v\nstderr: %s",
+			strings.Join(args, " "), err, stderr.String())
+	}
+	return stdout.String()
+}
+
+// runJudgeStdin is like runJudge but feeds stdin to the process.
+func runJudgeStdin(t *testing.T, stdin string, args ...string) string {
+	t.Helper()
+
+	cmd := exec.Command("judge", args...)
+	cmd.Stdin = strings.NewReader(stdin)
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("judge %s failed: %v\nstderr: %s",
+			strings.Join(args, " "), err, stderr.String())
+	}
+	return stdout.String()
+}
+
 // ImportResult holds the result of importing problems
 type ImportResult struct {
 	SHA1s []string // SHA1s of imported problems in order
