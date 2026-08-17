@@ -11,9 +11,9 @@ import (
 )
 
 type PostNamespaceInput struct {
-	Name     string            `json:"name"`
-	Title    string            `json:"title"`
-	Metadata map[string]string `json:"metadata"`
+	Name  string            `json:"name"`
+	Title string            `json:"title"`
+	Args  map[string]string `json:"args"`
 }
 
 // PostNamespace
@@ -53,7 +53,7 @@ func (self *Handlers) PostNamespace(
 	ns := models.Namespace{
 		Name:      input.Name,
 		Title:     input.Title,
-		Metadata:  input.Metadata,
+		Args:      input.Args,
 		IsEnabled: true,
 	}
 	if err := self.namespaces.CreateNamespace(ctx, &ns); err != nil {

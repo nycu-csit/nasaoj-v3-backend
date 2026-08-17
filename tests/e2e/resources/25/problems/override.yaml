@@ -1,0 +1,15 @@
+name: Namespace args - override
+problemId: 2502
+description: declares its own GREETING arg, which should win over the namespace default
+cooldown: 0
+args:
+  GREETING: from-problem
+stages:
+  main:
+    score: 100
+    testcases:
+      - name: greet
+        files:
+          - greet.sh.tmpl
+        scripts:
+          - bash greet.sh.tmpl

@@ -1,6 +1,7 @@
 package get
 
 import (
+	"context"
 	"io"
 	"os"
 	"sort"
@@ -42,6 +43,11 @@ var problemsCmd = &cobra.Command{
 	Short: "Get problems",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
+
+		if viper.GetBool("detail") {
+			runProblemsDetail(ctx)
+			return
+		}
 
 		var res []api.ProblemOutput
 		utils.RestyBuilder(ctx, "/api/admin/problems",
@@ -103,7 +109,55 @@ var problemsCmd = &cobra.Command{
 	},
 }
 
+// runProblemsDetail fetches every field of every problem (subject to the
+// same latest-3-per-problemId-unless---all filter as the summary view) and
+// dumps them as-is, without reshaping into the trimmed problemResult.
+func runProblemsDetail(ctx context.Context) {
+	var res []api.ProblemDetailOutput
+	utils.RestyBuilder(ctx, "/api/admin/problems",
+		func(r *resty.Request) *resty.Request {
+			return r.
+				SetQueryParam("detail", "true").
+				SetResult(&res).
+				ForceContentType("application/json")
+		})
+
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].ImportedAt > res[j].ImportedAt
+	})
+	filter := make(map[int64][]api.ProblemDetailOutput)
+	for _, problem := range res {
+		if !viper.GetBool("all") && len(filter[problem.ProblemId]) >= 3 {
+			continue
+		}
+		filter[problem.ProblemId] = append(filter[problem.ProblemId], problem)
+	}
+
+	var ret []api.ProblemDetailOutput
+	for _, problems := range filter {
+		ret = append(ret, problems...)
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].ProblemId < ret[j].ProblemId ||
+			(ret[i].ProblemId == ret[j].ProblemId &&
+				ret[i].ImportedAt < ret[j].ImportedAt)
+	})
+
+	b, err := yaml.Marshal(ret)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Panic("failed to marshal problem details to yaml",
+				zap.Error(err))
+		panic(err)
+	}
+	io.WriteString(os.Stdout, string(b[:]))
+}
+
 func init() {
 	problemsCmd.Flags().
 		BoolP("all", "a", false, "Show all problems")
+	problemsCmd.Flags().
+		BoolP("detail", "d", false,
+			"Show the full problem definition (every field, including "+
+				"testcase file hashes) instead of the summary")
 }

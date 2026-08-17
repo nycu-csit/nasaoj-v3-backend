@@ -85,6 +85,15 @@ func (self *Handlers) PostScheduleMarshalJob(
 		}
 	}
 
+	namespace, err := self.namespaces.GetNamespace(ctx, submission.NamespaceId)
+	if err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Message:     "failed to get namespace",
+			OriginError: err,
+		}
+	}
+
 	var (
 		contents []models.Content
 		job      models.Job
@@ -163,6 +172,7 @@ func (self *Handlers) PostScheduleMarshalJob(
 		injected["jobInput"] = job.Id() + ".input"
 		injected["jobScript"] = job.Id() + ".bash"
 		args = utils.ArgsOverlay(
+			namespace.Args,
 			submission.Args,
 			problem.Args,
 			stage.Args,
@@ -216,6 +226,7 @@ func (self *Handlers) PostScheduleMarshalJob(
 		injected["jobInput"] = job.Id() + ".input"
 		injected["jobScript"] = job.Id() + ".bash"
 		args = utils.ArgsOverlay(
+			namespace.Args,
 			submission.Args,
 			tool.Args,
 			tool.Testcase.Args,

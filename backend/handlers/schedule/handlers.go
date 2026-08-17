@@ -13,6 +13,7 @@ type Handlers struct {
 	contents    interfaces.ContentFileStorage
 	submissions interfaces.SubmissionStorage
 	subQueue    interfaces.SubmissionQueueStorage
+	namespaces  interfaces.NamespaceStorage
 
 	// Resource-group locks and worker status/lease bookkeeping: Redis in
 	// multi-node mode, in-process stores in --single-node mode.
@@ -36,6 +37,7 @@ func NewHandlers(
 		contents:    db,
 		submissions: db,
 		subQueue:    db,
+		namespaces:  db,
 
 		jobQue:  jobQue,
 		workers: workers,

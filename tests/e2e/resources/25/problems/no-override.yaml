@@ -1,0 +1,13 @@
+name: Namespace args - no override
+problemId: 2501
+description: declares no problem-level GREETING arg, so the job should see the namespace default
+cooldown: 0
+stages:
+  main:
+    score: 100
+    testcases:
+      - name: greet
+        files:
+          - greet.sh.tmpl
+        scripts:
+          - bash greet.sh.tmpl

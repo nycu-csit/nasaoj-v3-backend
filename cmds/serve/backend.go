@@ -213,7 +213,7 @@ var backendCmd = &cobra.Command{
 		apiReadGroup.GET("/scores/sum",
 			apiHandlers.GetScoreSum)
 		apiReadGroup.GET("/problem",
-			apiHandlers.GetProblem)
+			apiHandlers.GetProblem(false))
 		apiReadGroup.GET("/problems",
 			apiHandlers.GetProblems(false))
 		apiReadGroup.GET("/tool",
@@ -284,6 +284,8 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetSubmissions(true))
 		apiAdminReadGroup.GET("/results",
 			apiHandlers.GetResults(true))
+		apiAdminReadGroup.GET("/problem",
+			apiHandlers.GetProblem(true))
 		apiAdminReadGroup.GET("/problems",
 			apiHandlers.GetProblems(true))
 		apiAdminReadGroup.GET("/tools",

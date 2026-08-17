@@ -13,6 +13,8 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
+var problemDetail bool
+
 var problemCmd = &cobra.Command{
 	Use:   "problem [sha1]",
 	Short: "Get problem",
@@ -20,16 +22,26 @@ var problemCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 
-		var output api.ProblemOutput
-		utils.RestyBuilder(ctx, "/api/problem",
+		var out any
+		if problemDetail {
+			out = &api.ProblemDetailOutput{}
+		} else {
+			out = &api.ProblemOutput{}
+		}
+
+		utils.RestyBuilder(ctx, "/api/admin/problem",
 			func(r *resty.Request) *resty.Request {
-				return r.
+				r = r.
 					SetQueryParam("problemSHA1", args[0]).
-					SetResult(&output).
+					SetResult(out).
 					ForceContentType("application/json")
+				if problemDetail {
+					r = r.SetQueryParam("detail", "true")
+				}
+				return r
 			})
 
-		b, err := yaml.Marshal(output)
+		b, err := yaml.Marshal(out)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to marshal output to yaml",
@@ -38,4 +50,10 @@ var problemCmd = &cobra.Command{
 		}
 		io.WriteString(os.Stdout, string(b[:]))
 	},
+}
+
+func init() {
+	problemCmd.Flags().BoolVarP(&problemDetail, "detail", "d", false,
+		"Show the full problem definition (every field, including "+
+			"testcase file hashes) instead of the summary")
 }
