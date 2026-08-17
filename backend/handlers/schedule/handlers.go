@@ -14,8 +14,9 @@ type Handlers struct {
 	submissions interfaces.SubmissionStorage
 	subQueue    interfaces.SubmissionQueueStorage
 
+	// Resource-group locks and worker status/lease bookkeeping: Redis in
+	// multi-node mode, in-process stores in --single-node mode.
 	jobQue  interfaces.JobQueue
-	tokens  interfaces.TokenStorage
 	workers interfaces.WorkerStatusStorage
 
 	s3 interfaces.ObjectStorage
@@ -23,7 +24,8 @@ type Handlers struct {
 
 func NewHandlers(
 	db *implements.Postgres,
-	kv *implements.Redis,
+	jobQue interfaces.JobQueue,
+	workers interfaces.WorkerStatusStorage,
 	s3 *implements.MinIO,
 ) *Handlers {
 	return &Handlers{
@@ -35,9 +37,8 @@ func NewHandlers(
 		submissions: db,
 		subQueue:    db,
 
-		jobQue:  kv,
-		tokens:  kv,
-		workers: kv,
+		jobQue:  jobQue,
+		workers: workers,
 
 		s3: s3,
 	}

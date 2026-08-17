@@ -8,11 +8,10 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 )
 
-type GetTokensOutput struct {
-	SHA256 string `json:"sha256"`
-
-	models.Token `json:",inline"`
-}
+// GetTokensOutput is kept as an alias to models.Token: the token itself now
+// carries its own SHA256 field (it's a real Postgres row, not a Redis hash
+// entry keyed by SHA256), so no separate wrapper is needed.
+type GetTokensOutput = models.Token
 
 // GetTokens
 //
@@ -36,13 +35,5 @@ func (self *Handlers) GetTokens(
 		}
 	}
 
-	ret := []GetTokensOutput{}
-	for key, token := range res {
-		ret = append(ret, GetTokensOutput{
-			SHA256: key,
-			Token:  token,
-		})
-	}
-
-	return bunrouter.JSON(w, ret)
+	return bunrouter.JSON(w, res)
 }

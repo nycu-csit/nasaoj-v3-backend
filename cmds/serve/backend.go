@@ -1,9 +1,11 @@
 package serve
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -26,6 +28,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cache"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/implements"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/interfaces"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
@@ -61,21 +64,57 @@ var backendCmd = &cobra.Command{
 		bunDB.AddQueryHook(bundebug.NewQueryHook())
 		bunDB.AddQueryHook(bunotel.NewQueryHook(bunotel.WithDBName("backend")))
 
-		// Initialize Redis instance
-		rdb := redis.NewClient(&redis.Options{
-			Addr:     viper.GetString("redis-host"),
-			Username: viper.GetString("redis-user"),
-			Password: viper.GetString("redis-pass"),
-			DB:       viper.GetInt("redis-db"),
-			MaintNotificationsConfig: &maintnotifications.Config{
-				Mode: maintnotifications.ModeDisabled,
-			},
-		})
-		if err := redisotel.InstrumentTracing(rdb); err != nil {
-			tracing.Logger.Ctx(ctx).
-				Error("failed to instrument tracing on redisotel",
-					zap.Error(err))
-			panic(err)
+		// Initialize Redis instance, unless running --single-node. Resource-
+		// group locks and worker status/lease bookkeeping need to be shared
+		// across backend/worker processes, which only Redis can do; a
+		// single-node deployment instead uses an in-process store
+		// (implements.Local) for those, and Postgres-only caching.
+		singleNode := viper.GetBool("single-node")
+
+		var cacheOpt cache.Options
+		var jobQueue interfaces.JobQueue
+		var workerStore interfaces.WorkerStatusStorage
+
+		if singleNode {
+			local := implements.NewLocal()
+			jobQueue = local
+			workerStore = local
+			cacheOpt.LocalCache = cache.NewTinyLFU(10000, 5*time.Minute)
+		} else {
+			rdb := redis.NewClient(&redis.Options{
+				Addr:     viper.GetString("redis-host"),
+				Username: viper.GetString("redis-user"),
+				Password: viper.GetString("redis-pass"),
+				DB:       viper.GetInt("redis-db"),
+				MaintNotificationsConfig: &maintnotifications.Config{
+					Mode: maintnotifications.ModeDisabled,
+				},
+			})
+			if err := redisotel.InstrumentTracing(rdb); err != nil {
+				tracing.Logger.Ctx(ctx).
+					Error("failed to instrument tracing on redisotel",
+						zap.Error(err))
+				panic(err)
+			}
+
+			pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			pingErr := rdb.Ping(pingCtx).Err()
+			cancel()
+			if pingErr != nil {
+				tracing.Logger.Ctx(ctx).
+					Panic("redis is required for multi-node deployments "+
+						"(resource-group locks and worker-status coordination "+
+						"need to be shared across backend/worker processes); "+
+						"pass --single-node (or set SINGLE_NODE=true) to run "+
+						"a single backend without Redis",
+						zap.Error(pingErr))
+				panic(pingErr)
+			}
+
+			kv := implements.NewRedis(rdb)
+			jobQueue = kv
+			workerStore = kv
+			cacheOpt.Redis = rdb
 		}
 
 		// Initialize MinIO instance
@@ -102,19 +141,32 @@ var backendCmd = &cobra.Command{
 		}
 
 		// Initialize custom interfaces
-		db := implements.NewPostgres(bunDB,
-			&cache.Options{Redis: rdb})
+		db := implements.NewPostgres(bunDB, &cacheOpt)
 		s3 := implements.NewMinIO(mc)
-		kv := implements.NewRedis(rdb)
 
-		if viper.GetString("admin-token") != "" {
-			if err := kv.SetAdminToken(
-				ctx, viper.GetString("admin-token")); err != nil {
-				tracing.Logger.Ctx(ctx).
-					Error("failed to set admin token",
-						zap.Error(err))
-				panic(err)
-			}
+		// Bootstrapping the admin token now writes to Postgres (the token
+		// table), which may not exist yet if migrations haven't run - e.g. a
+		// fresh deployment where this container starts before `judge migrate
+		// up` does. Retry in the background instead of blocking startup /
+		// crash-looping the process on it.
+		if adminToken := viper.GetString("admin-token"); adminToken != "" {
+			go func() {
+				for {
+					err := db.SetAdminToken(ctx, adminToken)
+					if err == nil {
+						return
+					}
+					tracing.Logger.Ctx(ctx).
+						Warn("failed to set admin token, retrying",
+							zap.Error(err))
+
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(time.Second):
+					}
+				}
+			}()
 		}
 
 		// Initialize backend router
@@ -142,16 +194,16 @@ var backendCmd = &cobra.Command{
 		authGroup.POST("/login/plain",
 			authHandlers.PostLoginPlain)
 		authGroup.PUT("/logout",
-			middlewares.CheckAuth(db, kv)(
+			middlewares.CheckAuth(db, db)(
 				authHandlers.PutLogout))
 		authGroup.GET("/callback",
 			authHandlers.GetCallback)
 
-		apiHandlers := api.NewHandlers(db, kv, s3)
+		apiHandlers := api.NewHandlers(db, workerStore, s3)
 		backend.GET("/api/healthz",
 			apiHandlers.GetHealthz)
 		apiGroup := backend.NewGroup("/api").
-			Use(middlewares.CheckAuth(db, kv))
+			Use(middlewares.CheckAuth(db, db))
 
 		apiReadGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
@@ -288,9 +340,9 @@ var backendCmd = &cobra.Command{
 		apiNsAdminGroup.GET("/namespace/users",
 			apiHandlers.GetNamespaceUsers)
 
-		scheduleHandlers := schedule.NewHandlers(db, kv, s3)
+		scheduleHandlers := schedule.NewHandlers(db, jobQueue, workerStore, s3)
 		scheduleGroup := backend.NewGroup("/schedule").
-			Use(middlewares.CheckAuth(db, kv)).
+			Use(middlewares.CheckAuth(db, db)).
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanScheduleAPI: models.ScopeAll,
 			}))
@@ -304,7 +356,7 @@ var backendCmd = &cobra.Command{
 			scheduleHandlers.PostScheduleHeartbeat)
 
 		// Start cron jobs
-		go crons.CheckWorkerStatus(ctx, kv, db)
+		go crons.CheckWorkerStatus(ctx, workerStore, db)
 		// Submission-level lease reclaim supersedes per-job orphan cleanup.
 		go crons.ReclaimSubmissions(ctx, db, db)
 
@@ -362,6 +414,12 @@ func init() {
 			"Postgres connection string")
 
 	// Redis
+	backendCmd.Flags().
+		Bool("single-node", false,
+			"Run without Redis: resource-group locks and worker status "+
+				"become process-local, and caching is process-local instead "+
+				"of shared. Only correct with exactly one backend process; "+
+				"required when Redis isn't configured (env SINGLE_NODE).")
 	backendCmd.Flags().
 		String("redis-host", "127.0.0.1:6379", "Redis host[:port]")
 	backendCmd.Flags().

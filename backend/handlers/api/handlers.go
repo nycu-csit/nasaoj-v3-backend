@@ -15,11 +15,11 @@ type Handlers struct {
 	jobs        interfaces.JobStorage
 	scores      interfaces.ScoreStorage
 	namespaces  interfaces.NamespaceStorage
+	tokens      interfaces.TokenStorage
 
-	// KV-Storage only
-	jobQue  interfaces.JobQueue
+	// Worker status/lease bookkeeping: Redis in multi-node mode, an
+	// in-process store in --single-node mode.
 	workers interfaces.WorkerStatusStorage
-	tokens  interfaces.TokenStorage
 
 	// Object Storage
 	s3 interfaces.ObjectStorage
@@ -27,7 +27,7 @@ type Handlers struct {
 
 func NewHandlers(
 	db *implements.Postgres,
-	rdb *implements.Redis,
+	workers interfaces.WorkerStatusStorage,
 	s3 *implements.MinIO,
 ) *Handlers {
 	return &Handlers{
@@ -40,10 +40,9 @@ func NewHandlers(
 		jobs:        db,
 		scores:      db,
 		namespaces:  db,
+		tokens:      db,
 
-		jobQue:  rdb,
-		workers: rdb,
-		tokens:  rdb,
+		workers: workers,
 
 		s3: s3,
 	}
