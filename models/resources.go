@@ -21,10 +21,14 @@ type UserResource struct {
 	Id       int64             `json:"id" yaml:"id" bun:"id,pk,autoincrement"`
 	Username string            `json:"username" yaml:"username" bun:"username,unique"`
 	Args     map[string]string `json:"args" yaml:"args" bun:"args"`
-	IsAdmin  bool              `json:"isAdmin" yaml:"isAdmin" bun:"is_admin"`
+	IsAdmin  bool              `json:"isAdmin" yaml:"isAdmin" bun:"is_admin"` // global/super admin
 
 	Source   LoginSourceType `json:"source" yaml:"source" bun:"source"`
 	SourceId string          `json:"sourceId" yaml:"sourceId" bun:"source_id"`
+
+	// Namespace membership, hydrated from user_namespace (not stored on the row).
+	Namespaces []int64 `json:"namespaces" yaml:"namespaces" bun:"-"` // all namespaces the user is in
+	AdminIn    []int64 `json:"adminIn" yaml:"adminIn" bun:"-"`       // namespaces where the user is admin
 
 	PlainCred *PlainCred `json:"-" yaml:"-" bun:"rel:has-one,join:id=resource_id"`
 }

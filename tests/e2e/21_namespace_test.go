@@ -1,0 +1,460 @@
+package tests
+
+import (
+	"net/http"
+	"os/exec"
+	"strings"
+	"testing"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/spf13/viper"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
+)
+
+const (
+	nsB = "nsb"
+
+	nsAdminUser = "nsb-admin"
+	nsAdminPass = "nsb-admin-pass"
+	nsUserUser  = "nsb-user"
+	nsUserPass  = "nsb-user-pass"
+)
+
+var (
+	test21NsAdminId int64
+	test21NsUserId  int64
+)
+
+var test21NsbProblemSHA1 string
+
+func Test_21_1_Create_namespace(t *testing.T) {
+	resp, err := client.R().
+		SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+		SetBody(map[string]interface{}{
+			"name":  nsB,
+			"title": "Namespace B",
+		}).
+		Post("/api/admin/namespace")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("create namespace failed: %v (status %d) %s",
+			err, resp.StatusCode(), resp.String())
+	}
+}
+
+func Test_21_2_List_namespaces(t *testing.T) {
+	var namespaces []models.Namespace
+	resp, err := client.R().
+		SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+		SetResult(&namespaces).
+		Get("/api/admin/namespaces")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("list namespaces failed: %v %s", err, resp)
+	}
+
+	var foundDefault, foundNsb bool
+	for _, ns := range namespaces {
+		if ns.Name == "default" {
+			foundDefault = true
+		}
+		if ns.Name == nsB {
+			foundNsb = true
+		}
+	}
+	if !foundDefault || !foundNsb {
+		t.Fatalf("expected default and %s namespaces, got %+v", nsB, namespaces)
+	}
+}
+
+func Test_21_3_Import_problem_into_nsb(t *testing.T) {
+	cmd := exec.Command(
+		"judge", "admin", "import", "problems",
+		"--problems-dir", "resources/21/problems",
+		"--testcases-dir", "resources/21/testcases",
+		"--namespace", nsB,
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("import into %s failed: %v\nstderr: %s", nsB, err, stderr.String())
+	}
+
+	for line := range strings.Lines(stdout.String()) {
+		fields := strings.Fields(line)
+		if len(fields) > 0 {
+			test21NsbProblemSHA1 = fields[0]
+			break
+		}
+	}
+	if test21NsbProblemSHA1 == "" {
+		t.Fatalf("no sha1 returned from import: %q", stdout.String())
+	}
+
+	// Enable it.
+	enable := exec.Command(
+		"judge", "admin", "enable", "problem", test21NsbProblemSHA1,
+		"--namespace", nsB,
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+	var estderr strings.Builder
+	enable.Stderr = &estderr
+	if err := enable.Run(); err != nil {
+		t.Fatalf("enable in %s failed: %v\nstderr: %s", nsB, err, estderr.String())
+	}
+}
+
+func Test_21_4_Problem_visible_in_nsb_only(t *testing.T) {
+	// In nsb: problem 2101 is visible.
+	var nsbProblems []api.ProblemOutput
+	resp, err := client.R().
+		SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+		SetHeader("X-Namespace", nsB).
+		SetResult(&nsbProblems).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("get problems (nsb) failed: %v %s", err, resp)
+	}
+	if !containsProblemId(nsbProblems, 2101) {
+		t.Fatalf("expected problem 2101 in %s, got %+v", nsB, nsbProblems)
+	}
+
+	// In default: problem 2101 must NOT be visible.
+	var defaultProblems []api.ProblemOutput
+	resp, err = client.R().
+		SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+		SetHeader("X-Namespace", "default").
+		SetResult(&defaultProblems).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("get problems (default) failed: %v %s", err, resp)
+	}
+	if containsProblemId(defaultProblems, 2101) {
+		t.Fatalf("problem 2101 leaked into default namespace")
+	}
+}
+
+func Test_21_5_Scoreboard_per_namespace(t *testing.T) {
+	for _, ns := range []string{"default", nsB} {
+		var board []models.ScoreboardEntry
+		resp, err := client.R().
+			SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+			SetHeader("X-Namespace", ns).
+			SetResult(&board).
+			Get("/api/scores/sum")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			t.Fatalf("score sum (%s) failed: %v %s", ns, err, resp)
+		}
+		t.Logf("score sum[%s]: %d entries", ns, len(board))
+	}
+}
+
+func containsProblemId(problems []api.ProblemOutput, id int64) bool {
+	for _, p := range problems {
+		if p.ProblemId == id {
+			return true
+		}
+	}
+	return false
+}
+
+// adminReq returns a request authenticated with the global admin token.
+func adminReq() *resty.Request {
+	return client.R().
+		SetHeader("Authorization", "Bearer "+viper.GetString("admin-token"))
+}
+
+// loginPlain logs in a plain user and returns a client carrying its session.
+func loginPlain(t *testing.T, username, password string) *resty.Client {
+	t.Helper()
+	c := resty.New()
+	c.SetBaseURL("http://localhost:8080")
+	c.SetRedirectPolicy(resty.NoRedirectPolicy())
+	c.OnSuccess(func(_ *resty.Client, r *resty.Response) {
+		for _, v := range r.Header().Values("Set-Cookie") {
+			if cookie, err := http.ParseSetCookie(v); err == nil {
+				c.SetCookie(cookie)
+			}
+		}
+	})
+
+	resp, err := c.R().
+		SetBody(map[string]string{"username": username, "password": password}).
+		Post("/auth/login/plain")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("login %s failed: %v (status %d) %s",
+			username, err, resp.StatusCode(), resp.String())
+	}
+	return c
+}
+
+func Test_21_6_Create_namespace_users(t *testing.T) {
+	stdin := strings.NewReader(`---
+- username: '` + nsAdminUser + `'
+  password: '` + nsAdminPass + `'
+- username: '` + nsUserUser + `'
+  password: '` + nsUserPass + `'
+`)
+	cmd := exec.Command(
+		"judge", "admin", "import", "users", "plain",
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+	cmd.Stdin = stdin
+	var out strings.Builder
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("failed to import namespace users: %v\n%s", err, out.String())
+	}
+
+	// Resolve their ids.
+	var users []struct {
+		Id       int64  `json:"id"`
+		Username string `json:"username"`
+	}
+	resp, err := adminReq().SetResult(&users).Get("/api/admin/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("get users failed: %v %s", err, resp)
+	}
+	for _, u := range users {
+		switch u.Username {
+		case nsAdminUser:
+			test21NsAdminId = u.Id
+		case nsUserUser:
+			test21NsUserId = u.Id
+		}
+	}
+	if test21NsAdminId == 0 || test21NsUserId == 0 {
+		t.Fatalf("namespace users not found (admin=%d user=%d)",
+			test21NsAdminId, test21NsUserId)
+	}
+}
+
+func Test_21_7_Add_users_to_nsb(t *testing.T) {
+	// nsb-admin: admin of nsb. nsb-user: plain member of nsb. Neither is in
+	// the default namespace, so they are namespace-scoped only.
+	resp, err := adminReq().
+		SetHeader("X-Namespace", nsB).
+		SetBody(map[string]interface{}{
+			"userIds": []int64{test21NsAdminId},
+			"isAdmin": true,
+		}).
+		Put("/api/admin/namespace/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("add nsb admin failed: %v %s", err, resp)
+	}
+
+	resp, err = adminReq().
+		SetHeader("X-Namespace", nsB).
+		SetBody(map[string]interface{}{
+			"userIds": []int64{test21NsUserId},
+			"isAdmin": false,
+		}).
+		Put("/api/admin/namespace/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("add nsb user failed: %v %s", err, resp)
+	}
+}
+
+func Test_21_8_Namespace_user_isolation(t *testing.T) {
+	c := loginPlain(t, nsUserUser, nsUserPass)
+
+	// Member of nsb: can list nsb problems.
+	var nsbProblems []api.ProblemOutput
+	resp, err := c.R().
+		SetHeader("X-Namespace", nsB).
+		SetResult(&nsbProblems).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("nsb-user get problems (nsb) failed: %v %s", err, resp)
+	}
+	if !containsProblemId(nsbProblems, 2101) {
+		t.Fatalf("nsb-user should see problem 2101 in %s", nsB)
+	}
+
+	// Not a member of default: must be forbidden.
+	resp, err = c.R().
+		SetHeader("X-Namespace", "default").
+		Get("/api/problems")
+	if err != nil {
+		t.Fatalf("nsb-user get problems (default) errored: %v", err)
+	}
+	if resp.StatusCode() != http.StatusForbidden {
+		t.Fatalf("nsb-user reading default namespace: expected 403, got %d %s",
+			resp.StatusCode(), resp.String())
+	}
+
+	// A plain member cannot manage namespace membership.
+	resp, err = c.R().
+		SetHeader("X-Namespace", nsB).
+		SetBody(map[string]interface{}{
+			"userIds": []int64{test21NsUserId},
+			"isAdmin": true,
+		}).
+		Put("/api/admin/namespace/users")
+	if err != nil {
+		t.Fatalf("nsb-user manage members errored: %v", err)
+	}
+	if resp.StatusCode() != http.StatusForbidden {
+		t.Fatalf("nsb-user managing members: expected 403, got %d",
+			resp.StatusCode())
+	}
+}
+
+func Test_21_9_Namespace_admin_scope(t *testing.T) {
+	c := loginPlain(t, nsAdminUser, nsAdminPass)
+
+	// Admin of nsb: can manage nsb membership.
+	resp, err := c.R().
+		SetHeader("X-Namespace", nsB).
+		SetBody(map[string]interface{}{
+			"userIds": []int64{test21NsUserId},
+			"isAdmin": false,
+		}).
+		Put("/api/admin/namespace/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("nsb-admin manage members (nsb) failed: %v %s", err, resp)
+	}
+
+	// Not an admin of default: forbidden there.
+	resp, err = c.R().
+		SetHeader("X-Namespace", "default").
+		SetBody(map[string]interface{}{
+			"userIds": []int64{test21NsUserId},
+			"isAdmin": false,
+		}).
+		Put("/api/admin/namespace/users")
+	if err != nil {
+		t.Fatalf("nsb-admin manage members (default) errored: %v", err)
+	}
+	if resp.StatusCode() != http.StatusForbidden {
+		t.Fatalf("nsb-admin managing default members: expected 403, got %d",
+			resp.StatusCode())
+	}
+
+	// Namespace admin is not a global admin: cannot create namespaces.
+	resp, err = c.R().
+		SetBody(map[string]interface{}{"name": "nsc", "title": "Namespace C"}).
+		Post("/api/admin/namespace")
+	if err != nil {
+		t.Fatalf("nsb-admin create namespace errored: %v", err)
+	}
+	if resp.StatusCode() != http.StatusForbidden {
+		t.Fatalf("nsb-admin creating namespace: expected 403, got %d",
+			resp.StatusCode())
+	}
+}
+
+func Test_21_10_Multi_namespace_read(t *testing.T) {
+	// Import a distinct problem (2102) into the default namespace.
+	cmd := exec.Command(
+		"judge", "admin", "import", "problems",
+		"--problems-dir", "resources/22/problems",
+		"--testcases-dir", "resources/22/testcases",
+		"--namespace", "default",
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("import into default failed: %v\n%s", err, stderr.String())
+	}
+	var sha1 string
+	for line := range strings.Lines(stdout.String()) {
+		if fields := strings.Fields(line); len(fields) > 0 {
+			sha1 = fields[0]
+			break
+		}
+	}
+	enable := exec.Command(
+		"judge", "admin", "enable", "problem", sha1,
+		"--namespace", "default",
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+	if err := enable.Run(); err != nil {
+		t.Fatalf("enable in default failed: %v", err)
+	}
+
+	// Make nsb-user a member of default as well, so it spans two namespaces.
+	resp, err := adminReq().
+		SetHeader("X-Namespace", "default").
+		SetBody(map[string]interface{}{
+			"userIds": []int64{test21NsUserId},
+			"isAdmin": false,
+		}).
+		Put("/api/admin/namespace/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("add nsb-user to default failed: %v %s", err, resp)
+	}
+
+	// Re-login to pick up the new membership in the access token.
+	c := loginPlain(t, nsUserUser, nsUserPass)
+
+	// Explicit multi-namespace list: both problems are visible.
+	var both []api.ProblemOutput
+	resp, err = c.R().
+		SetHeader("X-Namespace", "default,"+nsB).
+		SetResult(&both).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("multi-namespace get problems failed: %v %s", err, resp)
+	}
+	if !containsProblemId(both, 2101) || !containsProblemId(both, 2102) {
+		t.Fatalf("expected both 2101 (nsb) and 2102 (default), got %+v", both)
+	}
+
+	// "*" derives all of the caller's namespaces from the JWT.
+	var star []api.ProblemOutput
+	resp, err = c.R().
+		SetHeader("X-Namespace", "*").
+		SetResult(&star).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("wildcard get problems failed: %v %s", err, resp)
+	}
+	if !containsProblemId(star, 2101) || !containsProblemId(star, 2102) {
+		t.Fatalf("wildcard expected both 2101 and 2102, got %+v", star)
+	}
+
+	// Single namespace still scopes to just that namespace.
+	var nsbOnly []api.ProblemOutput
+	resp, err = c.R().
+		SetHeader("X-Namespace", nsB).
+		SetResult(&nsbOnly).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("nsb-only get problems failed: %v %s", err, resp)
+	}
+	if !containsProblemId(nsbOnly, 2101) || containsProblemId(nsbOnly, 2102) {
+		t.Fatalf("nsb-only should have 2101 but not 2102, got %+v", nsbOnly)
+	}
+}
+
+func Test_21_11_Remove_namespace_user(t *testing.T) {
+	// Remove nsb-user from nsb via DELETE.
+	resp, err := adminReq().
+		SetHeader("X-Namespace", nsB).
+		SetBody(map[string]interface{}{
+			"userIds": []int64{test21NsUserId},
+		}).
+		Delete("/api/admin/namespace/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("delete nsb member failed: %v %s", err, resp)
+	}
+
+	// After removal (re-login to refresh membership), nsb is no longer readable.
+	c := loginPlain(t, nsUserUser, nsUserPass)
+	resp, err = c.R().
+		SetHeader("X-Namespace", nsB).
+		Get("/api/problems")
+	if err != nil {
+		t.Fatalf("removed user get problems errored: %v", err)
+	}
+	if resp.StatusCode() != http.StatusForbidden {
+		t.Fatalf("removed user reading nsb: expected 403, got %d %s",
+			resp.StatusCode(), resp.String())
+	}
+}

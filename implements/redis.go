@@ -155,16 +155,16 @@ func (self *Redis) GetTokens(
 	return ret, nil
 }
 
-func (self *Redis) GetPrivs(
+func (self *Redis) GetToken(
 	ctx context.Context,
 	token string,
-) (models.Privileges, error) {
+) (models.Token, error) {
 	h := sha256.Sum256([]byte(token))
 	key := hex.EncodeToString(h[:])
 
 	res, err := self.rdb.HGet(ctx, tokenKey, key).Result()
 	if err != nil {
-		return models.Privileges{}, err
+		return models.Token{}, err
 	}
 
 	var ret models.Token
@@ -172,12 +172,9 @@ func (self *Redis) GetPrivs(
 		tracing.Logger.Ctx(ctx).
 			Error("failed to unmarshal json to token",
 				zap.Error(err))
-		return models.Privileges{}, err
+		return models.Token{}, err
 	}
-	if !ret.IsEnabled {
-		return models.Privileges{}, nil
-	}
-	return ret.Privs, nil
+	return ret, nil
 }
 
 func (self *Redis) SetAdminToken(
@@ -188,9 +185,10 @@ func (self *Redis) SetAdminToken(
 	key := hex.EncodeToString(h[:])
 
 	b, err := json.Marshal(models.Token{
-		Privs:     models.NewAdminPrivs(0),
-		IsEnabled: true,
-		CreatedAt: time.Now().Unix(),
+		Description: "bootstrap admin token (--admin-token)",
+		Privs:       models.NewAdminPrivs(0),
+		IsEnabled:   true,
+		CreatedAt:   time.Now().Unix(),
 	})
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -209,6 +207,8 @@ func (self *Redis) SetAdminToken(
 func (self *Redis) GenerateTokenWithoutExpire(
 	ctx context.Context,
 	privs models.Privileges,
+	userId int64,
+	description string,
 ) (string, error) {
 	token, err := utils.RandomString(48)
 	if err != nil {
@@ -219,9 +219,11 @@ func (self *Redis) GenerateTokenWithoutExpire(
 	key := hex.EncodeToString(h[:])
 
 	b, err := json.Marshal(models.Token{
-		Privs:     privs,
-		IsEnabled: true,
-		CreatedAt: time.Now().Unix(),
+		UserId:      userId,
+		Description: description,
+		Privs:       privs,
+		IsEnabled:   true,
+		CreatedAt:   time.Now().Unix(),
 	})
 	if err != nil {
 		tracing.Logger.Ctx(ctx).
@@ -240,6 +242,8 @@ func (self *Redis) GenerateTokenWithoutExpire(
 func (self *Redis) GenerateToken(
 	ctx context.Context,
 	privs models.Privileges,
+	userId int64,
+	description string,
 	duration time.Duration,
 ) (string, error) {
 	token, err := utils.RandomString(48)
@@ -251,9 +255,11 @@ func (self *Redis) GenerateToken(
 	key := hex.EncodeToString(h[:])
 
 	b, err := json.Marshal(models.Token{
-		Privs:     privs,
-		IsEnabled: true,
-		CreatedAt: time.Now().Unix(),
+		UserId:      userId,
+		Description: description,
+		Privs:       privs,
+		IsEnabled:   true,
+		CreatedAt:   time.Now().Unix(),
 	})
 	if err != nil {
 		tracing.Logger.Ctx(ctx).

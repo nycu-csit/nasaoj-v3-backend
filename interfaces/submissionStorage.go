@@ -21,6 +21,7 @@ type SubmissionStorage interface {
 
 	GetSubmissionsAndCount(
 		ctx context.Context,
+		namespaceIds []int64,
 		id int64,
 		isOwnerId bool,
 		pageNum int,

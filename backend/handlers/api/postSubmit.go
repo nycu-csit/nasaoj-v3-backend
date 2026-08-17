@@ -152,6 +152,16 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 
+			// The problem must belong to one of the requested namespaces.
+			if !slices.Contains(
+				middlewares.NamespaceIdsFromContext(ctx), problem.NamespaceId) {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusNotFound,
+					Message:    "problem not in namespace",
+				}
+			}
+			namespaceId := problem.NamespaceId
+
 			if !isAdmin {
 				// Check last submission
 				lastSubmit, err := self.submissions.GetLastSubmission(ctx,
@@ -204,6 +214,7 @@ func (self *Handlers) PostSubmit(
 			}
 
 			submission = models.Submission{
+				NamespaceId: namespaceId,
 				ProblemSHA1: input.RefSHA1,
 				ProblemId:   problem.ProblemId,
 				Type:        models.RefTypeProblem,
@@ -244,6 +255,16 @@ func (self *Handlers) PostSubmit(
 					Message:    "tool not enabled",
 				}
 			}
+
+			// The tool must belong to one of the requested namespaces.
+			if !slices.Contains(
+				middlewares.NamespaceIdsFromContext(ctx), tool.NamespaceId) {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusNotFound,
+					Message:    "tool not in namespace",
+				}
+			}
+			namespaceId := tool.NamespaceId
 
 			if !isAdmin {
 				// Check last submission
@@ -304,9 +325,10 @@ func (self *Handlers) PostSubmit(
 			}
 
 			submission = models.Submission{
-				ToolSHA1: input.RefSHA1,
-				ToolId:   tool.ToolId,
-				Type:     models.RefTypeTool,
+				NamespaceId: namespaceId,
+				ToolSHA1:    input.RefSHA1,
+				ToolId:      tool.ToolId,
+				Type:        models.RefTypeTool,
 
 				OwnerId:   resource.Id,
 				CreatedAt: time.Now().Unix(),

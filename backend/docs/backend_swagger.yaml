@@ -14,16 +14,35 @@ definitions:
       type:
         type: integer
     type: object
+  api.DeleteNamespaceUsersInput:
+    properties:
+      userIds:
+        items:
+          type: integer
+        type: array
+    type: object
   api.GetTokensOutput:
     properties:
       createdAt:
         type: integer
+      description:
+        description: |-
+          Description is required at issuance time so `judge admin get tokens`
+          can tell tokens apart without decoding the secret itself.
+        type: string
       isEnabled:
         type: boolean
       privs:
         $ref: '#/definitions/models.Privileges'
       sha256:
         type: string
+      userId:
+        description: |-
+          UserId binds the token to a user: Privs/namespace membership are
+          resolved live from that user on every request instead of the values
+          below, which are then just informational. Zero for static
+          (admin/worker) tokens, where Privs is authoritative.
+        type: integer
     type: object
   api.GetWorkerStatesOutput:
     properties:
@@ -49,10 +68,32 @@ definitions:
       isAdmin:
         type: boolean
     type: object
+  api.PostNamespaceInput:
+    properties:
+      metadata:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      title:
+        type: string
+    type: object
   api.PostTokenInput:
     properties:
+      description:
+        description: |-
+          Description is required: it's how `judge admin get tokens` tells
+          tokens apart without decoding the secret itself.
+        type: string
       tokenType:
         type: string
+      userId:
+        description: |-
+          UserId is required when TokenType is "user": the token's privileges
+          and namespace membership are resolved live from this user on every
+          request.
+        type: integer
     type: object
   api.PostTokenOutput:
     properties:
@@ -112,6 +153,22 @@ definitions:
         type: string
       sha1:
         type: string
+    type: object
+  api.PutNamespaceStateInput:
+    properties:
+      id:
+        type: integer
+      isEnabled:
+        type: boolean
+    type: object
+  api.PutNamespaceUsersInput:
+    properties:
+      isAdmin:
+        type: boolean
+      userIds:
+        items:
+          type: integer
+        type: array
     type: object
   api.PutProblemStateInput:
     properties:
@@ -497,6 +554,9 @@ definitions:
         type: string
       jobFileUrl:
         type: string
+      namespaceId:
+        description: Metadata
+        type: integer
       refFileUrl:
         type: string
       refSHA1:
@@ -511,9 +571,7 @@ definitions:
       stageName:
         type: string
       status:
-        allOf:
-        - $ref: '#/definitions/models.JobStatus'
-        description: Metadata
+        $ref: '#/definitions/models.JobStatus'
       stderr:
         type: string
       stdout:
@@ -558,6 +616,23 @@ definitions:
     x-enum-varnames:
     - LoginSourcePlain
     - LoginSourceCSSSO
+  models.Namespace:
+    properties:
+      createdAt:
+        type: integer
+      id:
+        type: integer
+      isEnabled:
+        type: boolean
+      metadata:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        type: string
+      title:
+        type: string
+    type: object
   models.Privileges:
     properties:
       canAPIRead:
@@ -589,6 +664,8 @@ definitions:
         type: boolean
       name:
         type: string
+      namespaceId:
+        type: integer
       postScript:
         $ref: '#/definitions/models.Content'
       preScript:
@@ -641,6 +718,21 @@ definitions:
     x-enum-varnames:
     - ScoreOutputTypeLatest
     - ScoreOutputTypeHighest
+  models.ScoreboardEntry:
+    properties:
+      id:
+        type: integer
+      problems:
+        additionalProperties:
+          format: int64
+          type: integer
+        description: problemId -> score
+        type: object
+      total:
+        type: integer
+      username:
+        type: string
+    type: object
   models.Stage:
     properties:
       args:
@@ -680,6 +772,8 @@ definitions:
         items:
           $ref: '#/definitions/models.Job'
         type: array
+      namespaceId:
+        type: integer
       ownerId:
         type: integer
       problemId:
@@ -741,6 +835,8 @@ definitions:
         type: boolean
       name:
         type: string
+      namespaceId:
+        type: integer
       postScript:
         $ref: '#/definitions/models.Content'
       preScript:
@@ -759,8 +855,22 @@ definitions:
       type:
         $ref: '#/definitions/types.ToolInputTypeType'
     type: object
+  models.UserNamespace:
+    properties:
+      isAdmin:
+        type: boolean
+      namespaceId:
+        type: integer
+      userId:
+        type: integer
+    type: object
   models.UserResource:
     properties:
+      adminIn:
+        description: namespaces where the user is admin
+        items:
+          type: integer
+        type: array
       args:
         additionalProperties:
           type: string
@@ -768,7 +878,14 @@ definitions:
       id:
         type: integer
       isAdmin:
+        description: global/super admin
         type: boolean
+      namespaces:
+        description: Namespace membership, hydrated from user_namespace (not stored
+          on the row).
+        items:
+          type: integer
+        type: array
       source:
         $ref: '#/definitions/models.LoginSourceType'
       sourceId:
@@ -906,6 +1023,171 @@ paths:
               $ref: '#/definitions/models.UserScore'
             type: array
       summary: Dump scores for a problem
+  /api/admin/namespace:
+    post:
+      consumes:
+      - application/json
+      description: Creates a namespace. Global admin only.
+      parameters:
+      - description: namespace
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PostNamespaceInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Namespace'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Create a namespace
+  /api/admin/namespace/state:
+    put:
+      consumes:
+      - application/json
+      description: Toggles a namespace's enabled state. Global admin only.
+      parameters:
+      - description: state
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PutNamespaceStateInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Enable or disable a namespace
+  /api/admin/namespace/users:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Removes users from the namespace in the X-Namespace header.
+        Global admin or admin of that namespace.
+      parameters:
+      - description: namespace name or id
+        in: header
+        name: X-Namespace
+        required: true
+        type: string
+      - description: members
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.DeleteNamespaceUsersInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: Remove namespace members
+    get:
+      description: |-
+        Lists members of the namespace from the X-Namespace header.
+        Global admin or admin of that namespace.
+      parameters:
+      - description: namespace name or id
+        in: header
+        name: X-Namespace
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserNamespace'
+            type: array
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: List namespace members
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Adds (or updates the admin flag of) users in the namespace
+        from the X-Namespace header. Global admin or admin of that
+        namespace.
+      parameters:
+      - description: namespace name or id
+        in: header
+        name: X-Namespace
+        required: true
+        type: string
+      - description: members
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PutNamespaceUsersInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: Add namespace members
+  /api/admin/namespaces:
+    get:
+      description: |-
+        Lists namespaces. Global admin sees all; a namespace admin
+        sees only the namespaces they administer.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Namespace'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: List namespaces
   /api/admin/problem:
     delete:
       description: Deletes a problem and its submissions by SHA1 prefix. Admin only.
@@ -1635,6 +1917,34 @@ paths:
           schema:
             type: string
       summary: Get scores
+  /api/scores/sum:
+    get:
+      description: |-
+        Per-user total score across all enabled problems in the
+        namespace (from the X-Namespace header), sorted descending.
+      parameters:
+      - description: namespace name or id
+        in: header
+        name: X-Namespace
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: score sums
+          schema:
+            items:
+              $ref: '#/definitions/models.ScoreboardEntry'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: Sum of scores in a namespace
   /api/stdout:
     get:
       description: Returns the stdout of one of the caller's own testcase results.

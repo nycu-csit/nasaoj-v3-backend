@@ -148,9 +148,10 @@ func (self *Handlers) PostScheduleMarshalJob(
 			problem.PostScript,
 		}
 		job = models.Job{
-			SubId:     submission.Id,
-			StageName: in.StageName,
-			TestName:  testcase.Name,
+			SubId:       submission.Id,
+			NamespaceId: submission.NamespaceId,
+			StageName:   in.StageName,
+			TestName:    testcase.Name,
 
 			Timeout:       testcase.Timeout,
 			GracePeriod:   testcase.GracePeriod,
@@ -201,9 +202,10 @@ func (self *Handlers) PostScheduleMarshalJob(
 			tool.PostScript,
 		}
 		job = models.Job{
-			SubId:     submission.Id,
-			StageName: "tool",
-			TestName:  tool.Testcase.Name,
+			SubId:       submission.Id,
+			NamespaceId: submission.NamespaceId,
+			StageName:   "tool",
+			TestName:    tool.Testcase.Name,
 
 			Input:   input,
 			Timeout: tool.Testcase.Timeout,

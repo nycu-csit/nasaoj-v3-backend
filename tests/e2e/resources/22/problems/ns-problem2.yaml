@@ -1,0 +1,14 @@
+---
+name: ns-problem2
+problemId: 2102
+description: Multi-namespace test problem (default namespace)
+cooldown: 0
+stages:
+  main:
+    testcases:
+      - name: echo
+        files:
+          - echo.sh
+        scripts:
+          - bash echo.sh
+    score: 100

@@ -21,6 +21,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/gen"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/get"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/imports"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/namespace"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/submit"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/cmds/admin/tests"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
@@ -209,6 +210,7 @@ var RootCmd = &cobra.Command{
 		client.AddRetryCondition(func(r *resty.Response, err error) bool {
 			return err != nil || !r.IsSuccess()
 		})
+		client.SetHeader("X-Namespace", viper.GetString("namespace"))
 
 		if viper.GetString("access-token") == "" {
 			// Use OIDC
@@ -246,6 +248,9 @@ func init() {
 	RootCmd.PersistentFlags().
 		String("access-token", "",
 			"The access token to use instead of oidc")
+	RootCmd.PersistentFlags().
+		StringP("namespace", "n", "default",
+			"Namespace to operate in (sent as the X-Namespace header)")
 
 	RootCmd.AddCommand(imports.RootCmd)
 	RootCmd.AddCommand(exports.RootCmd)
@@ -257,4 +262,5 @@ func init() {
 	RootCmd.AddCommand(submit.RootCmd)
 	RootCmd.AddCommand(cancel.RootCmd)
 	RootCmd.AddCommand(tests.RootCmd)
+	RootCmd.AddCommand(namespace.RootCmd)
 }

@@ -18,6 +18,7 @@ type SubmissionQueueItem struct {
 	bun.BaseModel `bun:"table:submission_queue"`
 
 	SubmissionId int64   `json:"submissionId" bun:"submission_id,pk"`
+	NamespaceId  int64   `json:"namespaceId" bun:"namespace_id"`
 	UserId       int64   `json:"userId" bun:"user_id"`
 	ProblemId    int64   `json:"problemId" bun:"problem_id"`
 	ProblemSHA1  string  `json:"problemSHA1" bun:"problem_sha1"`

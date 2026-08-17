@@ -14,6 +14,7 @@ type Handlers struct {
 	subQueue    interfaces.SubmissionQueueStorage
 	jobs        interfaces.JobStorage
 	scores      interfaces.ScoreStorage
+	namespaces  interfaces.NamespaceStorage
 
 	// KV-Storage only
 	jobQue  interfaces.JobQueue
@@ -38,6 +39,7 @@ func NewHandlers(
 		subQueue:    db,
 		jobs:        db,
 		scores:      db,
+		namespaces:  db,
 
 		jobQue:  rdb,
 		workers: rdb,

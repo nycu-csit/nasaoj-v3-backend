@@ -140,6 +140,7 @@ func (self *Handlers) GetSubmissions(
 		}
 
 		subs, count, err := self.submissions.GetSubmissionsAndCount(ctx,
+			middlewares.NamespaceIdsFromContext(ctx),
 			ownerId, isOwnerId,
 			pageNum, isPageNum, pageSize,
 			refId, isRefId,

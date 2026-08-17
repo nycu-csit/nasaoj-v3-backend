@@ -66,10 +66,13 @@ func (self *Handlers) PutProblems(
 		}
 	}
 
+	namespaceId := middlewares.NamespaceIdFromContext(ctx)
+
 	var res []PutProblemsOutputProblem
 	for _, input := range inputProblems {
 		problem := models.Problem{
 			ProblemId:       input.ProblemId,
+			NamespaceId:     namespaceId,
 			Name:            input.Name,
 			Description:     input.Description,
 			Spec:            input.Spec,

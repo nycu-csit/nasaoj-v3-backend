@@ -30,6 +30,7 @@ func Test_10_1_Gen_tokens(t *testing.T) {
 	t.Run("gen admin token", func(t *testing.T) {
 		cmd := exec.Command(
 			"judge", "admin", "gen", "token", "admin",
+			"--description", "e2e admin token",
 			"--access-token", viper.GetString("admin-token"),
 			"--endpoint", "http://localhost:8080")
 
@@ -54,6 +55,7 @@ func Test_10_1_Gen_tokens(t *testing.T) {
 	t.Run("gen worker token", func(t *testing.T) {
 		cmd := exec.Command(
 			"judge", "admin", "gen", "token", "worker",
+			"--description", "e2e worker token",
 			"--access-token", viper.GetString("admin-token"),
 			"--endpoint", "http://localhost:8080")
 

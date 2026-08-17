@@ -70,7 +70,8 @@ type Job struct {
 	TestName  string `json:"testName" bun:"test_name,pk"`
 
 	// Metadata
-	Status JobStatus `json:"status" bun:"status"`
+	NamespaceId int64     `json:"namespaceId" bun:"namespace_id"`
+	Status      JobStatus `json:"status" bun:"status"`
 
 	// On Schedule
 	Script        string `json:"script" bun:"script"`

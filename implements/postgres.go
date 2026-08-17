@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -290,9 +291,10 @@ func cacheProblemSHA1Key(
 }
 
 func cacheProblemIdKey(
+	namespaceId int64,
 	problemId int64,
 ) string {
-	return "problem-id-" + strconv.FormatInt(problemId, 10)
+	return fmt.Sprintf("problem-id-%d-%d", namespaceId, problemId)
 }
 
 func cacheProblemEnabledKey() string {
@@ -335,12 +337,14 @@ func (self *Postgres) GetProblem(
 
 func (self *Postgres) getProblemById(
 	ctx context.Context,
+	namespaceId int64,
 	problemId int64,
 ) (models.Problem, error) {
 	var ret models.ProblemMarshaled
 	err := self.db.NewSelect().
 		Model(&ret).
 		Where("problem_id = ?", problemId).
+		Where("namespace_id = ?", namespaceId).
 		Where("is_enabled = ?", true).
 		Limit(1).
 		Scan(ctx)
@@ -352,20 +356,21 @@ func (self *Postgres) getProblemById(
 
 func (self *Postgres) GetProblemById(
 	ctx context.Context,
+	namespaceId int64,
 	problemId int64,
 ) (models.Problem, error) {
 	if self.cache != nil {
 		var problem models.Problem
 		err := self.cache.Once(&cache.Item{
-			Key:   cacheProblemIdKey(problemId),
+			Key:   cacheProblemIdKey(namespaceId, problemId),
 			Value: &problem,
 			Do: func(*cache.Item) (interface{}, error) {
-				return self.getProblemById(ctx, problemId)
+				return self.getProblemById(ctx, namespaceId, problemId)
 			},
 		})
 		return problem, err
 	} else {
-		return self.getProblemById(ctx, problemId)
+		return self.getProblemById(ctx, namespaceId, problemId)
 	}
 }
 
@@ -489,12 +494,13 @@ func (self *Postgres) UpdateProblemState(
 ) error {
 	var sha1 string
 	var problemId int64
+	var namespaceId int64
 	if isEnabled {
 		err := self.db.RunInTx(ctx, &sql.TxOptions{},
 			func(ctx context.Context, tx bun.Tx) error {
 				var problem models.ProblemMarshaled
 				err := tx.NewSelect().
-					Column("sha1", "problem_id", "is_enabled").
+					Column("sha1", "problem_id", "namespace_id", "is_enabled").
 					Model(&problem).
 					Where("sha1 LIKE ?", sha1Prefix+"%").
 					Scan(ctx)
@@ -503,10 +509,12 @@ func (self *Postgres) UpdateProblemState(
 				}
 				sha1 = problem.SHA1
 				problemId = problem.ProblemId
+				namespaceId = problem.NamespaceId
 				_, err = tx.NewUpdate().
 					Model((*models.ProblemMarshaled)(nil)).
 					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
 					Where("problem_id = ?", problem.ProblemId).
+					Where("namespace_id = ?", problem.NamespaceId).
 					Exec(ctx)
 				return err
 			})
@@ -523,36 +531,39 @@ func (self *Postgres) UpdateProblemState(
 				Where("sha1 LIKE ?", sha1Prefix+"%").
 				Limit(1)).
 			Set("is_enabled = ?", false).
-			Returning("sha1", "problem_id").
+			Returning("sha1", "problem_id", "namespace_id").
 			Exec(ctx)
 		if err != nil {
 			return err
 		}
 		sha1 = problem.SHA1
 		problemId = problem.ProblemId
+		namespaceId = problem.NamespaceId
 	}
 	if self.cache != nil {
 		// Invalidate problem caches
 		pending := []string{
 			cacheProblemSHA1Key(sha1),
 			cacheProblemEnabledKey(),
+			cacheProblemIdKey(namespaceId, problemId),
 			// Invalidate score-related caches for this problem
 			// This is necessary when ScoreOutputType changes (e.g., latest -> highest)
-			cacheScoresKey(problemId),
-			cacheScoresWStagesKey(problemId),
-			cacheUsersKey(problemId),
+			cacheScoresKey(namespaceId, problemId),
+			cacheScoresWStagesKey(namespaceId, problemId),
+			cacheUsersKey(namespaceId, problemId),
+			cacheNamespaceScoreboardKey(namespaceId),
 		}
 
 		// Invalidate per-user score caches
-		users, err := self.getSubmittedUsers(ctx, problemId)
+		users, err := self.getSubmittedUsers(ctx, namespaceId, problemId)
 		if err != nil {
 			return err
 		}
 		for _, userId := range users {
 			pending = append(pending,
-				cacheUserScoresKey(problemId, userId),
-				cacheUserStageScoresKey(problemId, userId),
-				cacheUserHighestScoreKey(problemId, userId),
+				cacheUserScoresKey(namespaceId, problemId, userId),
+				cacheUserStageScoresKey(namespaceId, problemId, userId),
+				cacheUserHighestScoreKey(namespaceId, problemId, userId),
 			)
 		}
 
@@ -596,7 +607,7 @@ func (self *Postgres) DeleteProblemAndSubmissions(
 					Column("sha1").
 					Where("sha1 LIKE ?", sha1Prefix+"%").
 					Limit(1)).
-				Returning("sha1, problem_id").
+				Returning("sha1, problem_id, namespace_id").
 				Exec(ctx)
 			if err != nil {
 				return err
@@ -625,7 +636,7 @@ func (self *Postgres) DeleteProblemAndSubmissions(
 
 	if isDeleted && self.cache != nil {
 		if err := self.cache.Delete(ctx,
-			cacheProblemIdKey(problem.ProblemId)); err != nil {
+			cacheProblemIdKey(problem.NamespaceId, problem.ProblemId)); err != nil {
 			return err
 		}
 		if err := self.cache.Delete(ctx,
@@ -951,23 +962,35 @@ func (self *Postgres) DeleteToolAndSubmissions(
 	return nil
 }
 
+// Score cache keys are namespaced because problem_id is only unique within a
+// namespace.
+
 func cacheScoresKey(
+	namespaceId int64,
 	problemId int64,
 ) string {
-	return "scores-" + strconv.FormatInt(problemId, 10)
+	return fmt.Sprintf("scores-%d-%d", namespaceId, problemId)
+}
+
+func cacheNamespaceScoreboardKey(
+	namespaceId int64,
+) string {
+	return "scoreboard-" + strconv.FormatInt(namespaceId, 10)
 }
 
 func cacheScoresWStagesKey(
+	namespaceId int64,
 	problemId int64,
 ) string {
-	return "scores-w-stages-" + strconv.FormatInt(problemId, 10)
+	return fmt.Sprintf("scores-w-stages-%d-%d", namespaceId, problemId)
 }
 
 func cacheUserScoresKey(
+	namespaceId int64,
 	problemId int64,
 	id int64,
 ) string {
-	return "user-scores-" + strconv.FormatInt(problemId, 10) + "-" + strconv.FormatInt(id, 10)
+	return fmt.Sprintf("user-scores-%d-%d-%d", namespaceId, problemId, id)
 }
 
 func cacheSubmissionScoreKey(
@@ -977,23 +1000,26 @@ func cacheSubmissionScoreKey(
 }
 
 func cacheUsersKey(
+	namespaceId int64,
 	problemId int64,
 ) string {
-	return "users-" + strconv.FormatInt(problemId, 10)
+	return fmt.Sprintf("users-%d-%d", namespaceId, problemId)
 }
 
 func cacheUserStageScoresKey(
+	namespaceId int64,
 	problemId int64,
 	id int64,
 ) string {
-	return "user-stage-scores-" + strconv.FormatInt(problemId, 10) + "-" + strconv.FormatInt(id, 10)
+	return fmt.Sprintf("user-stage-scores-%d-%d-%d", namespaceId, problemId, id)
 }
 
 func cacheUserHighestScoreKey(
+	namespaceId int64,
 	problemId int64,
 	id int64,
 ) string {
-	return "user-highest-score-" + strconv.FormatInt(problemId, 10) + "-" + strconv.FormatInt(id, 10)
+	return fmt.Sprintf("user-highest-score-%d-%d-%d", namespaceId, problemId, id)
 }
 
 func (self *Postgres) getSubmissionScore(
@@ -1085,11 +1111,12 @@ func (self *Postgres) GetSubmissionScore(
 
 func (self *Postgres) getUserScoreWithStages(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 	id int64,
 ) (models.UserScoreWithStages, error) {
 	// Get the enabled problem to check ScoreOutputType
-	enabledProblem, err := self.GetProblemById(ctx, refId)
+	enabledProblem, err := self.GetProblemById(ctx, namespaceId, refId)
 	if err != nil {
 		return models.UserScoreWithStages{}, err
 	}
@@ -1100,14 +1127,15 @@ func (self *Postgres) getUserScoreWithStages(
 	}
 
 	if enabledProblem.ScoreOutputType == models.ScoreOutputTypeHighest {
-		return self.getUserHighestScoreWithStages(ctx, refId, id, enabledProblem, user)
+		return self.getUserHighestScoreWithStages(ctx, namespaceId, refId, id, enabledProblem, user)
 	}
 
-	return self.getUserLatestScoreWithStages(ctx, refId, id, user)
+	return self.getUserLatestScoreWithStages(ctx, namespaceId, refId, id, user)
 }
 
 func (self *Postgres) getUserLatestScoreWithStages(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 	id int64,
 	user models.UserResource,
@@ -1117,6 +1145,7 @@ func (self *Postgres) getUserLatestScoreWithStages(
 		Model(&sub).
 		Column("id", "owner_id", "problem_id", "problem_sha1", "created_at", "score").
 		Where("problem_id = ?", refId).
+		Where("namespace_id = ?", namespaceId).
 		Where("owner_id = ?", id).
 		OrderExpr("id DESC").
 		Limit(1).
@@ -1163,6 +1192,7 @@ func (self *Postgres) getUserLatestScoreWithStages(
 
 func (self *Postgres) getUserHighestScoreWithStages(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 	id int64,
 	_ models.Problem,
@@ -1174,7 +1204,7 @@ func (self *Postgres) getUserHighestScoreWithStages(
 	var lastCheckTimestamp int64
 
 	if self.cache != nil {
-		err := self.cache.Get(ctx, cacheUserHighestScoreKey(refId, id), &cachedHighest)
+		err := self.cache.Get(ctx, cacheUserHighestScoreKey(namespaceId, refId, id), &cachedHighest)
 		if err == nil {
 			hasCached = true
 			lastCheckTimestamp = cachedHighest.LastCheckTimestamp
@@ -1187,6 +1217,7 @@ func (self *Postgres) getUserHighestScoreWithStages(
 		Model(&subs).
 		Column("id", "owner_id", "problem_id", "problem_sha1", "created_at", "score").
 		Where("problem_id = ?", refId).
+		Where("namespace_id = ?", namespaceId).
 		Where("owner_id = ?", id).
 		Relation("Jobs")
 
@@ -1285,7 +1316,7 @@ func (self *Postgres) getUserHighestScoreWithStages(
 			LastCheckTimestamp:  newTimestamp,
 		}
 		_ = self.cache.Set(&cache.Item{
-			Key:   cacheUserHighestScoreKey(refId, id),
+			Key:   cacheUserHighestScoreKey(namespaceId, refId, id),
 			Value: &newCached,
 			TTL:   time.Hour,
 		})
@@ -1296,32 +1327,34 @@ func (self *Postgres) getUserHighestScoreWithStages(
 
 func (self *Postgres) GetUserScoreWithStages(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 	id int64,
 ) (models.UserScoreWithStages, error) {
 	if self.cache != nil {
 		var ret models.UserScoreWithStages
 		err := self.cache.Once(&cache.Item{
-			Key:   cacheUserScoresKey(refId, id),
+			Key:   cacheUserScoresKey(namespaceId, refId, id),
 			Value: &ret,
 			Do: func(*cache.Item) (interface{}, error) {
-				return self.getUserScoreWithStages(ctx, refId, id)
+				return self.getUserScoreWithStages(ctx, namespaceId, refId, id)
 			},
 		})
 		if ret.IsFinal {
-			err = self.cache.Expire(ctx, cacheUserScoresKey(refId, id), time.Hour)
+			err = self.cache.Expire(ctx, cacheUserScoresKey(namespaceId, refId, id), time.Hour)
 			if err != nil {
 				return models.UserScoreWithStages{}, err
 			}
 		}
 		return ret, err
 	} else {
-		return self.getUserScoreWithStages(ctx, refId, id)
+		return self.getUserScoreWithStages(ctx, namespaceId, refId, id)
 	}
 }
 
 func (self *Postgres) getSubmittedUsers(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 ) ([]int64, error) {
 	var subs []models.Submission
@@ -1330,6 +1363,7 @@ func (self *Postgres) getSubmittedUsers(
 		DistinctOn("owner_id").
 		Column("owner_id").
 		Where("problem_id = ?", refId).
+		Where("namespace_id = ?", namespaceId).
 		Scan(ctx)
 	if err != nil {
 		return []int64{}, err
@@ -1344,28 +1378,30 @@ func (self *Postgres) getSubmittedUsers(
 
 func (self *Postgres) GetSubmittedUsers(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 ) ([]int64, error) {
 	if self.cache != nil {
 		var ret []int64
 		err := self.cache.Once(&cache.Item{
-			Key:   cacheUsersKey(refId),
+			Key:   cacheUsersKey(namespaceId, refId),
 			Value: &ret,
 			Do: func(*cache.Item) (interface{}, error) {
-				return self.getSubmittedUsers(ctx, refId)
+				return self.getSubmittedUsers(ctx, namespaceId, refId)
 			},
 		})
 		return ret, err
 	} else {
-		return self.getSubmittedUsers(ctx, refId)
+		return self.getSubmittedUsers(ctx, namespaceId, refId)
 	}
 }
 
 func (self *Postgres) getScores(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 ) ([]models.UserScore, bool, error) {
-	users, err := self.GetSubmittedUsers(ctx, refId)
+	users, err := self.GetSubmittedUsers(ctx, namespaceId, refId)
 	if err != nil {
 		return []models.UserScore{}, false, err
 	}
@@ -1373,7 +1409,7 @@ func (self *Postgres) getScores(
 	isFinal := true
 	var ret []models.UserScore
 	for _, user := range users {
-		score, err := self.GetUserScoreWithStages(ctx, refId, user)
+		score, err := self.GetUserScoreWithStages(ctx, namespaceId, refId, user)
 		if err != nil {
 			return []models.UserScore{}, false, err
 		}
@@ -1393,37 +1429,39 @@ func (self *Postgres) getScores(
 
 func (self *Postgres) GetScores(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 ) ([]models.UserScore, error) {
 	if self.cache != nil {
 		var ret []models.UserScore
 		var isFinal bool
 		err := self.cache.Once(&cache.Item{
-			Key:   cacheScoresKey(refId),
+			Key:   cacheScoresKey(namespaceId, refId),
 			Value: &ret,
 			Do: func(*cache.Item) (ret interface{}, err error) {
-				ret, isFinal, err = self.getScores(ctx, refId)
+				ret, isFinal, err = self.getScores(ctx, namespaceId, refId)
 				return
 			},
 		})
 		if isFinal {
-			err := self.cache.Expire(ctx, cacheScoresKey(refId), time.Hour)
+			err := self.cache.Expire(ctx, cacheScoresKey(namespaceId, refId), time.Hour)
 			if err != nil {
 				return []models.UserScore{}, err
 			}
 		}
 		return ret, err
 	} else {
-		ret, _, err := self.getScores(ctx, refId)
+		ret, _, err := self.getScores(ctx, namespaceId, refId)
 		return ret, err
 	}
 }
 
 func (self *Postgres) getScoresWithStages(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 ) ([]models.UserScoreWithStages, bool, error) {
-	users, err := self.GetSubmittedUsers(ctx, refId)
+	users, err := self.GetSubmittedUsers(ctx, namespaceId, refId)
 	if err != nil {
 		return []models.UserScoreWithStages{}, false, err
 	}
@@ -1431,7 +1469,7 @@ func (self *Postgres) getScoresWithStages(
 	isFinal := true
 	var ret []models.UserScoreWithStages
 	for _, user := range users {
-		score, err := self.GetUserScoreWithStages(ctx, refId, user)
+		score, err := self.GetUserScoreWithStages(ctx, namespaceId, refId, user)
 		if err != nil {
 			return []models.UserScoreWithStages{}, false, err
 		}
@@ -1446,34 +1484,36 @@ func (self *Postgres) getScoresWithStages(
 
 func (self *Postgres) GetScoresWithStages(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 ) ([]models.UserScoreWithStages, error) {
 	if self.cache != nil {
 		var ret []models.UserScoreWithStages
 		var isFinal bool
 		err := self.cache.Once(&cache.Item{
-			Key:   cacheScoresWStagesKey(refId),
+			Key:   cacheScoresWStagesKey(namespaceId, refId),
 			Value: &ret,
 			Do: func(*cache.Item) (ret interface{}, err error) {
-				ret, isFinal, err = self.getScoresWithStages(ctx, refId)
+				ret, isFinal, err = self.getScoresWithStages(ctx, namespaceId, refId)
 				return
 			},
 		})
 		if isFinal {
-			err := self.cache.Expire(ctx, cacheScoresWStagesKey(refId), time.Hour)
+			err := self.cache.Expire(ctx, cacheScoresWStagesKey(namespaceId, refId), time.Hour)
 			if err != nil {
 				return []models.UserScoreWithStages{}, err
 			}
 		}
 		return ret, err
 	} else {
-		ret, _, err := self.getScoresWithStages(ctx, refId)
+		ret, _, err := self.getScoresWithStages(ctx, namespaceId, refId)
 		return ret, err
 	}
 }
 
 func (self *Postgres) GetScoresWithDeadline(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 ) ([]models.UserScore, error) {
 	var problem models.Problem
@@ -1482,6 +1522,7 @@ func (self *Postgres) GetScoresWithDeadline(
 		err := tx.NewSelect().
 			Model(&problemMarshaled).
 			Where("problem_id = ?", refId).
+			Where("namespace_id = ?", namespaceId).
 			Where("is_enabled = ?", true).
 			Limit(1).
 			Scan(ctx)
@@ -1497,13 +1538,14 @@ func (self *Postgres) GetScoresWithDeadline(
 	}
 
 	if problem.ScoreOutputType == models.ScoreOutputTypeHighest {
-		return self.getHighestScoresWithDeadline(ctx, refId, problem)
+		return self.getHighestScoresWithDeadline(ctx, namespaceId, refId, problem)
 	}
-	return self.getLatestScoresWithDeadline(ctx, refId, problem)
+	return self.getLatestScoresWithDeadline(ctx, namespaceId, refId, problem)
 }
 
 func (self *Postgres) getLatestScoresWithDeadline(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 	problem models.Problem,
 ) ([]models.UserScore, error) {
@@ -1514,6 +1556,7 @@ func (self *Postgres) getLatestScoresWithDeadline(
 		DistinctOn("owner_id").
 		Column("owner_id", "created_at", "id").
 		Where("problem_id = ?", refId).
+		Where("namespace_id = ?", namespaceId).
 		Order("owner_id ASC", "created_at DESC")
 
 	if problem.Deadline != 0 {
@@ -1562,6 +1605,7 @@ func (self *Postgres) getLatestScoresWithDeadline(
 
 func (self *Postgres) getHighestScoresWithDeadline(
 	ctx context.Context,
+	namespaceId int64,
 	refId int64,
 	problem models.Problem,
 ) ([]models.UserScore, error) {
@@ -1570,6 +1614,7 @@ func (self *Postgres) getHighestScoresWithDeadline(
 	query := self.db.NewSelect().
 		Model(&submissions).
 		Where("problem_id = ?", refId).
+		Where("namespace_id = ?", namespaceId).
 		Relation("Jobs")
 
 	if problem.Deadline != 0 {
@@ -1614,6 +1659,113 @@ func (self *Postgres) getHighestScoresWithDeadline(
 	}
 
 	return ret, nil
+}
+
+func (self *Postgres) getNamespaceEnabledProblemIds(
+	ctx context.Context,
+	namespaceId int64,
+) ([]int64, error) {
+	var rows []models.ProblemMarshaled
+	err := self.db.NewSelect().
+		Model(&rows).
+		Column("problem_id").
+		Where("is_enabled = ?", true).
+		Where("namespace_id = ?", namespaceId).
+		Scan(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int64, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ProblemId)
+	}
+	return ids, nil
+}
+
+func (self *Postgres) getNamespaceScoreboard(
+	ctx context.Context,
+	namespaceId int64,
+) ([]models.ScoreboardEntry, error) {
+	problemIds, err := self.getNamespaceEnabledProblemIds(ctx, namespaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make(map[int64]*models.ScoreboardEntry)
+
+	// Seed every namespace member so zero-score users appear too.
+	members, err := self.GetNamespaceMembers(ctx, namespaceId)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range members {
+		user, err := self.GetUserResource(ctx, m.UserId)
+		if err != nil {
+			continue
+		}
+		entries[m.UserId] = &models.ScoreboardEntry{
+			Id:       m.UserId,
+			Username: user.Username,
+			Problems: make(map[int64]int64),
+		}
+	}
+
+	for _, pid := range problemIds {
+		scores, err := self.GetScoresWithDeadline(ctx, namespaceId, pid)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range scores {
+			entry, ok := entries[s.Id]
+			if !ok {
+				entry = &models.ScoreboardEntry{
+					Id:       s.Id,
+					Username: s.Username,
+					Problems: make(map[int64]int64),
+				}
+				entries[s.Id] = entry
+			}
+			entry.Total += s.Score
+			entry.Problems[pid] = s.Score
+			if s.CreatedAt > entry.CreatedAt {
+				entry.CreatedAt = s.CreatedAt
+			}
+		}
+	}
+
+	ret := make([]models.ScoreboardEntry, 0, len(entries))
+	for _, entry := range entries {
+		ret = append(ret, *entry)
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		if ret[i].Total != ret[j].Total {
+			return ret[i].Total > ret[j].Total
+		}
+		if ret[i].CreatedAt != ret[j].CreatedAt {
+			return ret[i].CreatedAt < ret[j].CreatedAt
+		}
+		return ret[i].Username < ret[j].Username
+	})
+	return ret, nil
+}
+
+func (self *Postgres) GetNamespaceScoreboard(
+	ctx context.Context,
+	namespaceId int64,
+) ([]models.ScoreboardEntry, error) {
+	if self.cache != nil {
+		var ret []models.ScoreboardEntry
+		err := self.cache.Once(&cache.Item{
+			Key:   cacheNamespaceScoreboardKey(namespaceId),
+			Value: &ret,
+			Do: func(*cache.Item) (interface{}, error) {
+				return self.getNamespaceScoreboard(ctx, namespaceId)
+			},
+			TTL: 2 * time.Second,
+		})
+		return ret, err
+	}
+	return self.getNamespaceScoreboard(ctx, namespaceId)
 }
 
 func (self *Postgres) GetSubmission(
@@ -1668,6 +1820,7 @@ func (self *Postgres) GetLastSubmission(
 
 func (self *Postgres) GetSubmissionsAndCount(
 	ctx context.Context,
+	namespaceIds []int64,
 	id int64,
 	isOwnerId bool,
 	pageNum int,
@@ -1681,6 +1834,9 @@ func (self *Postgres) GetSubmissionsAndCount(
 	query := self.db.NewSelect().
 		Order("id DESC").
 		Limit(pageSize)
+	if len(namespaceIds) > 0 {
+		query = query.Where("namespace_id IN (?)", bun.In(namespaceIds))
+	}
 	if isOwnerId {
 		query = query.Where("owner_id = ?", id)
 	}
@@ -1714,19 +1870,20 @@ func (self *Postgres) DeleteSubmission(
 	_, err := self.db.NewDelete().
 		Model((*models.Submission)(nil)).
 		Where("id = ?", subId).
-		Returning("problem_id, owner_id").
+		Returning("problem_id, owner_id, namespace_id").
 		Exec(ctx, &sub)
 	if err != nil {
 		return err
 	}
 
 	pending := []string{
-		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
-		cacheUserStageScoresKey(sub.ProblemId, sub.OwnerId),
-		cacheUserHighestScoreKey(sub.ProblemId, sub.OwnerId),
-		cacheUsersKey(sub.ProblemId),
-		cacheScoresKey(sub.ProblemId),
-		cacheScoresWStagesKey(sub.ProblemId),
+		cacheUserScoresKey(sub.NamespaceId, sub.ProblemId, sub.OwnerId),
+		cacheUserStageScoresKey(sub.NamespaceId, sub.ProblemId, sub.OwnerId),
+		cacheUserHighestScoreKey(sub.NamespaceId, sub.ProblemId, sub.OwnerId),
+		cacheUsersKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresWStagesKey(sub.NamespaceId, sub.ProblemId),
+		cacheNamespaceScoreboardKey(sub.NamespaceId),
 	}
 
 	for _, key := range pending {
@@ -1754,9 +1911,10 @@ func (self *Postgres) InsertSubmissionByProblem(
 		for stageName, stage := range problem.Stages {
 			for _, testcase := range stage.Testcases {
 				job := models.Job{
-					SubId:     submission.Id,
-					StageName: stageName,
-					TestName:  testcase.Name,
+					SubId:       submission.Id,
+					NamespaceId: submission.NamespaceId,
+					StageName:   stageName,
+					TestName:    testcase.Name,
 
 					// Queued; becomes Blocked once a worker claims the submission.
 					Status: models.StatusPending,
@@ -1802,9 +1960,10 @@ func (self *Postgres) InsertSubmissionByProblem(
 	}
 
 	pending := []string{
-		cacheUsersKey(submission.Id),
-		cacheScoresKey(submission.Id),
-		cacheScoresWStagesKey(submission.Id),
+		cacheUsersKey(submission.NamespaceId, submission.ProblemId),
+		cacheScoresKey(submission.NamespaceId, submission.ProblemId),
+		cacheScoresWStagesKey(submission.NamespaceId, submission.ProblemId),
+		cacheNamespaceScoreboardKey(submission.NamespaceId),
 	}
 
 	for _, key := range pending {
@@ -1830,9 +1989,10 @@ func (self *Postgres) InsertSubmissionByTool(
 		}
 
 		job := models.Job{
-			SubId:     submission.Id,
-			StageName: "tool",
-			TestName:  tool.Testcase.Name,
+			SubId:       submission.Id,
+			NamespaceId: submission.NamespaceId,
+			StageName:   "tool",
+			TestName:    tool.Testcase.Name,
 
 			// Queued; becomes Blocked once a worker claims the submission.
 			Status: models.StatusPending,
@@ -1879,7 +2039,7 @@ func (self *Postgres) DeleteUserAndSubmissions(
 		_, err = tx.NewDelete().
 			Model((*models.Submission)(nil)).
 			Where("owner_id = ?", id).
-			Returning("problem_id").
+			Returning("problem_id, namespace_id").
 			Exec(ctx, &subs)
 		if err != nil {
 			return err
@@ -1893,11 +2053,12 @@ func (self *Postgres) DeleteUserAndSubmissions(
 	var pending []string
 
 	for _, sub := range subs {
-		pending = append(pending, cacheUserScoresKey(sub.ProblemId, id))
-		pending = append(pending, cacheUserHighestScoreKey(sub.ProblemId, id))
-		pending = append(pending, cacheUsersKey(sub.ProblemId))
-		pending = append(pending, cacheScoresKey(sub.ProblemId))
-		pending = append(pending, cacheScoresWStagesKey(sub.ProblemId))
+		pending = append(pending, cacheUserScoresKey(sub.NamespaceId, sub.ProblemId, id))
+		pending = append(pending, cacheUserHighestScoreKey(sub.NamespaceId, sub.ProblemId, id))
+		pending = append(pending, cacheUsersKey(sub.NamespaceId, sub.ProblemId))
+		pending = append(pending, cacheScoresKey(sub.NamespaceId, sub.ProblemId))
+		pending = append(pending, cacheScoresWStagesKey(sub.NamespaceId, sub.ProblemId))
+		pending = append(pending, cacheNamespaceScoreboardKey(sub.NamespaceId))
 	}
 
 	for _, key := range pending {
@@ -1940,9 +2101,10 @@ func (self *Postgres) SkipJobs(
 	}
 
 	pending := []string{
-		cacheUsersKey(sub.ProblemId),
-		cacheScoresKey(sub.ProblemId),
-		cacheScoresWStagesKey(sub.ProblemId),
+		cacheUsersKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresWStagesKey(sub.NamespaceId, sub.ProblemId),
+		cacheNamespaceScoreboardKey(sub.NamespaceId),
 	}
 
 	for _, key := range pending {
@@ -1987,9 +2149,10 @@ func (self *Postgres) SkipJobWithStages(
 	}
 
 	pending := []string{
-		cacheUsersKey(sub.ProblemId),
-		cacheScoresKey(sub.ProblemId),
-		cacheScoresWStagesKey(sub.ProblemId),
+		cacheUsersKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresWStagesKey(sub.NamespaceId, sub.ProblemId),
+		cacheNamespaceScoreboardKey(sub.NamespaceId),
 	}
 
 	for _, key := range pending {
@@ -2038,10 +2201,11 @@ func (self *Postgres) UpdateJob(
 	}
 
 	pending := []string{
-		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
-		cacheUsersKey(sub.ProblemId),
-		cacheScoresKey(sub.ProblemId),
-		cacheScoresWStagesKey(sub.ProblemId),
+		cacheUserScoresKey(sub.NamespaceId, sub.ProblemId, sub.OwnerId),
+		cacheUsersKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresWStagesKey(sub.NamespaceId, sub.ProblemId),
+		cacheNamespaceScoreboardKey(sub.NamespaceId),
 	}
 
 	for _, key := range pending {
@@ -2063,7 +2227,7 @@ func (self *Postgres) UpdateSubmissionScore(
 		Model(&sub).
 		Set("score = ?", score).
 		Where("id = ?", subId).
-		Returning("owner_id, problem_id, problem_sha1").
+		Returning("owner_id, problem_id, problem_sha1, namespace_id").
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -2091,11 +2255,12 @@ func (self *Postgres) UpdateSubmissionScore(
 	}
 
 	pending := []string{
-		cacheUserScoresKey(sub.ProblemId, sub.OwnerId),
-		cacheUserHighestScoreKey(sub.ProblemId, sub.OwnerId),
-		cacheUsersKey(sub.ProblemId),
-		cacheScoresKey(sub.ProblemId),
-		cacheScoresWStagesKey(sub.ProblemId),
+		cacheUserScoresKey(sub.NamespaceId, sub.ProblemId, sub.OwnerId),
+		cacheUserHighestScoreKey(sub.NamespaceId, sub.ProblemId, sub.OwnerId),
+		cacheUsersKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresWStagesKey(sub.NamespaceId, sub.ProblemId),
+		cacheNamespaceScoreboardKey(sub.NamespaceId),
 	}
 
 	for _, key := range pending {
@@ -2139,9 +2304,10 @@ func (self *Postgres) CancelSubmission(
 	}
 
 	pending := []string{
-		cacheUsersKey(sub.ProblemId),
-		cacheScoresKey(sub.ProblemId),
-		cacheScoresWStagesKey(sub.ProblemId),
+		cacheUsersKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresKey(sub.NamespaceId, sub.ProblemId),
+		cacheScoresWStagesKey(sub.NamespaceId, sub.ProblemId),
+		cacheNamespaceScoreboardKey(sub.NamespaceId),
 	}
 
 	for _, key := range pending {
@@ -2334,6 +2500,29 @@ func (self *Postgres) ResetSubmissionActiveJobs(
 	return err
 }
 
+// hydrateUserNamespaces fills Namespaces / AdminIn from user_namespace.
+func (self *Postgres) hydrateUserNamespaces(
+	ctx context.Context,
+	user *models.UserResource,
+) error {
+	namespaces, adminIn, err := self.GetUserNamespaces(ctx, user.Id)
+	if err != nil {
+		return err
+	}
+	// A user with no explicit membership belongs to the default namespace
+	// (backward-compatible single-tenant behavior). Global admins of the
+	// default namespace mirror their global admin flag.
+	if len(namespaces) == 0 {
+		namespaces = []int64{models.DefaultNamespaceId}
+		if user.IsAdmin {
+			adminIn = []int64{models.DefaultNamespaceId}
+		}
+	}
+	user.Namespaces = namespaces
+	user.AdminIn = adminIn
+	return nil
+}
+
 func (self *Postgres) GetUserResource(
 	ctx context.Context,
 	id int64,
@@ -2343,7 +2532,136 @@ func (self *Postgres) GetUserResource(
 		Model(&ret).
 		Where("id = ?", id).
 		Scan(ctx)
+	if err != nil {
+		return ret, err
+	}
+	if err := self.hydrateUserNamespaces(ctx, &ret); err != nil {
+		return ret, err
+	}
+	return ret, nil
+}
+
+func (self *Postgres) CreateNamespace(
+	ctx context.Context,
+	ns *models.Namespace,
+) error {
+	ns.CreatedAt = time.Now().Unix()
+	_, err := self.db.NewInsert().Model(ns).Exec(ctx)
+	return err
+}
+
+func (self *Postgres) GetNamespaces(
+	ctx context.Context,
+) ([]models.Namespace, error) {
+	var ret []models.Namespace
+	err := self.db.NewSelect().Model(&ret).Order("id ASC").Scan(ctx)
 	return ret, err
+}
+
+func (self *Postgres) GetNamespace(
+	ctx context.Context,
+	id int64,
+) (models.Namespace, error) {
+	ns := models.Namespace{Id: id}
+	err := self.db.NewSelect().Model(&ns).WherePK().Scan(ctx)
+	return ns, err
+}
+
+func (self *Postgres) GetNamespaceByName(
+	ctx context.Context,
+	name string,
+) (models.Namespace, error) {
+	var ns models.Namespace
+	err := self.db.NewSelect().Model(&ns).Where("name = ?", name).Scan(ctx)
+	return ns, err
+}
+
+func (self *Postgres) UpdateNamespaceState(
+	ctx context.Context,
+	id int64,
+	isEnabled bool,
+) error {
+	_, err := self.db.NewUpdate().
+		Model((*models.Namespace)(nil)).
+		Set("is_enabled = ?", isEnabled).
+		Where("id = ?", id).
+		Exec(ctx)
+	return err
+}
+
+func (self *Postgres) UpsertNamespaceMembers(
+	ctx context.Context,
+	namespaceId int64,
+	userIds []int64,
+	isAdmin bool,
+) error {
+	if len(userIds) == 0 {
+		return nil
+	}
+	members := make([]models.UserNamespace, len(userIds))
+	for i, uid := range userIds {
+		members[i] = models.UserNamespace{
+			UserId:      uid,
+			NamespaceId: namespaceId,
+			IsAdmin:     isAdmin,
+		}
+	}
+	_, err := self.db.NewInsert().
+		Model(&members).
+		On("CONFLICT (user_id, namespace_id) DO UPDATE").
+		Set("is_admin = EXCLUDED.is_admin").
+		Exec(ctx)
+	return err
+}
+
+func (self *Postgres) RemoveNamespaceMembers(
+	ctx context.Context,
+	namespaceId int64,
+	userIds []int64,
+) error {
+	if len(userIds) == 0 {
+		return nil
+	}
+	_, err := self.db.NewDelete().
+		Model((*models.UserNamespace)(nil)).
+		Where("namespace_id = ?", namespaceId).
+		Where("user_id IN (?)", bun.In(userIds)).
+		Exec(ctx)
+	return err
+}
+
+func (self *Postgres) GetNamespaceMembers(
+	ctx context.Context,
+	namespaceId int64,
+) ([]models.UserNamespace, error) {
+	var ret []models.UserNamespace
+	err := self.db.NewSelect().
+		Model(&ret).
+		Where("namespace_id = ?", namespaceId).
+		Scan(ctx)
+	return ret, err
+}
+
+func (self *Postgres) GetUserNamespaces(
+	ctx context.Context,
+	userId int64,
+) ([]int64, []int64, error) {
+	var memberships []models.UserNamespace
+	err := self.db.NewSelect().
+		Model(&memberships).
+		Where("user_id = ?", userId).
+		Scan(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	var namespaces, adminIn []int64
+	for _, m := range memberships {
+		namespaces = append(namespaces, m.NamespaceId)
+		if m.IsAdmin {
+			adminIn = append(adminIn, m.NamespaceId)
+		}
+	}
+	return namespaces, adminIn, nil
 }
 
 func (self *Postgres) GetUserPass(
@@ -2358,7 +2676,13 @@ func (self *Postgres) GetUserPass(
 		Where("plain_cred.passhash = ?", passhash).
 		Relation("PlainCred").
 		Scan(ctx)
-	return ret, err
+	if err != nil {
+		return ret, err
+	}
+	if err := self.hydrateUserNamespaces(ctx, &ret); err != nil {
+		return ret, err
+	}
+	return ret, nil
 }
 
 func (self *Postgres) InsertUserResources(
@@ -2483,7 +2807,13 @@ func (self *Postgres) GetUserResourceBySourceId(
 		Where("source = ?", source).
 		Where("source_id = ?", sourceId).
 		Scan(ctx)
-	return ret, err
+	if err != nil {
+		return ret, err
+	}
+	if err := self.hydrateUserNamespaces(ctx, &ret); err != nil {
+		return ret, err
+	}
+	return ret, nil
 }
 
 func (self *Postgres) UpsertUser(

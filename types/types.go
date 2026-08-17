@@ -5,6 +5,7 @@ type (
 	AccessToken  string
 	RefreshToken string
 	Privileges   string
+	NamespaceId  string
 )
 
 type ToolInputTypeType = int

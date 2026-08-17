@@ -13,6 +13,7 @@ type Submission struct {
 	bun.BaseModel `bun:"table:submission"`
 
 	Id          int64   `json:"id" bun:"id,pk,autoincrement"`
+	NamespaceId int64   `json:"namespaceId" bun:"namespace_id"`
 	ProblemSHA1 string  `json:"problemSHA1" bun:"problem_sha1"`
 	ProblemId   int64   `json:"problemId" bun:"problem_id"`
 	ToolSHA1    string  `json:"toolSHA1" bun:"tool_sha1"`

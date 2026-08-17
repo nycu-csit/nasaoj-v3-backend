@@ -18,6 +18,7 @@ type ProblemStorage interface {
 
 	GetProblemById(
 		ctx context.Context,
+		namespaceId int64,
 		problemId int64,
 	) (models.Problem, error)
 
