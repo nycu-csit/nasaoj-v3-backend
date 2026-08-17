@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -32,7 +33,7 @@ func RunContainerJob(
 			zap.Int64("timeout", job.Timeout))
 
 	refpath := path.Join(viper.GetString("running-dir"), job.RefFilename())
-	basepath := path.Join(viper.GetString("running-dir"), job.Id())
+	basepath := jobBasePath(job.Job)
 	tarbuf, err := os.ReadFile(refpath)
 	if err != nil {
 		tracing.Logger.Ctx(pctx).
@@ -58,6 +59,14 @@ func RunContainerJob(
 	if err := utils.UnTar(pctx, basepath, job.Tarbuf); err != nil {
 		tracing.Logger.Ctx(pctx).
 			Error("failed to untar job file",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
+
+	if err := seedArtifacts(pctx, job, basepath); err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to seed ancestor artifacts",
 				zap.Error(err))
 		retCh <- err
 		return
@@ -159,7 +168,7 @@ func RunContainerJob(
 	hostBasepath := basepath
 	if hostPrefix := viper.GetString("host-path-prefix"); hostPrefix != "" {
 		runningDir := viper.GetString("running-dir")
-		hostBasepath = path.Join(hostPrefix, job.Id())
+		hostBasepath = path.Join(hostPrefix, strings.TrimPrefix(basepath, runningDir))
 		tracing.Logger.Ctx(pctx).
 			Debug("using host path prefix for CRI mount",
 				zap.String("running_dir", runningDir),
@@ -331,6 +340,21 @@ done:
 			zap.Int("ret_code", job.RetCode),
 			zap.Int("stdout_len", len(job.Stdout)),
 			zap.Int("stderr_len", len(job.Stderr)))
+
+	// pctx may already be Done here (hard timeout / cancellation) - detach
+	// so uploading output/artifacts and cleaning up still happen, the same
+	// way putResult reports the outcome on r.Root rather than this job's
+	// own context.
+	finishCtx := context.WithoutCancel(pctx)
+
+	uploadOutput(finishCtx, job, []byte(job.Stdout), []byte(job.Stderr))
+	// Already uploaded directly - don't also embed the full text in the
+	// PUT /schedule/result body.
+	job.Stdout = ""
+	job.Stderr = ""
+
+	collectArtifacts(finishCtx, job, basepath)
+	cleanupJobDir(finishCtx, job, basepath)
 
 	retCh <- ret
 }

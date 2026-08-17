@@ -158,6 +158,7 @@ func (self *Handlers) PostScheduleMarshalJob(
 			RefSHA1:       submission.ProblemSHA1,
 			ResourceGroup: testcase.ResourceGroup,
 			Image:         testcase.Image,
+			Artifacts:     testcase.Artifacts,
 		}
 		injected["jobInput"] = job.Id() + ".input"
 		injected["jobScript"] = job.Id() + ".bash"
@@ -207,9 +208,10 @@ func (self *Handlers) PostScheduleMarshalJob(
 			StageName:   "tool",
 			TestName:    tool.Testcase.Name,
 
-			Input:   input,
-			Timeout: tool.Testcase.Timeout,
-			RefSHA1: submission.ToolSHA1,
+			Input:     input,
+			Timeout:   tool.Testcase.Timeout,
+			RefSHA1:   submission.ToolSHA1,
+			Artifacts: tool.Testcase.Artifacts,
 		}
 		injected["jobInput"] = job.Id() + ".input"
 		injected["jobScript"] = job.Id() + ".bash"
@@ -309,6 +311,26 @@ func (self *Handlers) PostScheduleMarshalJob(
 		return types.FileNotExistError
 	}
 	job.JobFileURL, err = self.s3.GetFileURL(ctx, job.JobFilename(), urlTimeout)
+	if err != nil {
+		return types.FileNotExistError
+	}
+
+	if len(job.Artifacts) > 0 {
+		job.ArtifactUploadURL, err = self.s3.PutFileURL(
+			ctx, job.ArtifactFilename(), urlTimeout)
+		if err != nil {
+			return types.FileNotExistError
+		}
+	}
+
+	// Every job produces stdout/stderr; presign uploads for both so the
+	// worker writes them straight to object storage instead of embedding
+	// the bytes in the PUT /schedule/result body.
+	job.StdoutUploadURL, err = self.s3.PutFileURL(ctx, job.StdoutKey(), urlTimeout)
+	if err != nil {
+		return types.FileNotExistError
+	}
+	job.StderrUploadURL, err = self.s3.PutFileURL(ctx, job.StderrKey(), urlTimeout)
 	if err != nil {
 		return types.FileNotExistError
 	}

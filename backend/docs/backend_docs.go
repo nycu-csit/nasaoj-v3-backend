@@ -18,6 +18,92 @@ const docTemplatebackend = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/artifacts": {
+            "get": {
+                "description": "Returns the tar of files a testcase declared as artifacts,\nfor any submission. Admin only - artifacts may contain\nbuild output/binaries not meant for students, so this is\nkept at the same access level as stderr.",
+                "summary": "Get a job's kept artifacts (admin)",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "application/x-tar",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/api/admin/artifacts/url": {
+            "get": {
+                "description": "Presigns a short-lived MinIO URL so a caller (e.g. the admin\nCLI) can download the artifact tar directly from object\nstorage instead of proxying the bytes through the backend.\nAdmin only - same access level as stderr.",
+                "summary": "Get a presigned download URL for a job's kept artifacts (admin)",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.GetArtifactsURLOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
         "/api/admin/content-files": {
             "put": {
                 "description": "Uploads SHA1-addressed content files used by problems and tools. Admin only.",
@@ -2053,6 +2139,14 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "api.GetArtifactsURLOutput": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "api.GetTokensOutput": {
             "type": "object",
             "properties": {
@@ -2842,11 +2936,25 @@ const docTemplatebackend = `{
         "models.Job": {
             "type": "object",
             "properties": {
+                "artifactUploadUrl": {
+                    "type": "string"
+                },
+                "artifacts": {
+                    "description": "Artifacts (glob patterns, from Testcase.Artifacts) and where the\nworker should upload the packed result, presigned by the backend at\nmarshal time. Empty when the testcase declares no artifacts to keep.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "execAt": {
                     "type": "integer"
                 },
                 "gracePeriod": {
                     "type": "integer"
+                },
+                "hasArtifacts": {
+                    "description": "HasArtifacts is set by the worker (from whether any file actually\nmatched Artifacts) and persisted, so callers can tell whether\nGET /api/artifacts has anything to return without probing object\nstorage themselves.",
+                    "type": "boolean"
                 },
                 "image": {
                     "type": "string"
@@ -2886,8 +2994,15 @@ const docTemplatebackend = `{
                 "stderr": {
                     "type": "string"
                 },
+                "stderrUploadUrl": {
+                    "type": "string"
+                },
                 "stdout": {
-                    "description": "Return values",
+                    "description": "Return values. Left empty on the wire once the worker has uploaded\nthem directly via StdoutUploadURL/StderrUploadURL - they exist here\nonly for the worker's own in-process use while running the job.",
+                    "type": "string"
+                },
+                "stdoutUploadUrl": {
+                    "description": "Where the worker uploads stdout/stderr directly, presigned by the\nbackend at marshal time - the backend never sees the bytes.",
                     "type": "string"
                 },
                 "subId": {
@@ -3205,6 +3320,13 @@ const docTemplatebackend = `{
                 "args": {
                     "type": "object",
                     "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "artifacts": {
+                    "description": "Artifacts lists glob patterns (matched with filepath.Match against each\nfile's path relative to the job's working directory) for files the\nworker should keep instead of discarding along with the rest of the\nworking directory. Matched files are archived and uploaded to object\nstorage, and are also visible to any testcase in a stage that\n(transitively) depends on this testcase's stage, for the lifetime of\nthe submission. Everything else in the working directory - build\ncaches, compiled binaries not explicitly listed, etc. - is deleted\nonce the testcase finishes.",
+                    "type": "array",
+                    "items": {
                         "type": "string"
                     }
                 },

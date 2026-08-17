@@ -163,7 +163,7 @@ var backendCmd = &cobra.Command{
 					select {
 					case <-ctx.Done():
 						return
-					case <-time.After(time.Second):
+					case <-time.After(200 * time.Millisecond):
 					}
 				}
 			}()
@@ -268,6 +268,10 @@ var backendCmd = &cobra.Command{
 			apiHandlers.GetOutput("stdout", true))
 		apiAdminReadGroup.GET("/stderr",
 			apiHandlers.GetOutput("stderr", true))
+		apiAdminReadGroup.GET("/artifacts",
+			apiHandlers.GetArtifacts)
+		apiAdminReadGroup.GET("/artifacts/url",
+			apiHandlers.GetArtifactsURL)
 		apiAdminReadGroup.GET("/scores",
 			apiHandlers.GetScores(true))
 		apiAdminReadGroup.GET("/dump-scores/:problemId",

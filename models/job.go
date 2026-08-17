@@ -84,9 +84,28 @@ type Job struct {
 	JobFileURL    string `json:"jobFileUrl" bun:"-"`
 	Image         string `json:"image,omitempty" bun:"-"`
 
-	// Return values
-	Stdout  string `json:"stdout" bun:"-"`
-	Stderr  string `json:"stderr" bun:"-"`
+	// Artifacts (glob patterns, from Testcase.Artifacts) and where the
+	// worker should upload the packed result, presigned by the backend at
+	// marshal time. Empty when the testcase declares no artifacts to keep.
+	Artifacts         []string `json:"artifacts,omitempty" bun:"-"`
+	ArtifactUploadURL string   `json:"artifactUploadUrl,omitempty" bun:"-"`
+
+	// HasArtifacts is set by the worker (from whether any file actually
+	// matched Artifacts) and persisted, so callers can tell whether
+	// GET /api/artifacts has anything to return without probing object
+	// storage themselves.
+	HasArtifacts bool `json:"hasArtifacts,omitempty" bun:"has_artifacts"`
+
+	// Where the worker uploads stdout/stderr directly, presigned by the
+	// backend at marshal time - the backend never sees the bytes.
+	StdoutUploadURL string `json:"stdoutUploadUrl,omitempty" bun:"-"`
+	StderrUploadURL string `json:"stderrUploadUrl,omitempty" bun:"-"`
+
+	// Return values. Left empty on the wire once the worker has uploaded
+	// them directly via StdoutUploadURL/StderrUploadURL - they exist here
+	// only for the worker's own in-process use while running the job.
+	Stdout  string `json:"stdout,omitempty" bun:"-"`
+	Stderr  string `json:"stderr,omitempty" bun:"-"`
 	RetCode int    `json:"retCode" bun:"ret_code"`
 	ExecAt  int64  `json:"execAt" bun:"exec_at"`
 }
@@ -94,6 +113,12 @@ type Job struct {
 type JobWithFile struct {
 	Job
 	Tarbuf []byte
+
+	// SeedDirs are ancestor stages' artifact directories (worker-local
+	// filesystem paths) to copy into this job's working directory before it
+	// runs. Never sent over the wire - populated by the worker itself from
+	// the submission's stage DAG.
+	SeedDirs []string
 }
 
 func (self Job) Id() string {
@@ -107,6 +132,10 @@ func (self Job) JobFilename() string {
 func (self Job) RefFilename() string {
 	return fmt.Sprintf("ref-%s-%s-%s.tar", self.RefSHA1, self.StageName,
 		self.TestName)
+}
+
+func (self Job) ArtifactFilename() string {
+	return fmt.Sprintf("artifact-%s.tar", self.Id())
 }
 
 // Jobcnt key for stage

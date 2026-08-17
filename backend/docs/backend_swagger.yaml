@@ -21,6 +21,11 @@ definitions:
           type: integer
         type: array
     type: object
+  api.GetArtifactsURLOutput:
+    properties:
+      url:
+        type: string
+    type: object
   api.GetTokensOutput:
     properties:
       createdAt:
@@ -544,10 +549,27 @@ definitions:
     type: object
   models.Job:
     properties:
+      artifactUploadUrl:
+        type: string
+      artifacts:
+        description: |-
+          Artifacts (glob patterns, from Testcase.Artifacts) and where the
+          worker should upload the packed result, presigned by the backend at
+          marshal time. Empty when the testcase declares no artifacts to keep.
+        items:
+          type: string
+        type: array
       execAt:
         type: integer
       gracePeriod:
         type: integer
+      hasArtifacts:
+        description: |-
+          HasArtifacts is set by the worker (from whether any file actually
+          matched Artifacts) and persisted, so callers can tell whether
+          GET /api/artifacts has anything to return without probing object
+          storage themselves.
+        type: boolean
       image:
         type: string
       input:
@@ -574,8 +596,18 @@ definitions:
         $ref: '#/definitions/models.JobStatus'
       stderr:
         type: string
+      stderrUploadUrl:
+        type: string
       stdout:
-        description: Return values
+        description: |-
+          Return values. Left empty on the wire once the worker has uploaded
+          them directly via StdoutUploadURL/StderrUploadURL - they exist here
+          only for the worker's own in-process use while running the job.
+        type: string
+      stdoutUploadUrl:
+        description: |-
+          Where the worker uploads stdout/stderr directly, presigned by the
+          backend at marshal time - the backend never sees the bytes.
         type: string
       subId:
         description: Job Id
@@ -796,6 +828,20 @@ definitions:
         additionalProperties:
           type: string
         type: object
+      artifacts:
+        description: |-
+          Artifacts lists glob patterns (matched with filepath.Match against each
+          file's path relative to the job's working directory) for files the
+          worker should keep instead of discarding along with the rest of the
+          working directory. Matched files are archived and uploaded to object
+          storage, and are also visible to any testcase in a stage that
+          (transitively) depends on this testcase's stage, for the lifetime of
+          the submission. Everything else in the working directory - build
+          caches, compiled binaries not explicitly listed, etc. - is deleted
+          once the testcase finishes.
+        items:
+          type: string
+        type: array
       files:
         items:
           $ref: '#/definitions/models.ContentFile'
@@ -977,6 +1023,72 @@ info:
   title: NASAOJ v3
   version: "3.0"
 paths:
+  /api/admin/artifacts:
+    get:
+      description: |-
+        Returns the tar of files a testcase declared as artifacts,
+        for any submission. Admin only - artifacts may contain
+        build output/binaries not meant for students, so this is
+        kept at the same access level as stderr.
+      parameters:
+      - description: Submission id
+        in: query
+        name: subId
+        required: true
+        type: number
+      - description: Stage name
+        in: query
+        name: stage
+        required: true
+        type: string
+      - description: Testcase name
+        in: query
+        name: testcase
+        required: true
+        type: string
+      responses:
+        "200":
+          description: application/x-tar
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+      summary: Get a job's kept artifacts (admin)
+  /api/admin/artifacts/url:
+    get:
+      description: |-
+        Presigns a short-lived MinIO URL so a caller (e.g. the admin
+        CLI) can download the artifact tar directly from object
+        storage instead of proxying the bytes through the backend.
+        Admin only - same access level as stderr.
+      parameters:
+      - description: Submission id
+        in: query
+        name: subId
+        required: true
+        type: number
+      - description: Stage name
+        in: query
+        name: stage
+        required: true
+        type: string
+      - description: Testcase name
+        in: query
+        name: testcase
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.GetArtifactsURLOutput'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+      summary: Get a presigned download URL for a job's kept artifacts (admin)
   /api/admin/content-files:
     put:
       consumes:

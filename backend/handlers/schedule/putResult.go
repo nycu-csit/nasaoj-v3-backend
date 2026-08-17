@@ -96,23 +96,8 @@ func (self *Handlers) PutScheduleResult(
 		}
 	}
 
-	err = self.s3.PutFile(ctx, job.StdoutKey(), []byte(job.Stdout))
-	if err != nil {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusInternalServerError,
-			Message:     "stdout file put failed",
-			OriginError: err,
-		}
-	}
-
-	err = self.s3.PutFile(ctx, job.StderrKey(), []byte(job.Stderr))
-	if err != nil {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusInternalServerError,
-			Message:     "stderr file put failed",
-			OriginError: err,
-		}
-	}
+	// The worker uploads stdout/stderr directly to object storage via the
+	// presigned URLs issued at marshal time - nothing to write here.
 
 	// Triggering the next stage is the worker's responsibility; the backend
 	// only persists this job's terminal result. Downstream jobs are still

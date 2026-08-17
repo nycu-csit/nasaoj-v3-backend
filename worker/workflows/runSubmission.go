@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/worker/cri"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
@@ -128,6 +129,23 @@ func (r *Runner) RunSubmission(claim ClaimResponse) {
 	r.Active.Add(sub.Id)
 	defer r.Active.Remove(sub.Id)
 
+	// Each job's own working directory is removed as soon as that job
+	// finishes (see cleanupJobDir). The one thing that must outlive any
+	// single job is the shared pool of already-collected artifacts - a
+	// downstream stage may need to read from it at any point during the
+	// run - so it's cleaned up once here, when the whole submission is
+	// done, success or not.
+	defer func() {
+		dir := submissionDir(sub.Id)
+		if err := utils.Rmrf(ctx, dir); err != nil {
+			tracing.Logger.Ctx(ctx).
+				Warn("failed to clean up submission artifacts directory",
+					zap.Int64("submission.id", sub.Id),
+					zap.String("dir", dir),
+					zap.Error(err))
+		}
+	}()
+
 	// The backend removes the submission from the queue once it observes every
 	// job is terminal (in the job-result handler), so there is nothing to
 	// report here.
@@ -136,7 +154,7 @@ func (r *Runner) RunSubmission(claim ClaimResponse) {
 		r.runProblem(subCtx, sub, claim.Problem)
 	case models.RefTypeTool:
 		r.runOneJob(subCtx, sub, "tool", claim.Tool.Testcase.Name,
-			claim.Tool.Testcase.Timeout, 0, "", "")
+			claim.Tool.Testcase.Timeout, 0, "", "", nil)
 	}
 }
 
@@ -154,6 +172,7 @@ func (r *Runner) runProblem(
 			indeg[next]++
 		}
 	}
+	ancestors := computeAncestors(problem.Stages)
 
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -172,7 +191,8 @@ func (r *Runner) runProblem(
 	var runStage func(string)
 	runStage = func(name string) {
 		defer wg.Done()
-		success := r.runStageTestcases(ctx, sub, name, problem.Stages[name])
+		success := r.runStageTestcases(ctx, sub, name, problem.Stages[name],
+			ancestors[name])
 
 		mu.Lock()
 		defer mu.Unlock()
@@ -208,6 +228,7 @@ func (r *Runner) runStageTestcases(
 	sub models.Submission,
 	stageName string,
 	stage models.Stage,
+	ancestorStages []string,
 ) bool {
 	if len(stage.Testcases) == 0 {
 		return true
@@ -220,7 +241,8 @@ func (r *Runner) runStageTestcases(
 		go func(i int, tc models.Testcase) {
 			defer wg.Done()
 			results[i] = r.runOneJob(ctx, sub, stageName, tc.Name,
-				tc.Timeout, tc.GracePeriod, tc.ResourceGroup, tc.Image)
+				tc.Timeout, tc.GracePeriod, tc.ResourceGroup, tc.Image,
+				ancestorStages)
 		}(i, stage.Testcases[i])
 	}
 	wg.Wait()
@@ -245,6 +267,7 @@ func (r *Runner) runOneJob(
 	gracePeriod int64,
 	resourceGroup string,
 	_ string,
+	ancestorStages []string,
 ) models.JobStatus {
 	if resourceGroup != "" {
 		lock := r.rgLock(fmt.Sprintf("%d-%s", sub.Id, resourceGroup))
@@ -311,7 +334,12 @@ func (r *Runner) runOneJob(
 		return models.StatusFailed
 	}
 
-	jwf := models.JobWithFile{Job: job, Tarbuf: tarbuf}
+	seedDirs := make([]string, len(ancestorStages))
+	for i, stage := range ancestorStages {
+		seedDirs[i] = stageArtifactsDir(sub.Id, stage)
+	}
+
+	jwf := models.JobWithFile{Job: job, Tarbuf: tarbuf, SeedDirs: seedDirs}
 	retCh := make(chan error, 1)
 	go RunJob(ctx, retCh, &jwf, r.CriClient, r.WorkerBinary)
 	<-retCh
