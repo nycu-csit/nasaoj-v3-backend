@@ -2944,6 +2944,10 @@ const docTemplatebackend = `{
                 "gracePeriod": {
                     "type": "integer"
                 },
+                "hasArtifacts": {
+                    "description": "HasArtifacts is set by the worker (from whether any file actually\nmatched Artifacts) and persisted, so callers can tell whether\nGET /api/artifacts has anything to return without probing object\nstorage themselves.",
+                    "type": "boolean"
+                },
                 "image": {
                     "type": "string"
                 },

@@ -558,6 +558,13 @@ definitions:
         type: integer
       gracePeriod:
         type: integer
+      hasArtifacts:
+        description: |-
+          HasArtifacts is set by the worker (from whether any file actually
+          matched Artifacts) and persisted, so callers can tell whether
+          GET /api/artifacts has anything to return without probing object
+          storage themselves.
+        type: boolean
       image:
         type: string
       input:
