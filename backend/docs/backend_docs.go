@@ -2059,6 +2059,10 @@ const docTemplatebackend = `{
                 "createdAt": {
                     "type": "integer"
                 },
+                "description": {
+                    "description": "Description is required at issuance time so ` + "`" + `judge admin get tokens` + "`" + `\ncan tell tokens apart without decoding the secret itself.",
+                    "type": "string"
+                },
                 "isEnabled": {
                     "type": "boolean"
                 },
@@ -2067,6 +2071,10 @@ const docTemplatebackend = `{
                 },
                 "sha256": {
                     "type": "string"
+                },
+                "userId": {
+                    "description": "UserId binds the token to a user: Privs/namespace membership are\nresolved live from that user on every request instead of the values\nbelow, which are then just informational. Zero for static\n(admin/worker) tokens, where Privs is authoritative.",
+                    "type": "integer"
                 }
             }
         },
@@ -2127,8 +2135,16 @@ const docTemplatebackend = `{
         "api.PostTokenInput": {
             "type": "object",
             "properties": {
+                "description": {
+                    "description": "Description is required: it's how ` + "`" + `judge admin get tokens` + "`" + ` tells\ntokens apart without decoding the secret itself.",
+                    "type": "string"
+                },
                 "tokenType": {
                     "type": "string"
+                },
+                "userId": {
+                    "description": "UserId is required when TokenType is \"user\": the token's privileges\nand namespace membership are resolved live from this user on every\nrequest.",
+                    "type": "integer"
                 }
             }
         },

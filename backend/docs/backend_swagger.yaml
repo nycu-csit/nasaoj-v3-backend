@@ -25,12 +25,24 @@ definitions:
     properties:
       createdAt:
         type: integer
+      description:
+        description: |-
+          Description is required at issuance time so `judge admin get tokens`
+          can tell tokens apart without decoding the secret itself.
+        type: string
       isEnabled:
         type: boolean
       privs:
         $ref: '#/definitions/models.Privileges'
       sha256:
         type: string
+      userId:
+        description: |-
+          UserId binds the token to a user: Privs/namespace membership are
+          resolved live from that user on every request instead of the values
+          below, which are then just informational. Zero for static
+          (admin/worker) tokens, where Privs is authoritative.
+        type: integer
     type: object
   api.GetWorkerStatesOutput:
     properties:
@@ -69,8 +81,19 @@ definitions:
     type: object
   api.PostTokenInput:
     properties:
+      description:
+        description: |-
+          Description is required: it's how `judge admin get tokens` tells
+          tokens apart without decoding the secret itself.
+        type: string
       tokenType:
         type: string
+      userId:
+        description: |-
+          UserId is required when TokenType is "user": the token's privileges
+          and namespace membership are resolved live from this user on every
+          request.
+        type: integer
     type: object
   api.PostTokenOutput:
     properties:
