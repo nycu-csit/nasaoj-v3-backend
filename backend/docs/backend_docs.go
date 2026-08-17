@@ -409,6 +409,48 @@ const docTemplatebackend = `{
             }
         },
         "/api/admin/problem": {
+            "get": {
+                "description": "Returns a single problem by SHA1, including disabled ones.\nPass detail=true for the full problem definition (every\nfield, including testcase file hashes) instead of the\nsummary. Admin only.",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get a problem (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "problem sha1",
+                        "name": "problemSHA1",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "return the full problem definition",
+                        "name": "detail",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.ProblemOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Deletes a problem and its submissions by SHA1 prefix. Admin only.",
                 "summary": "Delete a problem",
@@ -485,11 +527,19 @@ const docTemplatebackend = `{
         },
         "/api/admin/problems": {
             "get": {
-                "description": "Returns all problems, including disabled ones. Admin only.",
+                "description": "Returns all problems, including disabled ones. Pass\ndetail=true for the full problem definition (every field,\nincluding testcase file hashes) instead of the summary.\nAdmin only.",
                 "produces": [
                     "application/json"
                 ],
                 "summary": "List all problems (admin)",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "return the full problem definition",
+                        "name": "detail",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2212,7 +2262,7 @@ const docTemplatebackend = `{
         "api.PostNamespaceInput": {
             "type": "object",
             "properties": {
-                "metadata": {
+                "args": {
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -3057,6 +3107,13 @@ const docTemplatebackend = `{
         "models.Namespace": {
             "type": "object",
             "properties": {
+                "args": {
+                    "description": "Args are default job args for every submission in this namespace -\nthe outermost, most general layer of the same overlay problem/stage/\ntestcase args already use (see utils.ArgsOverlay), so a problem can\nstill override a namespace default for the same key.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "createdAt": {
                     "type": "integer"
                 },
@@ -3065,12 +3122,6 @@ const docTemplatebackend = `{
                 },
                 "isEnabled": {
                     "type": "boolean"
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
                 },
                 "name": {
                     "type": "string"

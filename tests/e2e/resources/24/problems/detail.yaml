@@ -1,0 +1,17 @@
+name: Problem detail test
+problemId: 2401
+description: used to verify --detail/detail=true exposes full fields, including testcase file hashes, not present in the summary
+cooldown: 5
+args:
+  FOO: bar
+stages:
+  main:
+    score: 100
+    testcases:
+      - name: hello
+        files:
+          - hello.sh
+        scripts:
+          - bash hello.sh
+        args:
+          BAZ: qux

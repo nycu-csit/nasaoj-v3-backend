@@ -75,7 +75,7 @@ definitions:
     type: object
   api.PostNamespaceInput:
     properties:
-      metadata:
+      args:
         additionalProperties:
           type: string
         type: object
@@ -650,16 +650,21 @@ definitions:
     - LoginSourceCSSSO
   models.Namespace:
     properties:
+      args:
+        additionalProperties:
+          type: string
+        description: |-
+          Args are default job args for every submission in this namespace -
+          the outermost, most general layer of the same overlay problem/stage/
+          testcase args already use (see utils.ArgsOverlay), so a problem can
+          still override a namespace default for the same key.
+        type: object
       createdAt:
         type: integer
       id:
         type: integer
       isEnabled:
         type: boolean
-      metadata:
-        additionalProperties:
-          type: string
-        type: object
       name:
         type: string
       title:
@@ -1323,6 +1328,38 @@ paths:
           schema:
             type: string
       summary: Delete a problem
+    get:
+      description: |-
+        Returns a single problem by SHA1, including disabled ones.
+        Pass detail=true for the full problem definition (every
+        field, including testcase file hashes) instead of the
+        summary. Admin only.
+      parameters:
+      - description: problem sha1
+        in: query
+        name: problemSHA1
+        required: true
+        type: string
+      - description: return the full problem definition
+        in: query
+        name: detail
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.ProblemOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Get a problem (admin)
   /api/admin/problem/state:
     put:
       consumes:
@@ -1351,7 +1388,16 @@ paths:
       summary: Enable or disable a problem
   /api/admin/problems:
     get:
-      description: Returns all problems, including disabled ones. Admin only.
+      description: |-
+        Returns all problems, including disabled ones. Pass
+        detail=true for the full problem definition (every field,
+        including testcase file hashes) instead of the summary.
+        Admin only.
+      parameters:
+      - description: return the full problem definition
+        in: query
+        name: detail
+        type: boolean
       produces:
       - application/json
       responses:

@@ -43,13 +43,64 @@ type ProblemOutput struct {
 	ScoreOutputType models.ScoreOutputTypeType    `json:"scoreOutputType"`
 }
 
+func toProblemOutput(sha1 string, problem models.Problem) ProblemOutput {
+	ret := ProblemOutput{
+		Name:        problem.Name,
+		SHA1:        sha1,
+		ImportedAt:  problem.ImportedAt,
+		ProblemId:   problem.ProblemId,
+		Description: problem.Description,
+		Spec: ProblemOutputSpec{
+			Type: problem.Spec.Type,
+			Link: problem.Spec.Link,
+		},
+		Stages:          make(map[string]problemOutputStage),
+		Tag:             problem.Tag,
+		TotalScore:      problem.TotalScore,
+		IsEnabled:       problem.IsEnabled,
+		Deadline:        problem.Deadline,
+		ScoreInputType:  problem.ScoreInputType,
+		ScoreOutputType: problem.ScoreOutputType,
+	}
+	for stageName, stage := range problem.Stages {
+		retStage := problemOutputStage{
+			Before:    stage.Before,
+			Score:     stage.Score,
+			Testcases: []problemOutputStageTestcase{},
+		}
+		for _, testcase := range stage.Testcases {
+			retStage.Testcases = append(retStage.Testcases,
+				problemOutputStageTestcase{
+					Name:        testcase.Name,
+					Timeout:     testcase.Timeout,
+					GracePeriod: testcase.GracePeriod,
+				})
+		}
+		ret.Stages[stageName] = retStage
+	}
+	return ret
+}
+
+// ProblemDetailOutput is the full problem definition - every field,
+// including testcase file names/SHA1/payload - as opposed to ProblemOutput's
+// trimmed summary. Admin only: it can expose script/testcase content TAs
+// may not want visible to students.
+type ProblemDetailOutput struct {
+	models.Problem `json:",inline" yaml:",inline"`
+	SHA1           string `json:"sha1" yaml:"sha1"`
+}
+
 // GetAdminProblems
 //
 //	@Summary		List all problems (admin)
-//	@Description	Returns all problems, including disabled ones. Admin only.
+//	@Description	Returns all problems, including disabled ones. Pass
+//	@Description	detail=true for the full problem definition (every field,
+//	@Description	including testcase file hashes) instead of the summary.
+//	@Description	Admin only.
 //	@Produce		json
-//	@Success		200	{object}	[]ProblemOutput
-//	@Failure		500	{object}	string	"Problem loading error"
+//	@Param			detail	query		bool	false	"return the full problem definition"
+//	@Success		200		{object}	[]ProblemOutput
+//	@Failure		500		{object}	string	"Problem loading error"
 //	@Router			/api/admin/problems [get]
 func getAdminProblemsPlaceholder() {}
 
@@ -83,6 +134,18 @@ func (self *Handlers) GetProblems(
 		}
 
 		namespaceIds := middlewares.NamespaceIdsFromContext(ctx)
+		detail := isAdmin && req.URL.Query().Get("detail") == "true"
+
+		if detail {
+			ret := []ProblemDetailOutput{}
+			for sha1, problem := range resProblems {
+				if !slices.Contains(namespaceIds, problem.NamespaceId) {
+					continue
+				}
+				ret = append(ret, ProblemDetailOutput{Problem: problem, SHA1: sha1})
+			}
+			return bunrouter.JSON(w, ret)
+		}
 
 		ret := []ProblemOutput{}
 		for sha1, problem := range resProblems {
@@ -90,41 +153,7 @@ func (self *Handlers) GetProblems(
 			if !slices.Contains(namespaceIds, problem.NamespaceId) {
 				continue
 			}
-			retProblem := ProblemOutput{
-				Name:        problem.Name,
-				SHA1:        sha1,
-				ImportedAt:  problem.ImportedAt,
-				ProblemId:   problem.ProblemId,
-				Description: problem.Description,
-				Spec: ProblemOutputSpec{
-					Type: problem.Spec.Type,
-					Link: problem.Spec.Link,
-				},
-				Stages:          make(map[string]problemOutputStage),
-				Tag:             problem.Tag,
-				TotalScore:      problem.TotalScore,
-				IsEnabled:       problem.IsEnabled,
-				Deadline:        problem.Deadline,
-				ScoreInputType:  problem.ScoreInputType,
-				ScoreOutputType: problem.ScoreOutputType,
-			}
-			for stageName, stage := range problem.Stages {
-				retStage := problemOutputStage{
-					Before:    stage.Before,
-					Score:     stage.Score,
-					Testcases: []problemOutputStageTestcase{},
-				}
-				for _, testcase := range stage.Testcases {
-					retStage.Testcases = append(retStage.Testcases,
-						problemOutputStageTestcase{
-							Name:        testcase.Name,
-							Timeout:     testcase.Timeout,
-							GracePeriod: testcase.GracePeriod,
-						})
-				}
-				retProblem.Stages[stageName] = retStage
-			}
-			ret = append(ret, retProblem)
+			ret = append(ret, toProblemOutput(sha1, problem))
 		}
 
 		return bunrouter.JSON(w, ret)
