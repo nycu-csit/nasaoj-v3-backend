@@ -18,6 +18,49 @@ const docTemplatebackend = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/artifacts": {
+            "get": {
+                "description": "Returns the tar of files a testcase declared as artifacts,\nfor any submission. Admin only.",
+                "summary": "Get a job's kept artifacts (admin)",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "application/x-tar",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
         "/api/admin/content-files": {
             "put": {
                 "description": "Uploads SHA1-addressed content files used by problems and tools. Admin only.",
@@ -1201,6 +1244,49 @@ const docTemplatebackend = `{
                         "schema": {
                             "type": "string"
                         }
+                    }
+                }
+            }
+        },
+        "/api/artifacts": {
+            "get": {
+                "description": "Returns the tar of files a testcase declared as artifacts,\nfor one of the caller's own submissions.",
+                "summary": "Get a job's kept artifacts",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Submission id",
+                        "name": "subId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Stage name",
+                        "name": "stage",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Testcase name",
+                        "name": "testcase",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "application/x-tar",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
                     }
                 }
             }
@@ -2842,6 +2928,16 @@ const docTemplatebackend = `{
         "models.Job": {
             "type": "object",
             "properties": {
+                "artifactUploadUrl": {
+                    "type": "string"
+                },
+                "artifacts": {
+                    "description": "Artifacts (glob patterns, from Testcase.Artifacts) and where the\nworker should upload the packed result, presigned by the backend at\nmarshal time. Empty when the testcase declares no artifacts to keep.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "execAt": {
                     "type": "integer"
                 },
@@ -2886,8 +2982,15 @@ const docTemplatebackend = `{
                 "stderr": {
                     "type": "string"
                 },
+                "stderrUploadUrl": {
+                    "type": "string"
+                },
                 "stdout": {
-                    "description": "Return values",
+                    "description": "Return values. Left empty on the wire once the worker has uploaded\nthem directly via StdoutUploadURL/StderrUploadURL - they exist here\nonly for the worker's own in-process use while running the job.",
+                    "type": "string"
+                },
+                "stdoutUploadUrl": {
+                    "description": "Where the worker uploads stdout/stderr directly, presigned by the\nbackend at marshal time - the backend never sees the bytes.",
                     "type": "string"
                 },
                 "subId": {
@@ -3205,6 +3308,13 @@ const docTemplatebackend = `{
                 "args": {
                     "type": "object",
                     "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "artifacts": {
+                    "description": "Artifacts lists glob patterns (matched with filepath.Match against each\nfile's path relative to the job's working directory) for files the\nworker should keep instead of discarding along with the rest of the\nworking directory. Matched files are archived and uploaded to object\nstorage, and are also visible to any testcase in a stage that\n(transitively) depends on this testcase's stage, for the lifetime of\nthe submission. Everything else in the working directory - build\ncaches, compiled binaries not explicitly listed, etc. - is deleted\nonce the testcase finishes.",
+                    "type": "array",
+                    "items": {
                         "type": "string"
                     }
                 },

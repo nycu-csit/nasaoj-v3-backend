@@ -24,6 +24,7 @@ type testcase struct {
 	GracePeriod   int64             `yaml:"gracePeriod"`
 	ResourceGroup string            `yaml:"resourceGroup,omitempty"`
 	Image         string            `yaml:"image,omitempty"`
+	Artifacts     []string          `yaml:"artifacts,omitempty"`
 }
 
 type Testcase struct {
@@ -95,6 +96,7 @@ func (self *Testcase) ToModelTestcase(
 		GracePeriod:   self.GracePeriod,
 		ResourceGroup: self.ResourceGroup,
 		Image:         self.Image,
+		Artifacts:     self.Artifacts,
 	}
 
 	if res, err := self.Content.ToModelContent(ctx, contentFiles); err == nil {

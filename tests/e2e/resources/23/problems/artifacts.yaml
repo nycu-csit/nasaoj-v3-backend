@@ -1,0 +1,31 @@
+name: Artifact sharing across dependent stages
+problemId: 2301
+description: >
+  parent keeps keep.txt as an artifact (but not scratch.txt); child, which
+  depends on parent, can read keep.txt; sibling, an unrelated concurrent
+  stage, cannot.
+cooldown: 0
+stages:
+  parent:
+    testcases:
+      - name: produce
+        scripts:
+          - echo "hello from parent" > keep.txt
+          - echo "scratch, should not survive" > scratch.txt
+        artifacts: ["keep.txt"]
+    before: [child]
+    score: 0
+  sibling:
+    testcases:
+      - name: unrelated
+        scripts:
+          - sleep 3
+          - if [ -f keep.txt ]; then echo LEAKED; else echo ISOLATED; fi
+    score: 0
+  child:
+    testcases:
+      - name: consume
+        scripts:
+          - if [ -f keep.txt ]; then cat keep.txt; else echo MISSING; fi
+    after: [parent]
+    score: 100

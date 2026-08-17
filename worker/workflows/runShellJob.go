@@ -22,9 +22,12 @@ func RunShellJob(
 	retCh chan error,
 	job *models.JobWithFile,
 ) {
-	// Setup environment
+	// Setup environment. The ref tar cache is shared across submissions and
+	// stays flat under running-dir; the job's own working directory lives
+	// under the submission's run dir so ancestor stages' artifacts (and this
+	// job's own, once collected) can be shared with the rest of the run.
 	refpath := path.Join(viper.GetString("running-dir"), job.RefFilename())
-	basepath := path.Join(viper.GetString("running-dir"), job.Id())
+	basepath := jobBasePath(job.Job)
 	tarbuf, err := os.ReadFile(refpath)
 	if err != nil {
 		tracing.Logger.Ctx(pctx).
@@ -50,6 +53,14 @@ func RunShellJob(
 	if err := utils.UnTar(pctx, basepath, job.Tarbuf); err != nil {
 		tracing.Logger.Ctx(pctx).
 			Error("failed to untar job file",
+				zap.Error(err))
+		retCh <- err
+		return
+	}
+
+	if err := seedArtifacts(pctx, job, basepath); err != nil {
+		tracing.Logger.Ctx(pctx).
+			Error("failed to seed ancestor artifacts",
 				zap.Error(err))
 		retCh <- err
 		return
@@ -232,8 +243,20 @@ func RunShellJob(
 	}
 done:
 
-	job.Stdout = string(stdoutBuf.Bytes()[:])
-	job.Stderr = string(stderrBuf.Bytes()[:])
+	// pctx may already be Done here (hard timeout / cancellation) - detach
+	// so uploading output/artifacts and cleaning up still happen, the same
+	// way putResult reports the outcome on r.Root rather than this job's
+	// own context.
+	finishCtx := context.WithoutCancel(pctx)
+
+	uploadOutput(finishCtx, job, stdoutBuf.Bytes(), stderrBuf.Bytes())
+	// Already uploaded directly - don't also embed the full text in the
+	// PUT /schedule/result body.
+	job.Stdout = ""
+	job.Stderr = ""
+
+	collectArtifacts(finishCtx, job, basepath)
+	cleanupJobDir(finishCtx, job, basepath)
 
 	retCh <- ret
 }

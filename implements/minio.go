@@ -56,6 +56,23 @@ func (self *MinIO) GetFileURL(
 	return fileURL.String(), nil
 }
 
+func (self *MinIO) PutFileURL(
+	ctx context.Context,
+	filename string,
+	timeout time.Duration,
+) (string, error) {
+	fileURL, err := self.PresignedPutObject(ctx, viper.GetString("minio-bucket"),
+		filename, timeout)
+	if err != nil {
+		tracing.Logger.Ctx(ctx).
+			Error("failed to get presigned put url from minio",
+				zap.Error(err))
+		return "", err
+	}
+
+	return fileURL.String(), nil
+}
+
 func (self *MinIO) GetFile(
 	ctx context.Context,
 	filename string,
