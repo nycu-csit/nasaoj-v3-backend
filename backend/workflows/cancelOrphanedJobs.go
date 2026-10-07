@@ -12,14 +12,19 @@ import (
 	"go.uber.org/zap"
 )
 
-// CancelOrphanedJobs marks a submission's Running jobs that no live worker
-// tracks as Cancelled. A cancelled submission's Running jobs are normally
-// finished by the owning worker (signalled via the heartbeat), but a job can
-// be left Running with no worker behind it - e.g. marshal committed the status
-// change and then failed - and would otherwise never become terminal.
+// CancelOrphanedJobs marks a submission's Running jobs that its owning worker
+// doesn't track as Cancelled. A cancelled submission's Running jobs are
+// normally finished by the owning worker (signalled via the heartbeat), but a
+// job can be left Running with nobody behind it - e.g. its worker tracking was
+// lost - and would otherwise never become terminal.
+//
+// Marshal tracks a job on its worker before making it Running, so a job seen
+// Running here is always visible in the owner's tracked set unless it really
+// is orphaned.
 func CancelOrphanedJobs(
 	ctx context.Context,
 	submission models.Submission,
+	subQueue interfaces.SubmissionQueueStorage,
 	workers interfaces.WorkerStatusStorage,
 	jobs interfaces.JobStorage,
 ) error {
@@ -33,15 +38,18 @@ func CancelOrphanedJobs(
 		return nil
 	}
 
-	workerMap, err := workers.GetWorkers(ctx)
+	// Only the worker holding the submission can be running its jobs. Ask
+	// it directly rather than scanning registered workers: an owner that
+	// hasn't heartbeated yet is not registered but does track its jobs.
+	owner, err := subQueue.SubmissionWorker(ctx, submission.Id)
 	if err != nil {
-		return fmt.Errorf("failed to get workers: %w", err)
+		return fmt.Errorf("failed to get submission owner: %w", err)
 	}
 	tracked := make(map[string]struct{})
-	for name := range workerMap {
-		jobIds, err := workers.GetWorkerJobs(ctx, name)
+	if owner != "" {
+		jobIds, err := workers.GetWorkerJobs(ctx, owner)
 		if err != nil {
-			return fmt.Errorf("failed to get jobs of worker %s: %w", name, err)
+			return fmt.Errorf("failed to get jobs of worker %s: %w", owner, err)
 		}
 		for _, jobId := range jobIds {
 			tracked[jobId] = struct{}{}
@@ -53,8 +61,9 @@ func CancelOrphanedJobs(
 			continue
 		}
 		tracing.Logger.Ctx(ctx).
-			Warn("cancelling running job no worker tracks",
-				zap.String("job.id", job.Id()))
+			Warn("cancelling running job its owner doesn't track",
+				zap.String("job.id", job.Id()),
+				zap.String("owner", owner))
 		job.Status = models.StatusCancelled
 		err := jobs.UpdateJob(ctx, job, models.StatusRunning)
 		if err != nil && !errors.Is(err, types.JobAlreadySkippedError) {

@@ -247,10 +247,30 @@ func (self *Handlers) PostScheduleMarshalJob(
 	}
 	job.Script = jobScript
 
+	// Track the job on the worker *before* it becomes Running, so anything
+	// that sees it Running (CancelOrphanedJobs) also sees it tracked.
+	if err := self.workers.AddWorkerJob(ctx, workerName, job.Id()); err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusServiceUnavailable,
+			Message:     "failed to track worker job",
+			OriginError: err,
+		}
+	}
+
 	// Mark the job running (Blocked -> Running). Refuse if already skipped or
 	// cancelled so the worker knows to drop it.
 	job.Status = models.StatusRunning
 	if err := self.jobs.UpdateJob(ctx, &job, models.StatusBlocked); err != nil {
+		// The job never became Running - drop the tracking entry again. The
+		// worker won't report a result for it, which is what normally would.
+		if rmErr := self.workers.RemoveWorkerJob(
+			ctx, workerName, job.Id()); rmErr != nil {
+			tracing.Logger.Ctx(ctx).
+				Warn("failed to untrack worker job",
+					zap.String("worker", workerName),
+					zap.String("job.id", job.Id()),
+					zap.Error(rmErr))
+		}
 		if errors.Is(err, types.JobAlreadySkippedError) {
 			return middlewares.HTTPError{
 				StatusCode: http.StatusConflict,
@@ -262,15 +282,6 @@ func (self *Handlers) PostScheduleMarshalJob(
 			Message:     "job update failed",
 			OriginError: err,
 		}
-	}
-
-	// Track the job on the worker so cancellation / orphan detection works.
-	if err := self.workers.AddWorkerJob(ctx, workerName, job.Id()); err != nil {
-		tracing.Logger.Ctx(ctx).
-			Warn("failed to add worker job",
-				zap.String("worker", workerName),
-				zap.String("job.id", job.Id()),
-				zap.Error(err))
 	}
 
 	// Write the ref tar (problem/tool content) once per ref sha.

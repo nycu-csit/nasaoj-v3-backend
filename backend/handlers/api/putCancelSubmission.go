@@ -105,10 +105,10 @@ func (self *Handlers) PutCancelSubmission(
 			}
 		}
 
-		// Running jobs no worker is tracking would never be finished by the
-		// heartbeat-driven abort above - cancel them here.
+		// Running jobs the owning worker isn't tracking would never be
+		// finished by the heartbeat-driven abort above - cancel them here.
 		if err := workflows.CancelOrphanedJobs(ctx,
-			submission, self.workers, self.jobs); err != nil {
+			submission, self.subQueue, self.workers, self.jobs); err != nil {
 			return middlewares.HTTPError{
 				StatusCode:  http.StatusInternalServerError,
 				Message:     "failed to cancel orphaned jobs",

@@ -1,12 +1,14 @@
 package tests
 
 import (
+	"context"
 	"net/http"
 	"slices"
 	"strconv"
 	"testing"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/redis/go-redis/v9"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/schedule"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
@@ -34,6 +36,24 @@ func scheduleClient(workerName string) *resty.Client {
 		SetBaseURL("http://localhost:8080").
 		SetAuthToken(test26WorkerToken).
 		SetHeader("X-Worker-Name", workerName)
+}
+
+// test26Redis connects to the docker stack's Redis, which holds the backend's
+// worker job tracking.
+func test26Redis() *redis.Client {
+	return redis.NewClient(&redis.Options{Addr: "localhost:6379"})
+}
+
+// test26TrackedJobs returns the job ids the backend tracks on a worker.
+func test26TrackedJobs(t *testing.T, workerName string) []string {
+	t.Helper()
+
+	jobIds, err := test26Redis().HKeys(context.Background(),
+		"worker-jobs-"+workerName).Result()
+	if err != nil {
+		t.Fatalf("failed to get tracked jobs of %s: %v", workerName, err)
+	}
+	return jobIds
 }
 
 func test26Submit(t *testing.T) int64 {
@@ -279,17 +299,22 @@ func Test_26_4_Blocked_job_failure_completes_submission(t *testing.T) {
 
 func Test_26_5_Cancel_finishes_orphaned_running_job(t *testing.T) {
 	subId := test26Submit(t)
+	test26Claim(t, test26Worker, subId)
+	test26Marshal(t, test26Worker, subId, "first", "one")
+	jobId := strconv.FormatInt(subId, 10) + "-first-one"
+	if !slices.Contains(test26TrackedJobs(t, test26Worker), jobId) {
+		t.Fatalf("expected %s to be tracked on %s after marshal",
+			jobId, test26Worker)
+	}
 
-	// Claim and marshal as a worker that has never heartbeated, so no live
-	// worker tracks the now-Running job.
-	orphanWorker := "e2e-fake-worker-orphan"
-	test26Claim(t, orphanWorker, subId)
-	test26Marshal(t, orphanWorker, subId, "first", "one")
-	test26Expect(t, subId, map[string]models.JobStatus{
-		"first": models.StatusRunning,
-	})
+	// Lose the owner's tracking of the Running job (as a Redis data loss
+	// would), leaving nobody to ever report it.
+	if err := test26Redis().HDel(context.Background(),
+		"worker-jobs-"+test26Worker, jobId).Err(); err != nil {
+		t.Fatalf("failed to drop worker job tracking: %v", err)
+	}
 
-	// Nobody would ever report it, so cancel must finish it on the spot.
+	// Cancel must finish it on the spot.
 	test26Cancel(t, subId)
 	test26Expect(t, subId, map[string]models.JobStatus{
 		"first":  models.StatusCancelled,
@@ -328,5 +353,62 @@ func Test_26_6_Cancel_leaves_tracked_running_job_to_worker(t *testing.T) {
 		"first":  models.StatusCancelled,
 		"second": models.StatusSkipped,
 	})
+	test26ExpectQueueEmpty(t)
+}
+
+func Test_26_7_Cancel_leaves_unregistered_owners_job(t *testing.T) {
+	subId := test26Submit(t)
+
+	// The owner has never heartbeated, so it isn't a registered worker yet -
+	// but it holds the submission and tracks the job, so the job isn't
+	// orphaned and must be left for it to finish.
+	owner := "e2e-fake-worker-unregistered"
+	test26Claim(t, owner, subId)
+	test26Marshal(t, owner, subId, "first", "one")
+
+	test26Cancel(t, subId)
+	test26Expect(t, subId, map[string]models.JobStatus{
+		"first":  models.StatusRunning,
+		"second": models.StatusSkipped,
+	})
+
+	resp := test26PutResult(t, owner, subId,
+		"first", "one", models.StatusCancelled)
+	if resp.StatusCode() != http.StatusOK {
+		t.Fatalf("failed to report cancelled job: %d %s",
+			resp.StatusCode(), resp.String())
+	}
+	test26Expect(t, subId, map[string]models.JobStatus{
+		"first":  models.StatusCancelled,
+		"second": models.StatusSkipped,
+	})
+	test26ExpectQueueEmpty(t)
+}
+
+func Test_26_8_Refused_marshal_untracks_job(t *testing.T) {
+	subId := test26Submit(t)
+	test26Claim(t, test26Worker, subId)
+
+	// Cancelling skips the still-Blocked jobs, so marshal is refused (409)
+	// and the worker drops the job without ever reporting it.
+	test26Cancel(t, subId)
+	resp, err := scheduleClient(test26Worker).R().
+		SetBody(schedule.MarshalJobRequest{
+			SubId:     subId,
+			StageName: "first",
+			TestName:  "one",
+		}).
+		Post("/schedule/job/marshal")
+	if err != nil || resp.StatusCode() != http.StatusConflict {
+		t.Fatalf("expected 409 marshalling a skipped job, got: %v %v",
+			err, resp)
+	}
+
+	// Marshal tracks the job before trying to run it - the refusal must
+	// undo that, since no result will come to remove it.
+	jobId := strconv.FormatInt(subId, 10) + "-first-one"
+	if slices.Contains(test26TrackedJobs(t, test26Worker), jobId) {
+		t.Fatalf("expected %s to be untracked after refused marshal", jobId)
+	}
 	test26ExpectQueueEmpty(t)
 }
