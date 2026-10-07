@@ -18,10 +18,10 @@ deploy:alpha:
   extends: .deploy
   variables:
     BRANCH: main
-    NAMESPACE: "nasaoj-alpha nnieoj-alpha"
+    NAMESPACE: "nasaoj-alpha"
 
 deploy:production:
   extends: .deploy
   variables:
     BRANCH: production
-    NAMESPACE: "nasaoj-prod nnieoj-prod"
+    NAMESPACE: "nasaoj-prod"
