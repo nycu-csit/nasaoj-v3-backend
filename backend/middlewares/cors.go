@@ -21,7 +21,7 @@ func CORSHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 			w.Header().Set("Access-Control-Allow-Methods",
 				"GET,PUT,POST,DELETE,OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers",
-				"authorization,content-type,content-length")
+				"authorization,content-type,content-length,x-namespace")
 			return nil
 		}
 

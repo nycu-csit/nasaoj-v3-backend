@@ -66,12 +66,35 @@ definitions:
           type: string
         type: array
     type: object
+  api.MeNamespace:
+    properties:
+      id:
+        type: integer
+      isAdmin:
+        description: |-
+          IsAdmin is whether the caller administers this namespace, either as its
+          namespace admin or as a global admin.
+        type: boolean
+      isEnabled:
+        type: boolean
+      name:
+        type: string
+      title:
+        type: string
+    type: object
   api.MeOutput:
     properties:
       accessToken:
         $ref: '#/definitions/models.AccessTokenClaim'
       isAdmin:
         type: boolean
+      namespaces:
+        description: |-
+          Namespaces are what the caller can access right now: every namespace
+          for a global admin, otherwise the access token's membership.
+        items:
+          $ref: '#/definitions/api.MeNamespace'
+        type: array
     type: object
   api.PostNamespaceInput:
     properties:
@@ -1937,7 +1960,10 @@ paths:
           description: OK
   /api/me:
     get:
-      description: Returns the authenticated user's profile and resource args.
+      description: |-
+        Returns the authenticated user's profile and resource args,
+        and the namespaces they can access (all of them for a global
+        admin).
       responses:
         "200":
           description: OK

@@ -1352,7 +1352,7 @@ const docTemplatebackend = `{
         },
         "/api/me": {
             "get": {
-                "description": "Returns the authenticated user's profile and resource args.",
+                "description": "Returns the authenticated user's profile and resource args,\nand the namespaces they can access (all of them for a global\nadmin).",
                 "summary": "Get the current user",
                 "responses": {
                     "200": {
@@ -2248,6 +2248,27 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "api.MeNamespace": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "isAdmin": {
+                    "description": "IsAdmin is whether the caller administers this namespace, either as its\nnamespace admin or as a global admin.",
+                    "type": "boolean"
+                },
+                "isEnabled": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "api.MeOutput": {
             "type": "object",
             "properties": {
@@ -2256,6 +2277,13 @@ const docTemplatebackend = `{
                 },
                 "isAdmin": {
                     "type": "boolean"
+                },
+                "namespaces": {
+                    "description": "Namespaces are what the caller can access right now: every namespace\nfor a global admin, otherwise the access token's membership.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.MeNamespace"
+                    }
                 }
             }
         },

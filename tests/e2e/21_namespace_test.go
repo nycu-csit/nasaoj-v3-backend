@@ -347,6 +347,35 @@ func Test_21_9_Namespace_admin_scope(t *testing.T) {
 	}
 }
 
+func Test_21_9_1_Me_lists_namespaces(t *testing.T) {
+	c := loginPlain(t, nsUserUser, nsUserPass)
+
+	var me api.MeOutput
+	resp, err := c.R().SetResult(&me).Get("/api/me")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("nsb-user get /api/me failed: %v %s", err, resp)
+	}
+
+	if len(me.Namespaces) != 1 || me.Namespaces[0].Name != nsB {
+		t.Fatalf("expected only %s in /api/me namespaces, got %+v",
+			nsB, me.Namespaces)
+	}
+	if me.Namespaces[0].IsAdmin {
+		t.Fatalf("nsb-user should not be admin of %s", nsB)
+	}
+
+	c = loginPlain(t, nsAdminUser, nsAdminPass)
+	me = api.MeOutput{}
+	resp, err = c.R().SetResult(&me).Get("/api/me")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("nsb-admin get /api/me failed: %v %s", err, resp)
+	}
+	if len(me.Namespaces) != 1 || !me.Namespaces[0].IsAdmin {
+		t.Fatalf("expected nsb-admin to be admin of %s, got %+v",
+			nsB, me.Namespaces)
+	}
+}
+
 func Test_21_10_Multi_namespace_read(t *testing.T) {
 	// Import a distinct problem (2102) into the default namespace.
 	cmd := exec.Command(
@@ -456,5 +485,149 @@ func Test_21_11_Remove_namespace_user(t *testing.T) {
 	if resp.StatusCode() != http.StatusForbidden {
 		t.Fatalf("removed user reading nsb: expected 403, got %d %s",
 			resp.StatusCode(), resp.String())
+	}
+}
+
+// test21SeedUser is a plain user left behind after the suite, for logging into
+// the frontend by hand. The password is always "<username>-pass".
+type test21SeedUser struct {
+	username      string
+	isGlobalAdmin bool
+	memberOf      []string // namespace names joined as a plain member
+	adminOf       []string // namespace names joined as admin
+	wantAdmins    int      // namespaces /api/me should report isAdmin for; -1 = all
+}
+
+const nsDisabled = "nsd"
+
+var test21SeedUsers = []test21SeedUser{
+	// Switches between two namespaces as a plain member.
+	{username: "ns-multi", memberOf: []string{"default", nsB}},
+	// Namespace admin of nsb, plain member of default.
+	{username: "ns-mixed-admin", memberOf: []string{"default"}, adminOf: []string{nsB}, wantAdmins: 1},
+	// Admin of both namespaces.
+	{username: "ns-double-admin", adminOf: []string{"default", nsB}, wantAdmins: 2},
+	// Member of a disabled namespace, which shows up but cannot be selected.
+	{username: "ns-disabled-member", memberOf: []string{nsB, nsDisabled}},
+	// Global admin with no explicit membership: sees and administers every
+	// namespace, including the disabled one.
+	{username: "ns-global-admin", isGlobalAdmin: true, wantAdmins: -1},
+}
+
+func Test_21_12_Seed_login_users(t *testing.T) {
+	// A namespace that ends up disabled, for the disabled-member user.
+	resp, err := adminReq().
+		SetBody(map[string]interface{}{
+			"name":  nsDisabled,
+			"title": "Namespace D (disabled)",
+		}).
+		Post("/api/admin/namespace")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("create %s failed: %v %s", nsDisabled, err, resp)
+	}
+
+	var yaml strings.Builder
+	yaml.WriteString("---\n")
+	for _, u := range test21SeedUsers {
+		yaml.WriteString("- username: '" + u.username + "'\n")
+		yaml.WriteString("  password: '" + u.username + "-pass'\n")
+		if u.isGlobalAdmin {
+			yaml.WriteString("  isAdmin: true\n")
+		}
+	}
+	runJudgeStdin(t, yaml.String(),
+		"admin", "import", "users", "plain",
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+
+	var users []struct {
+		Id       int64  `json:"id"`
+		Username string `json:"username"`
+	}
+	resp, err = adminReq().SetResult(&users).Get("/api/admin/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("get users failed: %v %s", err, resp)
+	}
+	userIds := make(map[string]int64, len(users))
+	for _, u := range users {
+		userIds[u.Username] = u.Id
+	}
+
+	addMember := func(namespace string, userId int64, isAdmin bool) {
+		t.Helper()
+		resp, err := adminReq().
+			SetHeader("X-Namespace", namespace).
+			SetBody(map[string]interface{}{
+				"userIds": []int64{userId},
+				"isAdmin": isAdmin,
+			}).
+			Put("/api/admin/namespace/users")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			t.Fatalf("add user %d to %s failed: %v %s", userId, namespace, err, resp)
+		}
+	}
+	for _, u := range test21SeedUsers {
+		id, ok := userIds[u.username]
+		if !ok {
+			t.Fatalf("seed user %s not found", u.username)
+		}
+		for _, ns := range u.memberOf {
+			addMember(ns, id, false)
+		}
+		for _, ns := range u.adminOf {
+			addMember(ns, id, true)
+		}
+	}
+
+	// Disable nsd only after its members are added.
+	var namespaces []models.Namespace
+	resp, err = adminReq().SetResult(&namespaces).Get("/api/admin/namespaces")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("list namespaces failed: %v %s", err, resp)
+	}
+	var nsDisabledId int64
+	for _, ns := range namespaces {
+		if ns.Name == nsDisabled {
+			nsDisabledId = ns.Id
+		}
+	}
+	resp, err = adminReq().
+		SetBody(api.PutNamespaceStateInput{Id: nsDisabledId, IsEnabled: false}).
+		Put("/api/admin/namespace/state")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("disable %s failed: %v %s", nsDisabled, err, resp)
+	}
+
+	// Every seed user can log in and sees exactly its memberships.
+	for _, u := range test21SeedUsers {
+		c := loginPlain(t, u.username, u.username+"-pass")
+
+		var me api.MeOutput
+		resp, err := c.R().SetResult(&me).Get("/api/me")
+		if err != nil || resp.StatusCode() != http.StatusOK {
+			t.Fatalf("%s get /api/me failed: %v %s", u.username, err, resp)
+		}
+		want := len(u.memberOf) + len(u.adminOf)
+		if u.isGlobalAdmin {
+			want = len(namespaces)
+		}
+		if len(me.Namespaces) != want {
+			t.Fatalf("%s: expected %d namespaces, got %+v",
+				u.username, want, me.Namespaces)
+		}
+		admins := 0
+		for _, ns := range me.Namespaces {
+			if ns.IsAdmin {
+				admins++
+			}
+		}
+		wantAdmins := u.wantAdmins
+		if wantAdmins == -1 {
+			wantAdmins = want
+		}
+		if admins != wantAdmins {
+			t.Fatalf("%s: expected admin of %d namespaces, got %+v",
+				u.username, wantAdmins, me.Namespaces)
+		}
 	}
 }
