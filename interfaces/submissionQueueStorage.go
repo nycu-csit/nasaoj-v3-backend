@@ -27,11 +27,13 @@ type SubmissionQueueStorage interface {
 		submissionId int64,
 	) error
 
-	// RefreshLease bumps assigned_at for all submissions owned by a worker,
-	// keeping the lease alive on heartbeat.
+	// RefreshLease bumps assigned_at for the submissions a worker reports
+	// it is still running, keeping their lease alive on heartbeat. Ones the
+	// worker has dropped are left to expire and be reclaimed.
 	RefreshLease(
 		ctx context.Context,
 		workerName string,
+		subIds []int64,
 	) error
 
 	// ReclaimExpired flips assigned submissions whose lease is older than

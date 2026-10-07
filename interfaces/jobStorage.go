@@ -7,10 +7,12 @@ import (
 )
 
 type JobStorage interface {
+	// UpdateJob writes job only if its current status is one of from,
+	// returning types.JobAlreadySkippedError otherwise.
 	UpdateJob(
 		ctx context.Context,
 		job *models.Job,
-		jobStatus models.JobStatus,
+		from ...models.JobStatus,
 	) error
 
 	SkipJobs(

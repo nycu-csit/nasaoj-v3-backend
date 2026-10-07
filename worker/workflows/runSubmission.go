@@ -286,6 +286,18 @@ func (r *Runner) runOneJob(
 		return models.StatusCancelled
 	}
 
+	// Every failure below is still reported, so the backend's copy of the
+	// job (Blocked, or Running if marshal got that far) becomes terminal.
+	// Otherwise it stays in flight with no worker behind it and the
+	// submission never completes.
+	failed := models.Job{
+		SubId:       sub.Id,
+		NamespaceId: sub.NamespaceId,
+		StageName:   stageName,
+		TestName:    testName,
+		Status:      models.StatusFailed,
+	}
+
 	ttl := time.Duration(timeout+gracePeriod+120) * time.Second
 	jobToken, err := SignJobToken(
 		r.Secret, sub.Id, stageName, testName, sub.OwnerId, ttl)
@@ -293,6 +305,7 @@ func (r *Runner) runOneJob(
 		tracing.Logger.Ctx(ctx).
 			Error("failed to sign job token",
 				zap.Error(err))
+		r.putResult(failed)
 		return models.StatusFailed
 	}
 
@@ -312,6 +325,7 @@ func (r *Runner) runOneJob(
 		tracing.Logger.Ctx(ctx).
 			Error("failed to marshal job",
 				zap.Error(err))
+		r.putResult(failed)
 		return models.StatusFailed
 	}
 	if resp.StatusCode() == http.StatusConflict {
@@ -322,6 +336,7 @@ func (r *Runner) runOneJob(
 		tracing.Logger.Ctx(ctx).
 			Error("marshal job returned non-success",
 				zap.Int("status", resp.StatusCode()))
+		r.putResult(failed)
 		return models.StatusFailed
 	}
 
@@ -331,6 +346,8 @@ func (r *Runner) runOneJob(
 			Error("failed to fetch job files",
 				zap.String("job.id", job.Id()),
 				zap.Error(err))
+		job.Status = models.StatusFailed
+		r.putResult(job)
 		return models.StatusFailed
 	}
 
@@ -342,7 +359,15 @@ func (r *Runner) runOneJob(
 	jwf := models.JobWithFile{Job: job, Tarbuf: tarbuf, SeedDirs: seedDirs}
 	retCh := make(chan error, 1)
 	go RunJob(ctx, retCh, &jwf, r.CriClient, r.WorkerBinary)
-	<-retCh
+	if err := <-retCh; err != nil && !jwf.Job.IsDone() {
+		// Failed before the job could run (setup error) - the status is
+		// still the Running it came back from marshal with.
+		tracing.Logger.Ctx(ctx).
+			Error("failed to run job",
+				zap.String("job.id", jwf.Job.Id()),
+				zap.Error(err))
+		jwf.Job.Status = models.StatusFailed
+	}
 
 	r.putResult(jwf.Job)
 	return jwf.Job.Status

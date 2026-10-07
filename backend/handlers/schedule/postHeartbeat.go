@@ -68,8 +68,10 @@ func (self *Handlers) PostScheduleHeartbeat(
 		}
 	}
 
-	// Keep the submission-queue lease alive for this worker.
-	if err := self.subQueue.RefreshLease(ctx, workerName); err != nil {
+	// Keep the submission-queue lease alive for the submissions this worker
+	// still reports as running.
+	if err := self.subQueue.RefreshLease(ctx,
+		workerName, heartbeat.Submissions); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "failed to refresh submission lease",

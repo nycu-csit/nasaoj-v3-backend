@@ -105,6 +105,17 @@ func (self *Handlers) PutCancelSubmission(
 			}
 		}
 
+		// Running jobs no worker is tracking would never be finished by the
+		// heartbeat-driven abort above - cancel them here.
+		if err := workflows.CancelOrphanedJobs(ctx,
+			submission, self.workers, self.jobs); err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusInternalServerError,
+				Message:     "failed to cancel orphaned jobs",
+				OriginError: err,
+			}
+		}
+
 		// If no jobs remain running (e.g. the submission was still queued),
 		// it is already done and can be removed from the queue now. Otherwise
 		// the running jobs' results complete it.

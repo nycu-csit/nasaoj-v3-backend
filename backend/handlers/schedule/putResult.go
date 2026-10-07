@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -10,6 +11,7 @@ import (
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/workflows"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/tracing"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/types"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/utils"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -77,6 +79,49 @@ func (self *Handlers) PutScheduleResult(
 				zap.Error(err))
 	}
 
+	// A result must be terminal - persisting e.g. Running here would leave
+	// the job non-terminal forever with nobody left to finish it.
+	if !job.IsDone() {
+		return middlewares.HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Message:    "job result status is not terminal",
+		}
+	}
+
+	// Only the worker that currently holds the submission may report for
+	// it; anything else is a late result from before a reclaim.
+	owner, err := self.subQueue.SubmissionWorker(ctx, job.SubId)
+	if err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Message:     "failed to get submission owner",
+			OriginError: err,
+		}
+	}
+	if owner != workerName {
+		tracing.Logger.Ctx(ctx).
+			Info("dropping result from worker not owning the submission",
+				zap.String("job.id", job.Id()),
+				zap.String("worker", workerName),
+				zap.String("owner", owner))
+		return utils.Success(w)
+	}
+
+	// Blocked is accepted too: a worker that fails before (or while)
+	// marshalling still reports the job so the submission can complete.
+	// JobAlreadySkippedError means the job is already terminal (cancelled,
+	// or this is a retry after a partial failure below) - still run the
+	// idempotent skip/complete steps so a retry can finish them.
+	err = self.jobs.UpdateJob(ctx, &job,
+		models.StatusRunning, models.StatusBlocked)
+	if err != nil && !errors.Is(err, types.JobAlreadySkippedError) {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusInternalServerError,
+			Message:     "failed to update job",
+			OriginError: err,
+		}
+	}
+
 	if job.Status != models.StatusSuccess {
 		err := workflows.SkipJobs(ctx, &job,
 			self.submissions, self.problems, self.jobs)
@@ -86,13 +131,6 @@ func (self *Handlers) PutScheduleResult(
 				Message:     "failed to update job skip status",
 				OriginError: err,
 			}
-		}
-	}
-	if err = self.jobs.UpdateJob(ctx, &job, models.StatusRunning); err != nil {
-		return middlewares.HTTPError{
-			StatusCode:  http.StatusInternalServerError,
-			Message:     "failed to update job",
-			OriginError: err,
 		}
 	}
 

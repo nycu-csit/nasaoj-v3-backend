@@ -2169,7 +2169,7 @@ func (self *Postgres) SkipJobWithStages(
 func (self *Postgres) UpdateJob(
 	ctx context.Context,
 	job *models.Job,
-	jobStatus models.JobStatus,
+	from ...models.JobStatus,
 ) error {
 	var sub models.Submission
 	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
@@ -2184,7 +2184,7 @@ func (self *Postgres) UpdateJob(
 		res, err := tx.NewUpdate().
 			Model(job).
 			WherePK().
-			Where("status = ?", jobStatus).
+			Where("status IN (?)", bun.In(from)).
 			Exec(ctx)
 		if err != nil {
 			return err
@@ -2210,9 +2210,16 @@ func (self *Postgres) UpdateJob(
 		cacheNamespaceScoreboardKey(sub.NamespaceId),
 	}
 
+	// The status change is already committed - failing here would make the
+	// caller believe it never happened (e.g. marshal answering 503 for a job
+	// that is now Running, which nobody then runs or reports).
 	for _, key := range pending {
 		if err := self.cache.Delete(ctx, key); err != nil {
-			return err
+			tracing.Logger.Ctx(ctx).
+				Warn("failed to invalidate cache after job update",
+					zap.String("job.id", job.Id()),
+					zap.String("key", key),
+					zap.Error(err))
 		}
 	}
 
@@ -2417,8 +2424,9 @@ func (self *Postgres) CompleteSubmission(
 func (self *Postgres) RefreshLease(
 	ctx context.Context,
 	workerName string,
+	subIds []int64,
 ) error {
-	if workerName == "" {
+	if workerName == "" || len(subIds) == 0 {
 		return nil
 	}
 	_, err := self.db.NewUpdate().
@@ -2426,6 +2434,7 @@ func (self *Postgres) RefreshLease(
 		Set("assigned_at = ?", time.Now().Unix()).
 		Where("worker_name = ?", workerName).
 		Where("status = ?", models.SubAssigned).
+		Where("submission_id IN (?)", bun.In(subIds)).
 		Exec(ctx)
 	return err
 }

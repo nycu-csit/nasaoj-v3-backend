@@ -1,0 +1,27 @@
+---
+name: Test fake worker result handling
+problemId: 2601
+description: >-
+  Tagged so only the e2e tests' fake worker claims it - the real worker
+  (tag "default") never touches these submissions.
+cooldown: 0
+tag: e2e-fake-worker
+stages:
+  first:
+    testcases:
+      - name: one
+        files:
+          - echo.sh
+        scripts:
+          - bash echo.sh first
+    before:
+      - second
+    score: 10
+  second:
+    testcases:
+      - name: two
+        files:
+          - echo.sh
+        scripts:
+          - bash echo.sh second
+    score: 10
