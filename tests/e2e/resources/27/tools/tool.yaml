@@ -1,0 +1,9 @@
+---
+name: nsx-tool
+toolId: 2701
+description: nsx's tool, sharing its toolId with nsy's
+cooldown: 0
+testcase:
+  name: run
+  scripts:
+    - echo nsx-tool

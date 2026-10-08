@@ -1,8 +1,6 @@
 package models
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"encoding/json"
 	"time"
 
@@ -104,8 +102,7 @@ func (self Problem) Marshal() (ProblemMarshaled, error) {
 		return ret, err
 	}
 	ret.Payload = string(b[:])
-	h := sha1.Sum(b)
-	ret.SHA1 = hex.EncodeToString(h[:])
+	ret.SHA1 = refSHA1(b, self.NamespaceId)
 	return ret, nil
 }
 

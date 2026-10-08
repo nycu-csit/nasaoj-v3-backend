@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -161,6 +162,9 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 			namespaceId := problem.NamespaceId
+			if err := checkSubmitAs(ctx, isAdmin, resource, namespaceId); err != nil {
+				return err
+			}
 
 			if !isAdmin {
 				// Check last submission
@@ -265,6 +269,9 @@ func (self *Handlers) PostSubmit(
 				}
 			}
 			namespaceId := tool.NamespaceId
+			if err := checkSubmitAs(ctx, isAdmin, resource, namespaceId); err != nil {
+				return err
+			}
 
 			if !isAdmin {
 				// Check last submission
@@ -384,4 +391,25 @@ func (self *Handlers) PostSubmit(
 			}
 		}
 	}
+}
+
+// checkSubmitAs refuses a namespace admin submitting as a user outside the
+// target namespace. A global admin may submit as anyone, and a non-admin only
+// ever submits as itself.
+func checkSubmitAs(
+	ctx context.Context,
+	isAdmin bool,
+	owner models.UserResource,
+	namespaceId int64,
+) error {
+	if !isAdmin || middlewares.IsGlobalAdmin(ctx) {
+		return nil
+	}
+	if !slices.Contains(owner.Namespaces, namespaceId) {
+		return middlewares.HTTPError{
+			StatusCode: http.StatusForbidden,
+			Message:    "submission owner not in namespace",
+		}
+	}
+	return nil
 }

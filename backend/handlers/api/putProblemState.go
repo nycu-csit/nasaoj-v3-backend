@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -54,8 +56,17 @@ func (self *Handlers) PutProblemState(
 	span.SetAttributes(
 		attribute.String("problem.sha1", input.ProblemSHA1))
 
-	if err = self.problems.UpdateProblemState(
-		ctx, input.ProblemSHA1, input.IsEnabled); err != nil {
+	if err = self.problems.UpdateProblemState(ctx, input.ProblemSHA1,
+		middlewares.NamespaceIdsFromContext(ctx), input.IsEnabled); err != nil {
+		// Enabling looks the problem up by prefix within the request's
+		// namespaces; no match means it doesn't exist there.
+		if errors.Is(err, sql.ErrNoRows) {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNotFound,
+				Message:     "problem not found in namespace",
+				OriginError: err,
+			}
+		}
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusBadRequest,
 			Message:     "problem put state failed",

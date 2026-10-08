@@ -39,7 +39,8 @@ func (self *Handlers) DeleteProblem(
 	span.SetAttributes(
 		attribute.String("problem.sha1", problemSHA1))
 
-	err := self.problems.DeleteProblemAndSubmissions(ctx, problemSHA1)
+	err := self.problems.DeleteProblemAndSubmissions(ctx,
+		problemSHA1, middlewares.NamespaceIdsFromContext(ctx))
 	if err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,

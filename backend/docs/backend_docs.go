@@ -253,7 +253,7 @@ const docTemplatebackend = `{
         },
         "/api/admin/namespace/users": {
             "get": {
-                "description": "Lists members of the namespace from the X-Namespace header.\nGlobal admin or admin of that namespace.",
+                "description": "Lists members of the namespace from the X-Namespace header,\nwith their usernames.\nGlobal admin or admin of that namespace.",
                 "produces": [
                     "application/json"
                 ],
@@ -273,7 +273,7 @@ const docTemplatebackend = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.UserNamespace"
+                                "$ref": "#/definitions/models.NamespaceMember"
                             }
                         }
                     },
@@ -365,6 +365,118 @@ const docTemplatebackend = `{
                         "description": "OK",
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/namespace/users/cssso": {
+            "put": {
+                "description": "Creates the users whose CS id is new and makes every user a\nmember of the namespace from the X-Namespace header.\nExisting users are only added to the namespace: their args\nand global admin flag are left untouched. isAdmin grants\nnamespace admin. Global admin or admin of that namespace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Import CSSSO users into a namespace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "namespace name or id",
+                        "name": "X-Namespace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "users",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutNamespaceUsersCSSSOInputUser"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.NamespaceUserImported"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/namespace/users/plain": {
+            "put": {
+                "description": "Creates the users whose username is new and makes every\nuser a member of the namespace from the X-Namespace header.\nExisting users are only added to the namespace: their\npassword, args and global admin flag are left untouched.\nisAdmin grants namespace admin. Global admin or admin of\nthat namespace.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Import plain-login users into a namespace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "namespace name or id",
+                        "name": "X-Namespace",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "users",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PutNamespaceUsersPlainInputUser"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.NamespaceUserImported"
+                            }
                         }
                     },
                     "400": {
@@ -2422,6 +2534,24 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "api.PutNamespaceUsersCSSSOInputUser": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "csId": {
+                    "type": "string"
+                },
+                "isAdmin": {
+                    "description": "IsAdmin grants namespace admin of the target namespace.",
+                    "type": "boolean"
+                }
+            }
+        },
         "api.PutNamespaceUsersInput": {
             "type": "object",
             "properties": {
@@ -2433,6 +2563,27 @@ const docTemplatebackend = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "api.PutNamespaceUsersPlainInputUser": {
+            "type": "object",
+            "properties": {
+                "args": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "isAdmin": {
+                    "description": "IsAdmin grants namespace admin of the target namespace.",
+                    "type": "boolean"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -3159,6 +3310,41 @@ const docTemplatebackend = `{
                 }
             }
         },
+        "models.NamespaceMember": {
+            "type": "object",
+            "properties": {
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "namespaceId": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.NamespaceUserImported": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "description": "Created is false when the username already existed: that user was\nonly added to the namespace, its account left untouched.",
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isAdmin": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Privileges": {
             "type": "object",
             "properties": {
@@ -3496,20 +3682,6 @@ const docTemplatebackend = `{
                 },
                 "type": {
                     "$ref": "#/definitions/types.ToolInputTypeType"
-                }
-            }
-        },
-        "models.UserNamespace": {
-            "type": "object",
-            "properties": {
-                "isAdmin": {
-                    "type": "boolean"
-                },
-                "namespaceId": {
-                    "type": "integer"
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         },

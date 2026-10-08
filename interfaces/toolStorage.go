@@ -30,14 +30,20 @@ type ToolStorage interface {
 		ctx context.Context,
 	) (map[string]models.Tool, error)
 
+	// UpdateToolState acts on the tool whose sha1 starts with sha1Prefix,
+	// looked up only within namespaceIds.
 	UpdateToolState(
 		ctx context.Context,
 		sha1Prefix string,
+		namespaceIds []int64,
 		isEnabled bool,
 	) error
 
+	// DeleteToolAndSubmissions acts on the tool whose sha1 starts with sha1Prefix,
+	// looked up only within namespaceIds.
 	DeleteToolAndSubmissions(
 		ctx context.Context,
 		sha1Prefix string,
+		namespaceIds []int64,
 	) error
 }

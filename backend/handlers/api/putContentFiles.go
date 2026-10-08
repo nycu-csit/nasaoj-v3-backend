@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -52,6 +54,17 @@ func (self *Handlers) PutContentFiles(
 
 	var files []models.ContentFile
 	for _, input := range inputs {
+		// Content files are shared by every namespace and keyed by sha1, so
+		// the key must really be the payload's hash - otherwise one namespace
+		// admin could squat a sha1 another namespace will later upload, with
+		// different content.
+		h := sha1.Sum([]byte(input.Payload))
+		if hex.EncodeToString(h[:]) != input.SHA1 {
+			return middlewares.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				Message:    "content file sha1 does not match payload",
+			}
+		}
 		files = append(files, models.ContentFile{
 			SHA1:       input.SHA1,
 			Name:       input.Name,

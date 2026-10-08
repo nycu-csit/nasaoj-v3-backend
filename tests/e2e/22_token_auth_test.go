@@ -116,6 +116,9 @@ func Test_22_2_Add_to_nsb(t *testing.T) {
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		t.Fatalf("add tok-user to nsb failed: %v %s", err, resp)
 	}
+
+	// Confine both to nsb: every user starts in default.
+	removeFromDefault(t, test22NsAdminId, test22UserId)
 }
 
 func Test_22_3_Gen_user_token_validation(t *testing.T) {

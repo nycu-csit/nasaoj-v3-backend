@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"slices"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -73,6 +74,15 @@ func (self *Handlers) PutCancelSubmission(
 
 		var ownerId int64
 		if isAdmin {
+			// An admin may cancel anyone's submission, but only within the
+			// namespaces it administers.
+			if !slices.Contains(
+				middlewares.NamespaceIdsFromContext(ctx), submission.NamespaceId) {
+				return middlewares.HTTPError{
+					StatusCode: http.StatusNotFound,
+					Message:    "submission not in namespace",
+				}
+			}
 			ownerId = submission.OwnerId
 		} else {
 			privs, ok := ctx.Value(types.Privileges("")).(models.Privileges)

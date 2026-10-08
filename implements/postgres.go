@@ -492,6 +492,7 @@ func (self *Postgres) GetAllProblems(
 func (self *Postgres) UpdateProblemState(
 	ctx context.Context,
 	sha1Prefix string,
+	namespaceIds []int64,
 	isEnabled bool,
 ) error {
 	var sha1 string
@@ -505,6 +506,7 @@ func (self *Postgres) UpdateProblemState(
 					Column("sha1", "problem_id", "namespace_id", "is_enabled").
 					Model(&problem).
 					Where("sha1 LIKE ?", sha1Prefix+"%").
+					Where("namespace_id IN (?)", bun.In(namespaceIds)).
 					Scan(ctx)
 				if err != nil {
 					return err
@@ -531,6 +533,7 @@ func (self *Postgres) UpdateProblemState(
 				Column("sha1").
 				Model((*models.ProblemMarshaled)(nil)).
 				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Where("namespace_id IN (?)", bun.In(namespaceIds)).
 				Limit(1)).
 			Set("is_enabled = ?", false).
 			Returning("sha1", "problem_id", "namespace_id").
@@ -597,6 +600,7 @@ func (self *Postgres) GetProblemScores(
 func (self *Postgres) DeleteProblemAndSubmissions(
 	ctx context.Context,
 	sha1Prefix string,
+	namespaceIds []int64,
 ) error {
 	var isDeleted bool
 	var problem models.ProblemMarshaled
@@ -608,6 +612,7 @@ func (self *Postgres) DeleteProblemAndSubmissions(
 					Model((*models.ProblemMarshaled)(nil)).
 					Column("sha1").
 					Where("sha1 LIKE ?", sha1Prefix+"%").
+					Where("namespace_id IN (?)", bun.In(namespaceIds)).
 					Limit(1)).
 				Returning("sha1, problem_id, namespace_id").
 				Exec(ctx)
@@ -854,6 +859,7 @@ func (self *Postgres) GetAllTools(
 func (self *Postgres) UpdateToolState(
 	ctx context.Context,
 	sha1Prefix string,
+	namespaceIds []int64,
 	isEnabled bool,
 ) error {
 	var sha1 string
@@ -862,9 +868,10 @@ func (self *Postgres) UpdateToolState(
 			func(ctx context.Context, tx bun.Tx) error {
 				var tool models.ToolMarshaled
 				err := tx.NewSelect().
-					Column("sha1", "tool_id", "is_enabled").
+					Column("sha1", "tool_id", "namespace_id", "is_enabled").
 					Model(&tool).
 					Where("sha1 LIKE ?", sha1Prefix+"%").
+					Where("namespace_id IN (?)", bun.In(namespaceIds)).
 					Scan(ctx)
 				if err != nil {
 					return err
@@ -874,6 +881,7 @@ func (self *Postgres) UpdateToolState(
 					Model((*models.ToolMarshaled)(nil)).
 					Set("is_enabled = CASE WHEN sha1 = ? THEN TRUE ELSE FALSE END", sha1).
 					Where("tool_id = ?", tool.ToolId).
+					Where("namespace_id = ?", tool.NamespaceId).
 					Exec(ctx)
 				return err
 			})
@@ -888,6 +896,7 @@ func (self *Postgres) UpdateToolState(
 				Column("sha1").
 				Model((*models.ToolMarshaled)(nil)).
 				Where("sha1 LIKE ?", sha1Prefix+"%").
+				Where("namespace_id IN (?)", bun.In(namespaceIds)).
 				Limit(1)).
 			Set("is_enabled = ?", false).
 			Returning("sha1").
@@ -912,6 +921,7 @@ func (self *Postgres) UpdateToolState(
 func (self *Postgres) DeleteToolAndSubmissions(
 	ctx context.Context,
 	sha1Prefix string,
+	namespaceIds []int64,
 ) error {
 	var isDeleted bool
 	var tool models.ToolMarshaled
@@ -923,6 +933,7 @@ func (self *Postgres) DeleteToolAndSubmissions(
 					Model((*models.ToolMarshaled)(nil)).
 					Column("sha1").
 					Where("sha1 LIKE ?", sha1Prefix+"%").
+					Where("namespace_id IN (?)", bun.In(namespaceIds)).
 					Limit(1)).
 				Returning("sha1, tool_id").
 				Exec(ctx)
@@ -1701,13 +1712,9 @@ func (self *Postgres) getNamespaceScoreboard(
 		return nil, err
 	}
 	for _, m := range members {
-		user, err := self.GetUserResource(ctx, m.UserId)
-		if err != nil {
-			continue
-		}
 		entries[m.UserId] = &models.ScoreboardEntry{
 			Id:       m.UserId,
-			Username: user.Username,
+			Username: m.Username,
 			Problems: make(map[int64]int64),
 		}
 	}
@@ -2511,6 +2518,26 @@ func (self *Postgres) ResetSubmissionActiveJobs(
 	return err
 }
 
+// addDefaultMembership makes a newly created user a member of the default
+// namespace. Every user starts there; membership is explicit, so removing it
+// takes the user out of default for good.
+func addDefaultMembership(
+	ctx context.Context,
+	db bun.IDB,
+	userId int64,
+	isAdmin bool,
+) error {
+	_, err := db.NewInsert().
+		Model(&models.UserNamespace{
+			UserId:      userId,
+			NamespaceId: models.DefaultNamespaceId,
+			IsAdmin:     isAdmin,
+		}).
+		On("CONFLICT (user_id, namespace_id) DO NOTHING").
+		Exec(ctx)
+	return err
+}
+
 // hydrateUserNamespaces fills Namespaces / AdminIn from user_namespace.
 func (self *Postgres) hydrateUserNamespaces(
 	ctx context.Context,
@@ -2519,15 +2546,6 @@ func (self *Postgres) hydrateUserNamespaces(
 	namespaces, adminIn, err := self.GetUserNamespaces(ctx, user.Id)
 	if err != nil {
 		return err
-	}
-	// A user with no explicit membership belongs to the default namespace
-	// (backward-compatible single-tenant behavior). Global admins of the
-	// default namespace mirror their global admin flag.
-	if len(namespaces) == 0 {
-		namespaces = []int64{models.DefaultNamespaceId}
-		if user.IsAdmin {
-			adminIn = []int64{models.DefaultNamespaceId}
-		}
 	}
 	user.Namespaces = namespaces
 	user.AdminIn = adminIn
@@ -2600,6 +2618,82 @@ func (self *Postgres) UpdateNamespaceState(
 	return err
 }
 
+func (self *Postgres) ImportNamespaceUsers(
+	ctx context.Context,
+	namespaceId int64,
+	users []models.NamespaceUserImport,
+) ([]models.NamespaceUserImported, error) {
+	ret := make([]models.NamespaceUserImported, 0, len(users))
+	// One transaction for the whole batch: a user created without its
+	// membership would fall back to the default namespace.
+	err := self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		for _, in := range users {
+			user := in.User
+			// Never a global admin, whatever the caller sent.
+			user.IsAdmin = false
+
+			created := false
+			var existing models.UserResource
+			err := tx.NewSelect().
+				Model(&existing).
+				Column("id").
+				Where("username = ?", user.Username).
+				Scan(ctx)
+			switch {
+			case errors.Is(err, sql.ErrNoRows):
+				if _, err := tx.NewInsert().
+					Model(&user).
+					ExcludeColumn("id").
+					Returning("id").
+					Exec(ctx); err != nil {
+					return err
+				}
+				if err := addDefaultMembership(ctx, tx, user.Id, false); err != nil {
+					return err
+				}
+				if in.Cred != nil {
+					cred := *in.Cred
+					cred.ResourceId = user.Id
+					if _, err := tx.NewInsert().
+						Model(&cred).
+						Exec(ctx); err != nil {
+						return err
+					}
+				}
+				created = true
+			case err != nil:
+				return err
+			default:
+				user.Id = existing.Id
+			}
+
+			if _, err := tx.NewInsert().
+				Model(&models.UserNamespace{
+					UserId:      user.Id,
+					NamespaceId: namespaceId,
+					IsAdmin:     in.IsAdmin,
+				}).
+				On("CONFLICT (user_id, namespace_id) DO UPDATE").
+				Set("is_admin = EXCLUDED.is_admin").
+				Exec(ctx); err != nil {
+				return err
+			}
+
+			ret = append(ret, models.NamespaceUserImported{
+				Id:       user.Id,
+				Username: user.Username,
+				Created:  created,
+				IsAdmin:  in.IsAdmin,
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
 func (self *Postgres) UpsertNamespaceMembers(
 	ctx context.Context,
 	namespaceId int64,
@@ -2644,12 +2738,15 @@ func (self *Postgres) RemoveNamespaceMembers(
 func (self *Postgres) GetNamespaceMembers(
 	ctx context.Context,
 	namespaceId int64,
-) ([]models.UserNamespace, error) {
-	var ret []models.UserNamespace
+) ([]models.NamespaceMember, error) {
+	var ret []models.NamespaceMember
 	err := self.db.NewSelect().
-		Model(&ret).
-		Where("namespace_id = ?", namespaceId).
-		Scan(ctx)
+		TableExpr("user_namespace AS un").
+		Join("JOIN user_resource AS ur ON ur.id = un.user_id").
+		ColumnExpr("un.user_id, un.namespace_id, ur.username, un.is_admin").
+		Where("un.namespace_id = ?", namespaceId).
+		Order("ur.username ASC").
+		Scan(ctx, &ret)
 	return ret, err
 }
 
@@ -2717,6 +2814,10 @@ func (self *Postgres) InsertUserResources(
 						Returning("id").
 						Exec(ctx)
 					if err != nil {
+						return err
+					}
+					if err := addDefaultMembership(ctx, tx,
+						newUser.Id, newUser.IsAdmin); err != nil {
 						return err
 					}
 					if creds != nil {
@@ -2831,6 +2932,22 @@ func (self *Postgres) UpsertUser(
 	ctx context.Context,
 	user models.UserResource,
 ) error {
+	// A zero id is a new user (registration): create it with its default
+	// namespace membership. Otherwise only update it - re-adding default
+	// here would undo an explicit removal.
+	if user.Id == 0 {
+		return self.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+			if _, err := tx.NewInsert().
+				Model(&user).
+				ExcludeColumn("id").
+				Returning("id").
+				Exec(ctx); err != nil {
+				return err
+			}
+			return addDefaultMembership(ctx, tx, user.Id, user.IsAdmin)
+		})
+	}
+
 	_, err := self.db.NewInsert().
 		Model(&user).
 		On("CONFLICT (id) DO UPDATE").

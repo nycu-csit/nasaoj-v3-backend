@@ -83,7 +83,7 @@ var usersCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 
-		var members []models.UserNamespace
+		var members []models.NamespaceMember
 		utils.RestyBuilder(ctx, "/api/admin/namespace/users",
 			func(r *resty.Request) *resty.Request {
 				return r.

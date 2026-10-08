@@ -15,4 +15,5 @@ func init() {
 	RootCmd.AddCommand(addUsersCmd)
 	RootCmd.AddCommand(removeUsersCmd)
 	RootCmd.AddCommand(usersCmd)
+	RootCmd.AddCommand(importUsersCmd)
 }

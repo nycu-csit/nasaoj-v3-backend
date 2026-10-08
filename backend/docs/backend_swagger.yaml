@@ -189,6 +189,18 @@ definitions:
       isEnabled:
         type: boolean
     type: object
+  api.PutNamespaceUsersCSSSOInputUser:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      csId:
+        type: string
+      isAdmin:
+        description: IsAdmin grants namespace admin of the target namespace.
+        type: boolean
+    type: object
   api.PutNamespaceUsersInput:
     properties:
       isAdmin:
@@ -197,6 +209,20 @@ definitions:
         items:
           type: integer
         type: array
+    type: object
+  api.PutNamespaceUsersPlainInputUser:
+    properties:
+      args:
+        additionalProperties:
+          type: string
+        type: object
+      isAdmin:
+        description: IsAdmin grants namespace admin of the target namespace.
+        type: boolean
+      password:
+        type: string
+      username:
+        type: string
     type: object
   api.PutProblemStateInput:
     properties:
@@ -693,6 +719,31 @@ definitions:
       title:
         type: string
     type: object
+  models.NamespaceMember:
+    properties:
+      isAdmin:
+        type: boolean
+      namespaceId:
+        type: integer
+      userId:
+        type: integer
+      username:
+        type: string
+    type: object
+  models.NamespaceUserImported:
+    properties:
+      created:
+        description: |-
+          Created is false when the username already existed: that user was
+          only added to the namespace, its account left untouched.
+        type: boolean
+      id:
+        type: integer
+      isAdmin:
+        type: boolean
+      username:
+        type: string
+    type: object
   models.Privileges:
     properties:
       canAPIRead:
@@ -928,15 +979,6 @@ definitions:
         type: string
       type:
         $ref: '#/definitions/types.ToolInputTypeType'
-    type: object
-  models.UserNamespace:
-    properties:
-      isAdmin:
-        type: boolean
-      namespaceId:
-        type: integer
-      userId:
-        type: integer
     type: object
   models.UserResource:
     properties:
@@ -1252,7 +1294,8 @@ paths:
       summary: Remove namespace members
     get:
       description: |-
-        Lists members of the namespace from the X-Namespace header.
+        Lists members of the namespace from the X-Namespace header,
+        with their usernames.
         Global admin or admin of that namespace.
       parameters:
       - description: namespace name or id
@@ -1267,7 +1310,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.UserNamespace'
+              $ref: '#/definitions/models.NamespaceMember'
             type: array
         "403":
           description: Forbidden
@@ -1309,6 +1352,91 @@ paths:
           schema:
             type: string
       summary: Add namespace members
+  /api/admin/namespace/users/cssso:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Creates the users whose CS id is new and makes every user a
+        member of the namespace from the X-Namespace header.
+        Existing users are only added to the namespace: their args
+        and global admin flag are left untouched. isAdmin grants
+        namespace admin. Global admin or admin of that namespace.
+      parameters:
+      - description: namespace name or id
+        in: header
+        name: X-Namespace
+        required: true
+        type: string
+      - description: users
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/api.PutNamespaceUsersCSSSOInputUser'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.NamespaceUserImported'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: Import CSSSO users into a namespace
+  /api/admin/namespace/users/plain:
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Creates the users whose username is new and makes every
+        user a member of the namespace from the X-Namespace header.
+        Existing users are only added to the namespace: their
+        password, args and global admin flag are left untouched.
+        isAdmin grants namespace admin. Global admin or admin of
+        that namespace.
+      parameters:
+      - description: namespace name or id
+        in: header
+        name: X-Namespace
+        required: true
+        type: string
+      - description: users
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/api.PutNamespaceUsersPlainInputUser'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.NamespaceUserImported'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+      summary: Import plain-login users into a namespace
   /api/admin/namespaces:
     get:
       description: |-

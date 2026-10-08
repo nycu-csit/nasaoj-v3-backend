@@ -257,6 +257,9 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PutScore)
 
 		apiAdminGroup := apiGroup.NewGroup("/admin")
+
+		// Global-admin only: namespace lifecycle, the user directory, tokens
+		// and workers span every namespace.
 		apiAdminReadGroup := apiAdminGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIRead: models.ScopeAll,
@@ -264,32 +267,10 @@ var backendCmd = &cobra.Command{
 			Use(middlewares.CheckNamespace(db, models.NamespaceAdmin))
 		apiAdminReadGroup.GET("/namespaces",
 			apiHandlers.GetNamespaces)
-		apiAdminReadGroup.GET("/stdout",
-			apiHandlers.GetOutput("stdout", true))
-		apiAdminReadGroup.GET("/stderr",
-			apiHandlers.GetOutput("stderr", true))
-		apiAdminReadGroup.GET("/artifacts",
-			apiHandlers.GetArtifacts)
-		apiAdminReadGroup.GET("/artifacts/url",
-			apiHandlers.GetArtifactsURL)
-		apiAdminReadGroup.GET("/scores",
-			apiHandlers.GetScores(true))
-		apiAdminReadGroup.GET("/dump-scores/:problemId",
-			apiHandlers.GetDumpScores)
 		apiAdminReadGroup.GET("/user",
 			apiHandlers.GetUser)
 		apiAdminReadGroup.GET("/users",
 			apiHandlers.GetUsers)
-		apiAdminReadGroup.GET("/submissions",
-			apiHandlers.GetSubmissions(true))
-		apiAdminReadGroup.GET("/results",
-			apiHandlers.GetResults(true))
-		apiAdminReadGroup.GET("/problem",
-			apiHandlers.GetProblem(true))
-		apiAdminReadGroup.GET("/problems",
-			apiHandlers.GetProblems(true))
-		apiAdminReadGroup.GET("/tools",
-			apiHandlers.GetTools(true))
 		apiAdminReadGroup.GET("/tokens",
 			apiHandlers.GetTokens)
 		apiAdminReadGroup.GET("/worker/states",
@@ -304,16 +285,6 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PostNamespace)
 		apiAdminWriteGroup.PUT("/namespace/state",
 			apiHandlers.PutNamespaceState)
-		apiAdminWriteGroup.PUT("/problems",
-			apiHandlers.PutProblems)
-		apiAdminWriteGroup.PUT("/content-files",
-			apiHandlers.PutContentFiles)
-		apiAdminWriteGroup.PUT("/problem/state",
-			apiHandlers.PutProblemState)
-		apiAdminWriteGroup.PUT("/tools",
-			apiHandlers.PutTools)
-		apiAdminWriteGroup.PUT("/tool/state",
-			apiHandlers.PutToolState)
 		apiAdminWriteGroup.PUT("/users/cssso",
 			apiHandlers.PutUsersCSSSO)
 		apiAdminWriteGroup.PUT("/users/plain",
@@ -322,29 +293,76 @@ var backendCmd = &cobra.Command{
 			apiHandlers.PutTokenState)
 		apiAdminWriteGroup.POST("/token",
 			apiHandlers.PostToken)
-		apiAdminWriteGroup.POST("/submit",
-			apiHandlers.PostSubmit(true))
-		apiAdminWriteGroup.DELETE("/problem",
-			apiHandlers.DeleteProblem)
-		apiAdminWriteGroup.DELETE("/tool",
-			apiHandlers.DeleteTool)
-		apiAdminWriteGroup.DELETE("/submission",
-			apiHandlers.DeleteSubmission)
 		apiAdminWriteGroup.DELETE("/user",
 			apiHandlers.DeleteUser)
-		apiAdminWriteGroup.PUT("/submission/cancel",
-			apiHandlers.PutCancelSubmission(true))
 
-		// Namespace member management is allowed for namespace admins (AdminIn)
-		// as well as global admins; CheckNamespace(NamespaceAdmin) enforces both.
-		apiNsAdminGroup := apiAdminGroup.NewGroup("").
+		// Namespace-scoped admin: global admins, and namespace admins within
+		// the namespaces they administer (AdminIn). CheckNamespace(NamespaceAdmin)
+		// enforces the latter; every handler here checks its target belongs to
+		// the resolved namespaces.
+		apiNsAdminReadGroup := apiAdminGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIRead: models.ScopeSelf,
+			})).
 			Use(middlewares.CheckNamespace(db, models.NamespaceAdmin))
-		apiNsAdminGroup.PUT("/namespace/users",
-			apiHandlers.PutNamespaceUsers)
-		apiNsAdminGroup.DELETE("/namespace/users",
-			apiHandlers.DeleteNamespaceUsers)
-		apiNsAdminGroup.GET("/namespace/users",
+		apiNsAdminReadGroup.GET("/stdout",
+			apiHandlers.GetOutput("stdout", true))
+		apiNsAdminReadGroup.GET("/stderr",
+			apiHandlers.GetOutput("stderr", true))
+		apiNsAdminReadGroup.GET("/artifacts",
+			apiHandlers.GetArtifacts)
+		apiNsAdminReadGroup.GET("/artifacts/url",
+			apiHandlers.GetArtifactsURL)
+		apiNsAdminReadGroup.GET("/scores",
+			apiHandlers.GetScores(true))
+		apiNsAdminReadGroup.GET("/dump-scores/:problemId",
+			apiHandlers.GetDumpScores)
+		apiNsAdminReadGroup.GET("/submissions",
+			apiHandlers.GetSubmissions(true))
+		apiNsAdminReadGroup.GET("/results",
+			apiHandlers.GetResults(true))
+		apiNsAdminReadGroup.GET("/problem",
+			apiHandlers.GetProblem(true))
+		apiNsAdminReadGroup.GET("/problems",
+			apiHandlers.GetProblems(true))
+		apiNsAdminReadGroup.GET("/tools",
+			apiHandlers.GetTools(true))
+		apiNsAdminReadGroup.GET("/namespace/users",
 			apiHandlers.GetNamespaceUsers)
+
+		apiNsAdminWriteGroup := apiAdminGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIWrite: models.ScopeSelf,
+			})).
+			Use(middlewares.CheckNamespace(db, models.NamespaceAdmin))
+		apiNsAdminWriteGroup.PUT("/problems",
+			apiHandlers.PutProblems)
+		apiNsAdminWriteGroup.PUT("/content-files",
+			apiHandlers.PutContentFiles)
+		apiNsAdminWriteGroup.PUT("/problem/state",
+			apiHandlers.PutProblemState)
+		apiNsAdminWriteGroup.PUT("/tools",
+			apiHandlers.PutTools)
+		apiNsAdminWriteGroup.PUT("/tool/state",
+			apiHandlers.PutToolState)
+		apiNsAdminWriteGroup.POST("/submit",
+			apiHandlers.PostSubmit(true))
+		apiNsAdminWriteGroup.DELETE("/problem",
+			apiHandlers.DeleteProblem)
+		apiNsAdminWriteGroup.DELETE("/tool",
+			apiHandlers.DeleteTool)
+		apiNsAdminWriteGroup.DELETE("/submission",
+			apiHandlers.DeleteSubmission)
+		apiNsAdminWriteGroup.PUT("/submission/cancel",
+			apiHandlers.PutCancelSubmission(true))
+		apiNsAdminWriteGroup.PUT("/namespace/users",
+			apiHandlers.PutNamespaceUsers)
+		apiNsAdminWriteGroup.DELETE("/namespace/users",
+			apiHandlers.DeleteNamespaceUsers)
+		apiNsAdminWriteGroup.PUT("/namespace/users/plain",
+			apiHandlers.PutNamespaceUsersPlain)
+		apiNsAdminWriteGroup.PUT("/namespace/users/cssso",
+			apiHandlers.PutNamespaceUsersCSSSO)
 
 		scheduleHandlers := schedule.NewHandlers(db, jobQueue, workerStore, s3)
 		scheduleGroup := backend.NewGroup("/schedule").

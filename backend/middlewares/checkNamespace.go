@@ -31,6 +31,13 @@ func NamespaceIdFromContext(ctx context.Context) int64 {
 	return ids[0]
 }
 
+// IsGlobalAdmin reports whether the caller administers every namespace, as
+// opposed to a namespace admin, who only administers its AdminIn namespaces.
+func IsGlobalAdmin(ctx context.Context) bool {
+	privs, _ := ctx.Value(types.Privileges("")).(models.Privileges)
+	return privs.CanAPIWrite >= models.ScopeAll
+}
+
 func resolveNamespaceRef(
 	ctx context.Context,
 	namespaces interfaces.NamespaceStorage,
@@ -80,8 +87,10 @@ func CheckNamespace(
 
 			switch {
 			case fromJWT:
-				// Derive the namespaces from the caller's identity.
-				if globalBypass {
+				// Derive the namespaces from the caller's identity. Disabled
+				// namespaces are left out either way, matching the explicit
+				// header path, which refuses them for non-admins.
+				if globalBypass || hasClaim {
 					all, err := namespaces.GetNamespaces(ctx)
 					if err != nil {
 						return HTTPError{
@@ -90,16 +99,20 @@ func CheckNamespace(
 							OriginError: err,
 						}
 					}
-					for _, ns := range all {
-						if ns.IsEnabled {
-							ids = append(ids, ns.Id)
+					var member []int64
+					if !globalBypass {
+						member = claim.Resource.Namespaces
+						if level == models.NamespaceAdmin {
+							member = claim.Resource.AdminIn
 						}
 					}
-				} else if hasClaim {
-					if level == models.NamespaceAdmin {
-						ids = append(ids, claim.Resource.AdminIn...)
-					} else {
-						ids = append(ids, claim.Resource.Namespaces...)
+					for _, ns := range all {
+						if !ns.IsEnabled {
+							continue
+						}
+						if globalBypass || slices.Contains(member, ns.Id) {
+							ids = append(ids, ns.Id)
+						}
 					}
 				}
 				if len(ids) == 0 {

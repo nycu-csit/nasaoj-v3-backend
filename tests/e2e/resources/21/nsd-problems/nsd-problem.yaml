@@ -1,0 +1,14 @@
+---
+name: nsd-problem
+problemId: 2103
+description: Problem in a disabled namespace, hidden from its members
+cooldown: 0
+stages:
+  main:
+    testcases:
+      - name: echo
+        files:
+          - echo.sh
+        scripts:
+          - bash echo.sh
+    score: 100
