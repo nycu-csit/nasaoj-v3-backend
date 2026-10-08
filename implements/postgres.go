@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -299,8 +300,34 @@ func cacheProblemIdKey(
 	return fmt.Sprintf("problem-id-%d-%d", namespaceId, problemId)
 }
 
+// The cached enabled lists carry each entry's namespace (see enabledRef); the
+// "-ns" suffix keeps entries cached in the old sha1-only shape from being
+// decoded into it.
 func cacheProblemEnabledKey() string {
-	return "problem-enabled"
+	return "problem-enabled-ns"
+}
+
+// enabledRef is one entry of a cached enabled-problem/tool list. Carrying the
+// namespace lets a listing skip other namespaces before loading anything.
+type enabledRef struct {
+	SHA1        string `json:"sha1"`
+	NamespaceId int64  `json:"namespaceId"`
+}
+
+// namespaceFilter reports whether a namespace id is in namespaceIds; a nil
+// namespaceIds matches every namespace.
+func namespaceFilter(namespaceIds []int64) func(int64) bool {
+	if namespaceIds == nil {
+		return func(int64) bool { return true }
+	}
+	set := make(map[int64]struct{}, len(namespaceIds))
+	for _, id := range namespaceIds {
+		set[id] = struct{}{}
+	}
+	return func(id int64) bool {
+		_, ok := set[id]
+		return ok
+	}
 }
 
 func (self *Postgres) getProblem(
@@ -411,28 +438,32 @@ func (self *Postgres) InsertProblem(
 
 func (self *Postgres) getProblemsEnabled(
 	ctx context.Context,
-) ([]string, error) {
+) ([]enabledRef, error) {
 	var res []models.ProblemMarshaled
 	err := self.db.NewSelect().
-		Column("sha1", "is_enabled").
+		Column("sha1", "namespace_id").
 		Model(&res).
 		Where("is_enabled = ?", true).
 		Scan(ctx)
 	if err != nil {
-		return []string{}, err
+		return []enabledRef{}, err
 	}
 
-	var ret []string
+	ret := make([]enabledRef, 0, len(res))
 	for _, problem := range res {
-		ret = append(ret, problem.SHA1)
+		ret = append(ret, enabledRef{
+			SHA1:        problem.SHA1,
+			NamespaceId: problem.NamespaceId,
+		})
 	}
 	return ret, nil
 }
 
 func (self *Postgres) GetProblems(
 	ctx context.Context,
+	namespaceIds []int64,
 ) (map[string]models.Problem, error) {
-	var problemsEnabled []string
+	var problemsEnabled []enabledRef
 	if self.cache != nil {
 		err := self.cache.Once(&cache.Item{
 			Key:   cacheProblemEnabledKey(),
@@ -452,13 +483,17 @@ func (self *Postgres) GetProblems(
 		}
 	}
 
+	inNamespaces := namespaceFilter(namespaceIds)
 	ret := make(map[string]models.Problem)
-	for _, sha1 := range problemsEnabled {
-		problem, err := self.GetProblem(ctx, sha1)
+	for _, ref := range problemsEnabled {
+		if !inNamespaces(ref.NamespaceId) {
+			continue
+		}
+		problem, err := self.GetProblem(ctx, ref.SHA1)
 		if err != nil {
 			return map[string]models.Problem{}, err
 		}
-		ret[sha1] = problem
+		ret[ref.SHA1] = problem
 	}
 	return ret, nil
 }
@@ -466,11 +501,18 @@ func (self *Postgres) GetProblems(
 // No caching involved
 func (self *Postgres) GetAllProblems(
 	ctx context.Context,
+	namespaceIds []int64,
 ) (map[string]models.Problem, error) {
+	if namespaceIds != nil && len(namespaceIds) == 0 {
+		return map[string]models.Problem{}, nil
+	}
 	var problemsMarshaled []models.ProblemMarshaled
-	err := self.db.NewSelect().
-		Model(&problemsMarshaled).
-		Scan(ctx)
+	q := self.db.NewSelect().
+		Model(&problemsMarshaled)
+	if namespaceIds != nil {
+		q = q.Where("namespace_id IN (?)", bun.In(namespaceIds))
+	}
+	err := q.Scan(ctx)
 	if err != nil {
 		return map[string]models.Problem{}, err
 	}
@@ -671,7 +713,7 @@ func cacheToolIdKey(
 }
 
 func cacheToolEnabledKey() string {
-	return "tool-enabled"
+	return "tool-enabled-ns"
 }
 
 func (self *Postgres) getTool(
@@ -778,28 +820,32 @@ func (self *Postgres) InsertTool(
 
 func (self *Postgres) getToolsEnabled(
 	ctx context.Context,
-) ([]string, error) {
+) ([]enabledRef, error) {
 	var res []models.ToolMarshaled
 	err := self.db.NewSelect().
-		Column("sha1", "is_enabled").
+		Column("sha1", "namespace_id").
 		Model(&res).
 		Where("is_enabled = ?", true).
 		Scan(ctx)
 	if err != nil {
-		return []string{}, err
+		return []enabledRef{}, err
 	}
 
-	var ret []string
+	ret := make([]enabledRef, 0, len(res))
 	for _, tool := range res {
-		ret = append(ret, tool.SHA1)
+		ret = append(ret, enabledRef{
+			SHA1:        tool.SHA1,
+			NamespaceId: tool.NamespaceId,
+		})
 	}
 	return ret, nil
 }
 
 func (self *Postgres) GetTools(
 	ctx context.Context,
+	namespaceIds []int64,
 ) (map[string]models.Tool, error) {
-	var toolsEnabled []string
+	var toolsEnabled []enabledRef
 	if self.cache != nil {
 		err := self.cache.Once(&cache.Item{
 			Key:   cacheToolEnabledKey(),
@@ -819,13 +865,17 @@ func (self *Postgres) GetTools(
 		}
 	}
 
+	inNamespaces := namespaceFilter(namespaceIds)
 	ret := make(map[string]models.Tool)
-	for _, sha1 := range toolsEnabled {
-		tool, err := self.GetTool(ctx, sha1)
+	for _, ref := range toolsEnabled {
+		if !inNamespaces(ref.NamespaceId) {
+			continue
+		}
+		tool, err := self.GetTool(ctx, ref.SHA1)
 		if err != nil {
 			return map[string]models.Tool{}, err
 		}
-		ret[sha1] = tool
+		ret[ref.SHA1] = tool
 	}
 	return ret, nil
 }
@@ -833,11 +883,18 @@ func (self *Postgres) GetTools(
 // No caching involved
 func (self *Postgres) GetAllTools(
 	ctx context.Context,
+	namespaceIds []int64,
 ) (map[string]models.Tool, error) {
+	if namespaceIds != nil && len(namespaceIds) == 0 {
+		return map[string]models.Tool{}, nil
+	}
 	var toolsMarshaled []models.ToolMarshaled
-	err := self.db.NewSelect().
-		Model(&toolsMarshaled).
-		Scan(ctx)
+	q := self.db.NewSelect().
+		Model(&toolsMarshaled)
+	if namespaceIds != nil {
+		q = q.Where("namespace_id IN (?)", bun.In(namespaceIds))
+	}
+	err := q.Scan(ctx)
 	if err != nil {
 		return map[string]models.Tool{}, err
 	}
@@ -2570,39 +2627,96 @@ func (self *Postgres) GetUserResource(
 	return ret, nil
 }
 
+func cacheNamespacesKey() string {
+	return "namespaces"
+}
+
+// getNamespacesCached returns every namespace ordered by id. CheckNamespace
+// resolves the request's namespace on every namespaced request, and the table
+// is tiny and rarely written, so it is cached whole and the single-namespace
+// getters scan it instead of querying.
+func (self *Postgres) getNamespacesCached(
+	ctx context.Context,
+) ([]models.Namespace, error) {
+	load := func() ([]models.Namespace, error) {
+		var ret []models.Namespace
+		err := self.db.NewSelect().Model(&ret).Order("id ASC").Scan(ctx)
+		return ret, err
+	}
+	if self.cache == nil {
+		return load()
+	}
+
+	var ret []models.Namespace
+	err := self.cache.Once(&cache.Item{
+		Key:   cacheNamespacesKey(),
+		Value: &ret,
+		Do: func(*cache.Item) (interface{}, error) {
+			return load()
+		},
+	})
+	return ret, err
+}
+
+func (self *Postgres) invalidateNamespaces(ctx context.Context) error {
+	if self.cache == nil {
+		return nil
+	}
+	return self.cache.Delete(ctx, cacheNamespacesKey())
+}
+
 func (self *Postgres) CreateNamespace(
 	ctx context.Context,
 	ns *models.Namespace,
 ) error {
 	ns.CreatedAt = time.Now().Unix()
-	_, err := self.db.NewInsert().Model(ns).Exec(ctx)
-	return err
+	if _, err := self.db.NewInsert().Model(ns).Exec(ctx); err != nil {
+		return err
+	}
+	return self.invalidateNamespaces(ctx)
 }
 
 func (self *Postgres) GetNamespaces(
 	ctx context.Context,
 ) ([]models.Namespace, error) {
-	var ret []models.Namespace
-	err := self.db.NewSelect().Model(&ret).Order("id ASC").Scan(ctx)
-	return ret, err
+	all, err := self.getNamespacesCached(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// a copy, so callers can't modify the cached slice
+	return slices.Clone(all), nil
 }
 
 func (self *Postgres) GetNamespace(
 	ctx context.Context,
 	id int64,
 ) (models.Namespace, error) {
-	ns := models.Namespace{Id: id}
-	err := self.db.NewSelect().Model(&ns).WherePK().Scan(ctx)
-	return ns, err
+	all, err := self.getNamespacesCached(ctx)
+	if err != nil {
+		return models.Namespace{}, err
+	}
+	for _, ns := range all {
+		if ns.Id == id {
+			return ns, nil
+		}
+	}
+	return models.Namespace{}, sql.ErrNoRows
 }
 
 func (self *Postgres) GetNamespaceByName(
 	ctx context.Context,
 	name string,
 ) (models.Namespace, error) {
-	var ns models.Namespace
-	err := self.db.NewSelect().Model(&ns).Where("name = ?", name).Scan(ctx)
-	return ns, err
+	all, err := self.getNamespacesCached(ctx)
+	if err != nil {
+		return models.Namespace{}, err
+	}
+	for _, ns := range all {
+		if ns.Name == name {
+			return ns, nil
+		}
+	}
+	return models.Namespace{}, sql.ErrNoRows
 }
 
 func (self *Postgres) UpdateNamespaceState(
@@ -2615,7 +2729,10 @@ func (self *Postgres) UpdateNamespaceState(
 		Set("is_enabled = ?", isEnabled).
 		Where("id = ?", id).
 		Exec(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	return self.invalidateNamespaces(ctx)
 }
 
 func (self *Postgres) ImportNamespaceUsers(

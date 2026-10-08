@@ -17,8 +17,11 @@ type ToolStorage interface {
 		tool models.Tool,
 	) (string, error)
 
+	// GetTools returns the enabled tools in namespaceIds (nil = every
+	// namespace).
 	GetTools(
 		ctx context.Context,
+		namespaceIds []int64,
 	) (map[string]models.Tool, error)
 
 	GetToolById(
@@ -26,8 +29,11 @@ type ToolStorage interface {
 		toolId int64,
 	) (models.Tool, error)
 
+	// GetAllTools returns every tool revision, enabled or not, in namespaceIds
+	// (nil = every namespace).
 	GetAllTools(
 		ctx context.Context,
+		namespaceIds []int64,
 	) (map[string]models.Tool, error)
 
 	// UpdateToolState acts on the tool whose sha1 starts with sha1Prefix,
