@@ -2577,18 +2577,18 @@ func (self *Postgres) ResetSubmissionActiveJobs(
 
 // addDefaultMembership makes a newly created user a member of the default
 // namespace. Every user starts there; membership is explicit, so removing it
-// takes the user out of default for good.
+// takes the user out of default for good. The membership never carries
+// namespace admin: a global admin already bypasses namespace checks, and
+// mirroring the global flag here would outlive a later demotion.
 func addDefaultMembership(
 	ctx context.Context,
 	db bun.IDB,
 	userId int64,
-	isAdmin bool,
 ) error {
 	_, err := db.NewInsert().
 		Model(&models.UserNamespace{
 			UserId:      userId,
 			NamespaceId: models.DefaultNamespaceId,
-			IsAdmin:     isAdmin,
 		}).
 		On("CONFLICT (user_id, namespace_id) DO NOTHING").
 		Exec(ctx)
@@ -2765,7 +2765,7 @@ func (self *Postgres) ImportNamespaceUsers(
 					Exec(ctx); err != nil {
 					return err
 				}
-				if err := addDefaultMembership(ctx, tx, user.Id, false); err != nil {
+				if err := addDefaultMembership(ctx, tx, user.Id); err != nil {
 					return err
 				}
 				if in.Cred != nil {
@@ -2934,7 +2934,7 @@ func (self *Postgres) InsertUserResources(
 						return err
 					}
 					if err := addDefaultMembership(ctx, tx,
-						newUser.Id, newUser.IsAdmin); err != nil {
+						newUser.Id); err != nil {
 						return err
 					}
 					if creds != nil {
@@ -3061,7 +3061,7 @@ func (self *Postgres) UpsertUser(
 				Exec(ctx); err != nil {
 				return err
 			}
-			return addDefaultMembership(ctx, tx, user.Id, user.IsAdmin)
+			return addDefaultMembership(ctx, tx, user.Id)
 		})
 	}
 
@@ -3078,8 +3078,34 @@ func (self *Postgres) GetUsers(
 	ctx context.Context,
 ) ([]models.UserResource, error) {
 	var ret []models.UserResource
-	err := self.db.NewSelect().Model(&ret).Scan(ctx)
-	return ret, err
+	if err := self.db.NewSelect().Model(&ret).Scan(ctx); err != nil {
+		return ret, err
+	}
+
+	// Hydrate Namespaces / AdminIn for every user in one query rather than
+	// one hydrateUserNamespaces per user.
+	var memberships []models.UserNamespace
+	if err := self.db.NewSelect().
+		Model(&memberships).
+		Order("namespace_id").
+		Scan(ctx); err != nil {
+		return ret, err
+	}
+	index := make(map[int64]int, len(ret))
+	for i := range ret {
+		index[ret[i].Id] = i
+	}
+	for _, m := range memberships {
+		i, ok := index[m.UserId]
+		if !ok {
+			continue
+		}
+		ret[i].Namespaces = append(ret[i].Namespaces, m.NamespaceId)
+		if m.IsAdmin {
+			ret[i].AdminIn = append(ret[i].AdminIn, m.NamespaceId)
+		}
+	}
+	return ret, nil
 }
 
 func (self *Postgres) GetSession(
