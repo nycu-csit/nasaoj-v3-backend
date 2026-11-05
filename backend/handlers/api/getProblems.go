@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"slices"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -118,12 +117,20 @@ func (self *Handlers) GetProblems(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
+		// Scope the listing to the requested namespace(s) in storage, so other
+		// namespaces' problems are never loaded. Storage reads nil as "every
+		// namespace", so fail closed if none were resolved.
+		namespaceIds := middlewares.NamespaceIdsFromContext(ctx)
+		if len(namespaceIds) == 0 {
+			return bunrouter.JSON(w, []ProblemOutput{})
+		}
+
 		var resProblems map[string]models.Problem
 		var err error
 		if isAdmin {
-			resProblems, err = self.problems.GetAllProblems(ctx)
+			resProblems, err = self.problems.GetAllProblems(ctx, namespaceIds)
 		} else {
-			resProblems, err = self.problems.GetProblems(ctx)
+			resProblems, err = self.problems.GetProblems(ctx, namespaceIds)
 		}
 		if err != nil {
 			return middlewares.HTTPError{
@@ -133,15 +140,11 @@ func (self *Handlers) GetProblems(
 			}
 		}
 
-		namespaceIds := middlewares.NamespaceIdsFromContext(ctx)
 		detail := isAdmin && req.URL.Query().Get("detail") == "true"
 
 		if detail {
 			ret := []ProblemDetailOutput{}
 			for sha1, problem := range resProblems {
-				if !slices.Contains(namespaceIds, problem.NamespaceId) {
-					continue
-				}
 				ret = append(ret, ProblemDetailOutput{Problem: problem, SHA1: sha1})
 			}
 			return bunrouter.JSON(w, ret)
@@ -149,10 +152,6 @@ func (self *Handlers) GetProblems(
 
 		ret := []ProblemOutput{}
 		for sha1, problem := range resProblems {
-			// Scope the listing to the requested namespace(s).
-			if !slices.Contains(namespaceIds, problem.NamespaceId) {
-				continue
-			}
 			ret = append(ret, toProblemOutput(sha1, problem))
 		}
 

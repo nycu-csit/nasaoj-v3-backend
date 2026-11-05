@@ -51,7 +51,7 @@ var ProblemsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportProblems, err := db.GetAllProblems(ctx)
+		exportProblems, err := db.GetAllProblems(ctx, nil)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all problems",

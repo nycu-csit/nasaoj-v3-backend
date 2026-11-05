@@ -3,6 +3,7 @@ package tests
 import (
 	"net/http"
 	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 
@@ -233,8 +234,8 @@ func Test_21_6_Create_namespace_users(t *testing.T) {
 }
 
 func Test_21_7_Add_users_to_nsb(t *testing.T) {
-	// nsb-admin: admin of nsb. nsb-user: plain member of nsb. Neither is in
-	// the default namespace, so they are namespace-scoped only.
+	// nsb-admin: admin of nsb. nsb-user: plain member of nsb. Both are taken
+	// out of the default namespace below, so they are namespace-scoped only.
 	resp, err := adminReq().
 		SetHeader("X-Namespace", nsB).
 		SetBody(map[string]interface{}{
@@ -256,6 +257,8 @@ func Test_21_7_Add_users_to_nsb(t *testing.T) {
 	if err != nil || resp.StatusCode() != http.StatusOK {
 		t.Fatalf("add nsb user failed: %v %s", err, resp)
 	}
+
+	removeFromDefault(t, test21NsAdminId, test21NsUserId)
 }
 
 func Test_21_8_Namespace_user_isolation(t *testing.T) {
@@ -577,6 +580,11 @@ func Test_21_12_Seed_login_users(t *testing.T) {
 		for _, ns := range u.adminOf {
 			addMember(ns, id, true)
 		}
+		// Every user starts in default; keep it only where listed.
+		if !u.isGlobalAdmin && !slices.Contains(u.memberOf, "default") &&
+			!slices.Contains(u.adminOf, "default") {
+			removeFromDefault(t, id)
+		}
 	}
 
 	// Disable nsd only after its members are added.
@@ -629,5 +637,52 @@ func Test_21_12_Seed_login_users(t *testing.T) {
 			t.Fatalf("%s: expected admin of %d namespaces, got %+v",
 				u.username, wantAdmins, me.Namespaces)
 		}
+	}
+}
+
+func Test_21_13_Disabled_namespace_hidden_from_members(t *testing.T) {
+	// Give the disabled namespace an enabled problem of its own (a global
+	// admin can still manage a disabled namespace).
+	out := runJudge(t, "admin", "import", "problems",
+		"--problems-dir", "resources/21/nsd-problems",
+		"--testcases-dir", "resources/21/testcases",
+		"--namespace", nsDisabled,
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+	fields := strings.Fields(out)
+	if len(fields) == 0 {
+		t.Fatalf("no sha1 returned from import: %q", out)
+	}
+	runJudge(t, "admin", "enable", "problem", fields[0],
+		"--namespace", nsDisabled,
+		"--access-token", viper.GetString("admin-token"),
+		"--endpoint", "http://localhost:8080")
+
+	// ns-disabled-member belongs to nsb and the disabled nsd.
+	c := loginPlain(t, "ns-disabled-member", "ns-disabled-member-pass")
+
+	// Naming the disabled namespace is refused.
+	resp, err := c.R().
+		SetHeader("X-Namespace", nsDisabled).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusForbidden {
+		t.Fatalf("expected 403 for disabled namespace, got: %v %s", err, resp)
+	}
+
+	// Deriving namespaces from membership skips it too: nsb's problem is
+	// visible, the disabled namespace's is not.
+	var star []api.ProblemOutput
+	resp, err = c.R().
+		SetHeader("X-Namespace", "*").
+		SetResult(&star).
+		Get("/api/problems")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("wildcard get problems failed: %v %s", err, resp)
+	}
+	if !containsProblemId(star, 2101) {
+		t.Fatalf("wildcard expected nsb's 2101, got %+v", star)
+	}
+	if containsProblemId(star, 2103) {
+		t.Fatalf("wildcard leaked disabled namespace's 2103: %+v", star)
 	}
 }

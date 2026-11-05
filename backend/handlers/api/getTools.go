@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"slices"
 
 	"github.com/uptrace/bunrouter"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/middlewares"
@@ -52,12 +51,20 @@ func (self *Handlers) GetTools(
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
+		// Scope the listing to the requested namespace(s) in storage, so other
+		// namespaces' tools are never loaded. Storage reads nil as "every
+		// namespace", so fail closed if none were resolved.
+		namespaceIds := middlewares.NamespaceIdsFromContext(ctx)
+		if len(namespaceIds) == 0 {
+			return bunrouter.JSON(w, []ToolOutput{})
+		}
+
 		var resTools map[string]models.Tool
 		var err error
 		if isAdmin {
-			resTools, err = self.tools.GetAllTools(ctx)
+			resTools, err = self.tools.GetAllTools(ctx, namespaceIds)
 		} else {
-			resTools, err = self.tools.GetTools(ctx)
+			resTools, err = self.tools.GetTools(ctx, namespaceIds)
 		}
 		if err != nil {
 			return middlewares.HTTPError{
@@ -67,14 +74,8 @@ func (self *Handlers) GetTools(
 			}
 		}
 
-		namespaceIds := middlewares.NamespaceIdsFromContext(ctx)
-
 		ret := []ToolOutput{}
 		for sha1, tool := range resTools {
-			// Scope the listing to the requested namespace(s).
-			if !slices.Contains(namespaceIds, tool.NamespaceId) {
-				continue
-			}
 			ret = append(ret, ToolOutput{
 				Name:        tool.Name,
 				SHA1:        sha1,

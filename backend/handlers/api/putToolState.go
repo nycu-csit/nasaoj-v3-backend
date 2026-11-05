@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -54,8 +56,17 @@ func (self *Handlers) PutToolState(
 	span.SetAttributes(
 		attribute.String("tool.sha1", input.ToolSHA1))
 
-	if err = self.tools.UpdateToolState(
-		ctx, input.ToolSHA1, input.IsEnabled); err != nil {
+	if err = self.tools.UpdateToolState(ctx, input.ToolSHA1,
+		middlewares.NamespaceIdsFromContext(ctx), input.IsEnabled); err != nil {
+		// Enabling looks the tool up by prefix within the request's
+		// namespaces; no match means it doesn't exist there.
+		if errors.Is(err, sql.ErrNoRows) {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusNotFound,
+				Message:     "tool not found in namespace",
+				OriginError: err,
+			}
+		}
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusBadRequest,
 			Message:     "tool put state failed",

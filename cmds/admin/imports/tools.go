@@ -51,7 +51,7 @@ var ToolsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		exportTools, err := db.GetAllTools(ctx)
+		exportTools, err := db.GetAllTools(ctx, nil)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all tools",

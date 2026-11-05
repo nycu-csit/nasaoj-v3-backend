@@ -39,7 +39,8 @@ func (self *Handlers) DeleteTool(
 	span.SetAttributes(
 		attribute.String("tool.sha1", toolSHA1))
 
-	if err := self.tools.DeleteToolAndSubmissions(ctx, toolSHA1); err != nil {
+	if err := self.tools.DeleteToolAndSubmissions(ctx,
+		toolSHA1, middlewares.NamespaceIdsFromContext(ctx)); err != nil {
 		return middlewares.HTTPError{
 			StatusCode:  http.StatusInternalServerError,
 			Message:     "failed to delete tool and submissions",

@@ -49,7 +49,7 @@ var parseProblemsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		problems, err := db.GetAllProblems(ctx)
+		problems, err := db.GetAllProblems(ctx, nil)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all problems",
@@ -108,7 +108,7 @@ var parseToolsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		tools, err := db.GetAllTools(ctx)
+		tools, err := db.GetAllTools(ctx, nil)
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Panic("failed to get all tools",

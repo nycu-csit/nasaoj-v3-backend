@@ -12,11 +12,12 @@ import (
 // GetNamespaceUsers
 //
 //	@Summary		List namespace members
-//	@Description	Lists members of the namespace from the X-Namespace header.
+//	@Description	Lists members of the namespace from the X-Namespace header,
+//	@Description	with their usernames.
 //	@Description	Global admin or admin of that namespace.
 //	@Produce		json
 //	@Param			X-Namespace	header		string	true	"namespace name or id"
-//	@Success		200			{object}	[]models.UserNamespace
+//	@Success		200			{object}	[]models.NamespaceMember
 //	@Failure		403			{object}	string
 //	@Router			/api/admin/namespace/users [get]
 func (self *Handlers) GetNamespaceUsers(

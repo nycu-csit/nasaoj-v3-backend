@@ -12,8 +12,11 @@ type ProblemStorage interface {
 		sha1 string,
 	) (models.Problem, error)
 
+	// GetProblems returns the enabled problems in namespaceIds (nil = every
+	// namespace).
 	GetProblems(
 		ctx context.Context,
+		namespaceIds []int64,
 	) (map[string]models.Problem, error)
 
 	GetProblemById(
@@ -22,8 +25,11 @@ type ProblemStorage interface {
 		problemId int64,
 	) (models.Problem, error)
 
+	// GetAllProblems returns every problem revision, enabled or not, in
+	// namespaceIds (nil = every namespace).
 	GetAllProblems(
 		ctx context.Context,
+		namespaceIds []int64,
 	) (map[string]models.Problem, error)
 
 	GetProblemScores(
@@ -36,14 +42,20 @@ type ProblemStorage interface {
 		problem models.Problem,
 	) (string, error)
 
+	// UpdateProblemState acts on the problem whose sha1 starts with sha1Prefix,
+	// looked up only within namespaceIds.
 	UpdateProblemState(
 		ctx context.Context,
 		sha1Prefix string,
+		namespaceIds []int64,
 		isEnabled bool,
 	) error
 
+	// DeleteProblemAndSubmissions acts on the problem whose sha1 starts with sha1Prefix,
+	// looked up only within namespaceIds.
 	DeleteProblemAndSubmissions(
 		ctx context.Context,
 		sha1Prefix string,
+		namespaceIds []int64,
 	) error
 }

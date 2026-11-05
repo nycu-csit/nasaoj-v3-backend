@@ -32,6 +32,16 @@ type NamespaceStorage interface {
 		isEnabled bool,
 	) error
 
+	// ImportNamespaceUsers creates the users whose username doesn't exist yet
+	// and makes every user a member of the namespace with its namespace admin
+	// flag, all in one transaction. An existing user's account (credential,
+	// args, global admin flag) is never modified - only its membership.
+	ImportNamespaceUsers(
+		ctx context.Context,
+		namespaceId int64,
+		users []models.NamespaceUserImport,
+	) ([]models.NamespaceUserImported, error)
+
 	// UpsertNamespaceMembers adds (or updates the admin flag of) the given users
 	// in a namespace.
 	UpsertNamespaceMembers(
@@ -50,7 +60,7 @@ type NamespaceStorage interface {
 	GetNamespaceMembers(
 		ctx context.Context,
 		namespaceId int64,
-	) ([]models.UserNamespace, error)
+	) ([]models.NamespaceMember, error)
 
 	// GetUserNamespaces returns the namespaces a user belongs to and the subset
 	// where they are admin.

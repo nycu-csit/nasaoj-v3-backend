@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/uptrace/bunrouter"
@@ -29,6 +30,22 @@ func (self *Handlers) DeleteSubmission(
 			StatusCode:  http.StatusBadRequest,
 			Message:     "submission id parse failed",
 			OriginError: err,
+		}
+	}
+
+	submission, err := self.submissions.GetSubmission(ctx, subId)
+	if err != nil {
+		return middlewares.HTTPError{
+			StatusCode:  http.StatusNotFound,
+			Message:     "submission not found",
+			OriginError: err,
+		}
+	}
+	if !slices.Contains(
+		middlewares.NamespaceIdsFromContext(ctx), submission.NamespaceId) {
+		return middlewares.HTTPError{
+			StatusCode: http.StatusNotFound,
+			Message:    "submission not in namespace",
 		}
 	}
 

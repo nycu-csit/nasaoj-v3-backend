@@ -43,7 +43,7 @@ var depsProblemsCmd = &cobra.Command{
 			panic(err)
 		}
 
-		problems, err := db.GetAllProblems(ctx)
+		problems, err := db.GetAllProblems(ctx, nil)
 		if err != nil {
 			panic(err)
 		}

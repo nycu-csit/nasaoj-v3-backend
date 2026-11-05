@@ -201,3 +201,18 @@ func ProblemsDir(testNum int) string {
 func TestcasesDir(testNum int) string {
 	return fmt.Sprintf("resources/%02d/testcases", testNum)
 }
+
+// removeFromDefault takes users out of the default namespace, which every user
+// is a member of from creation, for tests that need them confined elsewhere.
+func removeFromDefault(t *testing.T, userIds ...int64) {
+	t.Helper()
+
+	resp, err := client.R().
+		SetHeader("Authorization", "Bearer "+viper.GetString("admin-token")).
+		SetHeader("X-Namespace", "default").
+		SetBody(api.DeleteNamespaceUsersInput{UserIds: userIds}).
+		Delete("/api/admin/namespace/users")
+	if err != nil || resp.StatusCode() != http.StatusOK {
+		t.Fatalf("remove %v from default failed: %v %v", userIds, err, resp)
+	}
+}

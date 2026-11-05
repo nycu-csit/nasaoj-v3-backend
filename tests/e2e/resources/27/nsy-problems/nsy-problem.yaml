@@ -1,0 +1,12 @@
+---
+name: nsy-problem
+problemId: 2702
+description: Belongs to nsy, out of reach of nsx's namespace admin
+cooldown: 0
+stages:
+  main:
+    testcases:
+      - name: work
+        scripts:
+          - echo NSY
+    score: 100
