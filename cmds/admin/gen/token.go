@@ -40,6 +40,30 @@ func tokenCmdHandler(
 	}
 }
 
+// selfTokenCmdHandler issues a user token for the caller via POST /api/token.
+func selfTokenCmdHandler(cmd *cobra.Command) {
+	description, err := cmd.Flags().GetString("description")
+	if err != nil {
+		fmt.Printf("failed to read description: %v\n", err)
+		return
+	}
+
+	ctx := cmd.Context()
+	var res api.PostTokenOutput
+	utils.RestyBuilder(ctx, "/api/token",
+		func(r *resty.Request) *resty.Request {
+			r.Method = resty.MethodPost
+			return r.
+				SetResult(&res).
+				ForceContentType("application/json").
+				SetBody(api.PostSelfTokenInput{
+					Description: description,
+				})
+		})
+
+	fmt.Printf("Token: %s\n", res.Token)
+}
+
 var tokenCmd = &cobra.Command{
 	Use:   "token",
 	Short: "Generate Access Token",
@@ -66,10 +90,18 @@ func init() {
 		Run:   tokenCmdHandler("worker", 0),
 	}))
 	tokenCmd.AddCommand(addDescriptionFlag(&cobra.Command{
-		Use:   "user <userId>",
+		Use:   "user [userId]",
 		Short: "Generate a token scoped to a user's live privileges/namespaces",
-		Args:  cobra.ExactArgs(1),
+		Long: `Generate a token scoped to a user's live privileges/namespaces.
+
+Without userId, the token is for the logged-in caller (any user can do
+this). Generating a token for another user requires a global admin.`,
+		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				selfTokenCmdHandler(cmd)
+				return
+			}
 			userId, err := strconv.ParseInt(args[0], 10, 64)
 			if err != nil {
 				fmt.Printf("invalid userId: %v\n", err)

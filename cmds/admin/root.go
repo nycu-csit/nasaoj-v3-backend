@@ -212,7 +212,16 @@ var RootCmd = &cobra.Command{
 		})
 		client.SetHeader("X-Namespace", viper.GetString("namespace"))
 
-		if viper.GetString("access-token") == "" {
+		if username := viper.GetString("username"); username != "" &&
+			viper.GetString("access-token") == "" {
+			// Username/password login. Not persisted, like the OIDC login
+			// below: run `judge admin gen token user` once and pass the
+			// token with --access-token afterwards.
+			if _, err := utils.LoginPlain(ctx, client, username); err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+		} else if viper.GetString("access-token") == "" {
 			// Use OIDC
 			err := oidcHandler(ctx, client)
 			if err != nil {
@@ -248,6 +257,9 @@ func init() {
 	RootCmd.PersistentFlags().
 		String("access-token", "",
 			"The access token to use instead of oidc")
+	RootCmd.PersistentFlags().
+		StringP("username", "u", "",
+			"Log in with this username and a password prompt instead of oidc")
 	RootCmd.PersistentFlags().
 		StringP("namespace", "n", "default",
 			"Namespace to operate in (sent as the X-Namespace header)")

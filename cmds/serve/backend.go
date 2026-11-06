@@ -237,6 +237,13 @@ var backendCmd = &cobra.Command{
 		apiSelfGroup.GET("/me",
 			apiHandlers.GetMe)
 
+		apiSelfWriteGroup := apiGroup.NewGroup("").
+			Use(middlewares.CheckPrivs(models.Privileges{
+				CanAPIWrite: models.ScopeSelf,
+			}))
+		apiSelfWriteGroup.POST("/token",
+			apiHandlers.PostSelfToken)
+
 		apiWriteGroup := apiGroup.NewGroup("").
 			Use(middlewares.CheckPrivs(models.Privileges{
 				CanAPIWrite: models.ScopeSelf,

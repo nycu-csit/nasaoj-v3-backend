@@ -91,7 +91,7 @@ var importUsersCSSSOCmd = &cobra.Command{
 		var inputs []api.PutNamespaceUsersCSSSOInputUser
 		importUsers(cmd, "/api/admin/namespace/users/cssso", `---
 # Example
-# - csId: 'phkoan'
+# - csId: '111550001'
 #   isAdmin: false
 #   args:
 #     poop: abc

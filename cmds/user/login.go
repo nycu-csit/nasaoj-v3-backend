@@ -2,7 +2,6 @@ package user
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/cobra"
@@ -12,17 +11,10 @@ import (
 
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Login via OIDC",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Clear existing session to force OIDC login
-		path := GetSessionPath()
-		if path != "" {
-			os.Remove(path)
-		}
-
-		// Call parent's PersistentPreRun to handle OIDC
-		RootCmd.PersistentPreRun(cmd, args)
-	},
+	Short: "Login via OIDC, or username/password with --username",
+	// No PersistentPreRun of its own: with cobra.EnableTraverseRunHooks the
+	// user root's hook already runs for this command, and it skips the
+	// stored session when the command is login (see RootCmd).
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 

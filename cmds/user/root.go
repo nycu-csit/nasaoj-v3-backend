@@ -331,13 +331,39 @@ var RootCmd = &cobra.Command{
 
 		session := &CLISession{}
 
+		// `judge user login` forces a fresh login: drop the stored session
+		// so neither it nor its tokens get reused.
+		forceLogin := cmd == loginCmd
+		if path := GetSessionPath(); forceLogin && path != "" {
+			os.Remove(path)
+		}
+
 		// Try to load existing session
 		if viper.GetString("access-token") != "" {
 			// Use provided access token
 			tracing.Logger.Ctx(ctx).
 				Info("use access token from flag")
 			client.SetAuthToken(viper.GetString("access-token"))
-		} else if existingSession, err := LoadSession(); err == nil && existingSession.RefreshToken != "" {
+		} else if username := viper.GetString("username"); username != "" {
+			// Username/password login; the session is saved like an OIDC
+			// one, so later commands don't need --username again.
+			cookies, err := utils.LoginPlain(ctx, client, username)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+			for _, cookie := range cookies {
+				if cookie.Name == "refresh_token" {
+					session.RefreshToken = cookie.Value
+				}
+			}
+			if err := SaveSession(session); err != nil {
+				tracing.Logger.Ctx(ctx).
+					Warn("failed to save session",
+						zap.Error(err))
+			}
+			SetupClientWithSession(ctx, client, session)
+		} else if existingSession, err := LoadSession(); !forceLogin && err == nil && existingSession.RefreshToken != "" {
 			// Use stored session (access token can be obtained via refresh token)
 			tracing.Logger.Ctx(ctx).
 				Info("use session from file")
@@ -377,6 +403,9 @@ func init() {
 	RootCmd.PersistentFlags().
 		String("access-token", "",
 			"The access token to use instead of oidc")
+	RootCmd.PersistentFlags().
+		StringP("username", "u", "",
+			"Log in with this username and a password prompt instead of oidc")
 	RootCmd.PersistentFlags().
 		StringP("namespace", "n", "default",
 			"Namespace to operate in (sent as the X-Namespace header)")

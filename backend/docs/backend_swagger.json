@@ -1884,6 +1884,46 @@
                 }
             }
         },
+        "/api/token": {
+            "post": {
+                "description": "Issues a user token for the caller. Its privileges and namespace membership are resolved live from the caller on every request, so it never grants more than the caller's own login.",
+                "consumes": [
+                    "application/json"
+                ],
+                "summary": "Create an API token for yourself",
+                "parameters": [
+                    {
+                        "description": "token description",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PostSelfTokenInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.PostTokenOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/tool": {
             "get": {
                 "description": "Returns a single enabled tool by SHA1.",
@@ -2404,6 +2444,15 @@
                     "type": "string"
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PostSelfTokenInput": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "description": "Description is required: it's how `judge admin get tokens` tells\ntokens apart without decoding the secret itself.",
                     "type": "string"
                 }
             }

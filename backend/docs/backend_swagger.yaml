@@ -107,6 +107,14 @@ definitions:
       title:
         type: string
     type: object
+  api.PostSelfTokenInput:
+    properties:
+      description:
+        description: |-
+          Description is required: it's how `judge admin get tokens` tells
+          tokens apart without decoding the secret itself.
+        type: string
+    type: object
   api.PostTokenInput:
     properties:
       description:
@@ -2375,6 +2383,34 @@ paths:
           schema:
             $ref: '#/definitions/api.SubmitTimeoutOutput'
       summary: Submit a problem or tool
+  /api/token:
+    post:
+      consumes:
+      - application/json
+      description: Issues a user token for the caller. Its privileges and namespace
+        membership are resolved live from the caller on every request, so it never
+        grants more than the caller's own login.
+      parameters:
+      - description: token description
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PostSelfTokenInput'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.PostTokenOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Create an API token for yourself
   /api/tool:
     get:
       description: Returns a single enabled tool by SHA1.
