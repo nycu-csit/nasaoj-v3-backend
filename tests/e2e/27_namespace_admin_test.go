@@ -1,8 +1,7 @@
 package tests
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"slices"
@@ -471,9 +470,9 @@ func Test_27_9_Global_only_routes_refused(t *testing.T) {
 }
 
 func Test_27_10_Content_file_sha1_must_match_payload(t *testing.T) {
-	payload := "echo test27 content\n"
-	h := sha1.Sum([]byte(payload))
-	good := hex.EncodeToString(h[:])
+	raw := []byte("echo test27 content\n")
+	payload := base64.StdEncoding.EncodeToString(raw)
+	good := models.ContentFileSHA1(raw)
 
 	resp, err := test27Req(test27Nsx).
 		SetBody([]api.PutContentFilesInput{

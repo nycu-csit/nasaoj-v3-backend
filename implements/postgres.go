@@ -64,7 +64,7 @@ func (self *Postgres) getContentFile(
 
 	if ret.IsTemplate {
 		ret.Template, err = template.New(ret.Name).
-			Parse(ret.Payload)
+			Parse(string(ret.Payload))
 		if err != nil {
 			tracing.Logger.Ctx(ctx).
 				Error("failed to template file",
@@ -92,7 +92,7 @@ func (self *Postgres) GetContentFile(
 		})
 		if ret.IsTemplate {
 			ret.Template, err = template.New(ret.Name).
-				Parse(ret.Payload)
+				Parse(string(ret.Payload))
 			if err != nil {
 				tracing.Logger.Ctx(ctx).
 					Error("failed to template file",
@@ -256,7 +256,7 @@ func (self *Postgres) DehydrateContentFiles(
 	contentFiles *[]models.ContentFile,
 ) {
 	for i := range *contentFiles {
-		(*contentFiles)[i].Payload = ""
+		(*contentFiles)[i].Payload = nil
 		(*contentFiles)[i].IsTemplate = false
 		(*contentFiles)[i].Template = nil
 	}

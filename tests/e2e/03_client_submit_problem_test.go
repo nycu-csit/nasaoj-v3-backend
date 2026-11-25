@@ -20,16 +20,16 @@ type problemResult struct {
 
 var (
 	results = []problemResult{
-		{201, "feb6c36a5f427d96e589a297ef8704d8867d8ec4", 92},  // hw1
-		{202, "3799f9e91d7271b1cf13a13beb2ad186b534be6d", 92},  // hw2
-		{203, "3a9ebccf7aac84c510e9a57ac58b7e793d968a91", 0},   // test3
-		{204, "b5bbe8a2488c6141013c3339351a6a520ad7c5f4", 100}, // Test stderr
-		{205, "a39d2dc0606913f70dc8fbc3d226e67041df43c9", 0},   // Split verdicts
-		{206, "3afac455f961371d56ae0ae5819a44fb1dbdafa0", 0},   // Timeout
-		{207, "f8c856d773ff99bf69eff129fccdcdde41ec2c4e", 100}, // Go Templates
-		{208, "db6269055fa2d1a9e056b96cd636872496799f59", 0},   // Skip jobs
-		// {209, "6bf6350c87d69cf51b09e207996c13bf884d2505", 100}, // Long awaiting
-		{210, "2658de25c7adc74ee3beca8821104ca86cd3b599", 100}, // pdf
+		{201, "e1b0f2f2d016f0ccc82810d9cc590f0e3d1d55cb", 92},  // hw1
+		{202, "914d9088ae9225a8832bc2299718709055d22355", 92},  // hw2
+		{203, "d75d6ca269a1a68a98b1047758b897b1b6cd7669", 0},   // test3
+		{204, "03f372761a633ef40cd7dbba246f6af46f887877", 100}, // Test stderr
+		{205, "7c1b2dab19b48bb87afe721d0e93824ca2cec7dd", 0},   // Split verdicts
+		{206, "b4d962d62ca4cd27f3a2aae59867487e958f811a", 0},   // Timeout
+		{207, "0843b02f1a999fab0d99dade6762ed16503c6135", 100}, // Go Templates
+		{208, "c4f45e3cd34efb29ebf3e8fa652a6deccf738f18", 0},   // Skip jobs
+		// {209, "e2f7dfce63c0d58db7cda886190bc266d06949dc", 100}, // Long awaiting
+		{210, "8ccc63b8e79cf50075b908c5eb3e00b088c343f9", 100}, // pdf
 	}
 )
 

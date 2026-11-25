@@ -22,7 +22,7 @@ func WriteRefTar(
 				continue
 			}
 
-			b := []byte(file.Payload)
+			b := file.Payload
 
 			hdr := &tar.Header{
 				Name: file.Name,

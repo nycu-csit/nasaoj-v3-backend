@@ -2,8 +2,6 @@ package utils
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"io/fs"
 	"os"
 	"path"
@@ -70,11 +68,10 @@ func LoadTestcases(
 				Info("found file",
 					zap.String("file.name", name))
 
-			h := sha1.Sum(b)
 			contentFile := models.ContentFile{
 				Name:    name,
-				SHA1:    hex.EncodeToString(h[:]),
-				Payload: string(b[:]),
+				SHA1:    models.ContentFileSHA1(b),
+				Payload: b,
 			}
 			if path.Ext(name) == ".tmpl" {
 				tmpl, err := template.New(name).Parse(string(b[:]))

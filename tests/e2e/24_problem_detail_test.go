@@ -1,8 +1,6 @@
 package tests
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"net/http"
 	"os"
 	"os/exec"
@@ -11,6 +9,7 @@ import (
 
 	"github.com/spf13/viper"
 	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/backend/handlers/api"
+	"gitlab.it.cs.nycu.edu.tw/nasa/nasaoj-v3/judge/models"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -52,8 +51,7 @@ func Test_24_3_Detail_includes_testcase_file_hash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read fixture file: %v", err)
 	}
-	h := sha1.Sum(raw)
-	expectedSHA1 := hex.EncodeToString(h[:])
+	expectedSHA1 := models.ContentFileSHA1(raw)
 
 	var out api.ProblemDetailOutput
 	resp, err := adminReq().
