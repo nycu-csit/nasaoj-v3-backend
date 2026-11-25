@@ -186,6 +186,7 @@ definitions:
       name:
         type: string
       payload:
+        description: Payload is the file's content, base64-encoded.
         type: string
       sha1:
         type: string
@@ -600,7 +601,9 @@ definitions:
       name:
         type: string
       payload:
-        type: string
+        items:
+          type: integer
+        type: array
       sha1:
         type: string
     type: object

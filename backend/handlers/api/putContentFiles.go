@@ -1,8 +1,7 @@
 package api
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -14,8 +13,9 @@ import (
 )
 
 type PutContentFilesInput struct {
-	SHA1       string `json:"sha1"`
-	Name       string `json:"name"`
+	SHA1 string `json:"sha1"`
+	Name string `json:"name"`
+	// Payload is the file's content, base64-encoded.
 	Payload    string `json:"payload"`
 	IsTemplate bool   `json:"isTemplate"`
 }
@@ -58,8 +58,15 @@ func (self *Handlers) PutContentFiles(
 		// the key must really be the payload's hash - otherwise one namespace
 		// admin could squat a sha1 another namespace will later upload, with
 		// different content.
-		h := sha1.Sum([]byte(input.Payload))
-		if hex.EncodeToString(h[:]) != input.SHA1 {
+		payload, err := base64.StdEncoding.DecodeString(input.Payload)
+		if err != nil {
+			return middlewares.HTTPError{
+				StatusCode:  http.StatusBadRequest,
+				Message:     "content file payload is not valid base64",
+				OriginError: err,
+			}
+		}
+		if models.ContentFileSHA1(payload) != input.SHA1 {
 			return middlewares.HTTPError{
 				StatusCode: http.StatusBadRequest,
 				Message:    "content file sha1 does not match payload",
@@ -68,7 +75,7 @@ func (self *Handlers) PutContentFiles(
 		files = append(files, models.ContentFile{
 			SHA1:       input.SHA1,
 			Name:       input.Name,
-			Payload:    input.Payload,
+			Payload:    payload,
 			IsTemplate: input.IsTemplate,
 		})
 	}

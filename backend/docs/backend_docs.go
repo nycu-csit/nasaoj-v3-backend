@@ -2565,6 +2565,7 @@ const docTemplatebackend = `{
                     "type": "string"
                 },
                 "payload": {
+                    "description": "Payload is the file's content, base64-encoded.",
                     "type": "string"
                 },
                 "sha1": {
@@ -3204,7 +3205,10 @@ const docTemplatebackend = `{
                     "type": "string"
                 },
                 "payload": {
-                    "type": "string"
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "sha1": {
                     "type": "string"

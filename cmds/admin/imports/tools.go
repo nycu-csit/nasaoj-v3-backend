@@ -2,6 +2,7 @@ package imports
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
@@ -73,7 +74,7 @@ var ToolsCmd = &cobra.Command{
 				api.PutContentFilesInput{
 					SHA1:       file.SHA1,
 					Name:       file.Name,
-					Payload:    file.Payload,
+					Payload:    base64.StdEncoding.EncodeToString(file.Payload),
 					IsTemplate: file.IsTemplate,
 				})
 		}
