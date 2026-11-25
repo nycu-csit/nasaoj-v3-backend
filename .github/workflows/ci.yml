@@ -5,12 +5,21 @@ on:
     branches: [main]
 
 # Every push to main builds the judge binary and publishes it as a new
-# GitHub release tagged main-<date>-<short sha>.
-# Testing and image packaging stay in the GitLab pipeline (.gitlab/).
+# GitHub release tagged main-<date>-<short sha>, plus backend/worker images
+# on ghcr.io tagged main and main-<date>-<short sha>.
+# Testing stays in the GitLab pipeline (.gitlab/).
 permissions:
   contents: read
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        run: echo "tag=main-$(date -u +%Y%m%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -35,7 +44,7 @@ jobs:
           retention-days: 1
 
   release:
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -47,12 +56,55 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
           sha256sum judge-linux-* > SHA256SUMS
-          tag="main-$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
-          gh release create "$tag" \
+          gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "$tag" \
+            --title "$TAG" \
             --generate-notes \
             judge-linux-* SHA256SUMS
+
+  image:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: backend
+            target: backend_runtime
+          - image: worker
+            target: worker_runtime
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: judge-linux-*
+          merge-multiple: true
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=main
+            type=raw,value=${{ needs.version.outputs.tag }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: .github/Dockerfile
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
